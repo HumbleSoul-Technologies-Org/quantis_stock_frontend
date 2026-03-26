@@ -1,10 +1,12 @@
 // Auth Types
 export type UserRole = 'admin' | 'manager' | 'sales';
 export type BusinessType = 'retail';
+export type RetailSubType = 'electronics' | 'clothing' | 'food_beverage' | 'beauty' | 'home_hardware' | 'general';
 
 export interface BusinessSetup {
   businessName: string;
   businessType: BusinessType;
+  retailSubType?: RetailSubType; // Optional for backward compatibility
   currency: string; // Currency code (KES, USD, EUR, etc)
   lowStockThreshold: number; // Percentage of reorder level
   emailAlerts: boolean;
@@ -68,6 +70,7 @@ export interface Product {
   // Enhanced Fields (Optional - new)
   description?: string;
   status?: 'active' | 'discontinued'; // Default: 'active'
+  retailSubType?: RetailSubType; // For category-specific fields
   
   // Multiple Units of Measure Support
   baseUoM?: string; // Base unit identifier
@@ -85,7 +88,7 @@ export interface Product {
   // Multi-Warehouse Support
   warehouseLocations?: string[]; // Warehouse IDs where product exists
   
-  // Custom Attributes
+  // Custom Attributes & Category-Specific Fields
   customAttributes?: Record<string, any>;
   
   // Discontinuation Info
@@ -143,6 +146,45 @@ export interface Supplier {
   website?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Category-Specific Field Definitions
+export interface CategorySpecificFields {
+  electronics?: {
+    warranty?: string; // e.g., "1 year", "2 years"
+    voltage?: string; // e.g., "110-240V"
+    wattage?: string; // e.g., "65W"
+    material?: string; // e.g., "Aluminum Alloy"
+  };
+  clothing?: {
+    sizes?: string; // e.g., "S, M, L, XL"
+    material?: string; // e.g., "Cotton, Polyester"
+    careInstructions?: string; // e.g., "Machine wash cold"
+    gender?: 'mens' | 'womens' | 'unisex' | 'kids';
+    fit?: string; // e.g., "Regular, Slim, Oversized"
+  };
+  food_beverage?: {
+    ingredients?: string; // Comma-separated
+    allergens?: string; // Comma-separated
+    expiryDate?: string; // ISO date
+    storageInstructions?: string;
+    certifications?: string; // Comma-separated: "Organic, Fair Trade"
+    volume?: string; // e.g., "500ml"
+  };
+  beauty?: {
+    ingredients?: string; // Comma-separated
+    allergens?: string; // Comma-separated
+    volume?: string; // e.g., "50ml"
+    certifications?: string; // Comma-separated: "Cruelty-free, Vegan"
+    skinType?: string; // Comma-separated: "Oily, Dry, Sensitive"
+  };
+  home_hardware?: {
+    dimensions?: string; // e.g., "50x40x10 cm"
+    weight?: string; // e.g., "2.5kg"
+    material?: string; // e.g., "Solid Wood"
+    color?: string;
+    warranty?: string;
+  };
 }
 
 // Settings Types

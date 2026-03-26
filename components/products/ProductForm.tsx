@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Product,
   Supplier,
@@ -8,11 +8,16 @@ import {
   SupplierInfo,
   TrackingConfig,
   ReorderStrategy,
+  RetailSubType,
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useBusinessConfig } from "@/hooks/useBusinessConfig";
+import {
+  getFieldSchemaForCategory,
+  FieldDefinition,
+} from "@/lib/business-config";
 
 interface ProductFormProps {
   product?: Product;
@@ -29,7 +34,7 @@ export function ProductForm({
   onSubmit,
   onCancel,
 }: ProductFormProps) {
-  const { config: businessConfig } = useBusinessConfig();
+  const { config: businessConfig, retailSubType } = useBusinessConfig();
   const [formData, setFormData] = useState<Partial<Product>>(
     product || {
       name: "",
@@ -42,24 +47,23 @@ export function ProductForm({
       reorderLevel: 10,
       currentStock: 0,
       status: "active",
+      retailSubType: retailSubType,
     },
   );
 
-  const [model, setModel] = useState(product?.["model"] || "");
-  const [brand, setBrand] = useState(product?.["brand"] || "");
-  const [size, setSize] = useState(product?.["size"] || "");
-  const [color, setColor] = useState(product?.["color"] || "");
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploadedImage, setUploadedImage] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
-    advanced: false,
-    tracking: false,
-    suppliers: false,
-    reorderStrategy: false,
+    categoryFields: false,
   });
+
+  // Category-specific field state
+  const [categoryFields, setCategoryFields] = useState<Record<string, any>>(
+    product?.customAttributes || {},
+  );
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,6 +88,142 @@ export function ProductForm({
       ...expandedSections,
       [section]: !expandedSections[section],
     });
+  };
+
+  const updateCategoryField = (key: string, value: any) => {
+    setCategoryFields({
+      ...categoryFields,
+      [key]: value,
+    });
+  };
+
+  // Auto-expand category fields when category is selected
+  useEffect(() => {
+    if (formData.category) {
+      setExpandedSections({
+        ...expandedSections,
+        categoryFields: true,
+      });
+    }
+  }, [formData.category]);
+
+  // Generic field renderer for any field type
+  const renderField = (fieldDef: FieldDefinition) => {
+    const value = categoryFields[fieldDef.key] || "";
+    const containerClass = fieldDef.fullWidth ? "md:col-span-2" : "";
+
+    switch (fieldDef.type) {
+      case "text":
+        return (
+          <div key={fieldDef.key} className={containerClass}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {fieldDef.label}
+            </label>
+            <Input
+              value={value}
+              onChange={(e) =>
+                updateCategoryField(fieldDef.key, e.target.value)
+              }
+              placeholder={fieldDef.placeholder}
+              className="border-gray-200"
+            />
+          </div>
+        );
+
+      case "date":
+        return (
+          <div key={fieldDef.key} className={containerClass}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {fieldDef.label}
+            </label>
+            <Input
+              type="date"
+              value={value?.split("T")[0] || ""}
+              onChange={(e) =>
+                updateCategoryField(fieldDef.key, e.target.value)
+              }
+              className="border-gray-200"
+            />
+          </div>
+        );
+
+      case "textarea":
+        return (
+          <div key={fieldDef.key} className={containerClass}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {fieldDef.label}
+            </label>
+            <textarea
+              value={value}
+              onChange={(e) =>
+                updateCategoryField(fieldDef.key, e.target.value)
+              }
+              placeholder={fieldDef.placeholder}
+              rows={fieldDef.rows || 2}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
+            />
+          </div>
+        );
+
+      case "select":
+        return (
+          <div key={fieldDef.key} className={containerClass}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {fieldDef.label}
+            </label>
+            <select
+              value={value}
+              onChange={(e) =>
+                updateCategoryField(fieldDef.key, e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
+            >
+              <option value="">Select...</option>
+              {fieldDef.options?.map((opt) => (
+                <option key={opt} value={opt.toLowerCase()}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      case "checkbox":
+        return (
+          <div key={fieldDef.key} className={containerClass}>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                checked={value === true || value === "true"}
+                onChange={(e) =>
+                  updateCategoryField(fieldDef.key, e.target.checked)
+                }
+                className="rounded border-gray-300"
+              />
+              {fieldDef.label}
+            </label>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // Render category-specific fields based on selected category
+  const renderCategoryFields = () => {
+    const schema = getFieldSchemaForCategory(formData.category || "");
+
+    if (!schema) return null;
+
+    return (
+      <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+        <h4 className="font-medium text-gray-700">{schema.name}</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {schema.fields.map((field) => renderField(field))}
+        </div>
+      </div>
+    );
   };
 
   const validateForm = () => {
@@ -122,6 +262,7 @@ export function ProductForm({
       currentStock: formData.currentStock ?? product?.currentStock ?? 0,
       createdAt: product?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      retailSubType: formData.retailSubType || retailSubType,
 
       // Optional new fields (backward compatible)
       status: (formData.status as "active" | "discontinued") || "active",
@@ -132,7 +273,7 @@ export function ProductForm({
       suppliers: formData.suppliers,
       reorderStrategy: formData.reorderStrategy,
       warehouseLocations: formData.warehouseLocations,
-      customAttributes: formData.customAttributes,
+      customAttributes: categoryFields,
       discontinuedDate: formData.discontinuedDate,
       discontinuationReason: formData.discontinuationReason,
     };
@@ -307,54 +448,6 @@ export function ProductForm({
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Brand
-          </label>
-          <Input
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="e.g., Dell, Apple, Lenovo"
-            className="border-green-200"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Model
-          </label>
-          <Input
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="e.g., ThinkPad X1, MacBook Pro"
-            className="border-green-200"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Size
-          </label>
-          <Input
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-            placeholder="e.g., 15 inch, Large"
-            className="border-green-200"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Color
-          </label>
-          <Input
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            placeholder="e.g., Silver, Space Gray"
-            className="border-green-200"
-          />
-        </div>
-
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Product Image
@@ -386,282 +479,26 @@ export function ProductForm({
         )}
       </div>
 
-      {/* Advanced Settings Sections */}
+      {/* Category-Specific Fields */}
       <div className="space-y-3 pt-4 border-t border-gray-200">
-        {/* Product Status & Description */}
         <div className="border border-gray-200 rounded-lg">
           <button
             type="button"
-            onClick={() => toggleSection("advanced")}
-            className="w-full flex justify-between items-center p-3 hover:bg-gray-50"
-          >
-            <span className="font-medium text-gray-700">General Settings</span>
-            {expandedSections.advanced ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
-          {expandedSections.advanced && (
-            <div className="p-3 border-t border-gray-200 space-y-3 bg-gray-50">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  value={formData.status || "active"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as "active" | "discontinued",
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="active">Active</option>
-                  <option value="discontinued">Discontinued</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Product description..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
-                  rows={3}
-                />
-              </div>
-
-              {formData.status === "discontinued" && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Discontinuation Date
-                    </label>
-                    <Input
-                      type="date"
-                      value={formData.discontinuedDate?.split("T")[0] || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          discontinuedDate: e.target.value,
-                        })
-                      }
-                      className="border-gray-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Reason for Discontinuation
-                    </label>
-                    <Input
-                      value={formData.discontinuationReason || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          discontinuationReason: e.target.value,
-                        })
-                      }
-                      placeholder="e.g., Replaced by new model"
-                      className="border-gray-200"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Tracking Configuration */}
-        <div className="border border-gray-200 rounded-lg">
-          <button
-            type="button"
-            onClick={() => toggleSection("tracking")}
+            onClick={() => toggleSection("categoryFields")}
             className="w-full flex justify-between items-center p-3 hover:bg-gray-50"
           >
             <span className="font-medium text-gray-700">
-              Tracking Configuration
+              Category-Specific Fields
             </span>
-            {expandedSections.tracking ? (
+            {expandedSections.categoryFields ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
               <ChevronDown className="w-4 h-4" />
             )}
           </button>
-          {expandedSections.tracking && (
-            <div className="p-3 border-t border-gray-200 space-y-3 bg-gray-50">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.tracking?.trackByBatch || false}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tracking: {
-                        ...formData.tracking,
-                        trackByBatch: e.target.checked,
-                      },
-                    })
-                  }
-                  className="w-4 h-4"
-                />
-                <span className="text-sm text-gray-700">
-                  Track by Batch Number
-                </span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.tracking?.trackBySerial || false}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tracking: {
-                        ...formData.tracking,
-                        trackBySerial: e.target.checked,
-                      },
-                    })
-                  }
-                  className="w-4 h-4"
-                />
-                <span className="text-sm text-gray-700">
-                  Track by Serial Number
-                </span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.tracking?.requireExpiryDate || false}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tracking: {
-                        ...formData.tracking,
-                        requireExpiryDate: e.target.checked,
-                      },
-                    })
-                  }
-                  className="w-4 h-4"
-                />
-                <span className="text-sm text-gray-700">
-                  Require Expiry Date
-                </span>
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Reorder Strategy */}
-        <div className="border border-gray-200 rounded-lg">
-          <button
-            type="button"
-            onClick={() => toggleSection("reorderStrategy")}
-            className="w-full flex justify-between items-center p-3 hover:bg-gray-50"
-          >
-            <span className="font-medium text-gray-700">
-              Advanced Reorder Strategy
-            </span>
-            {expandedSections.reorderStrategy ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
-          {expandedSections.reorderStrategy && (
-            <div className="p-3 border-t border-gray-200 space-y-3 bg-gray-50">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reorder Strategy Type
-                </label>
-                <select
-                  value={formData.reorderStrategy?.type || "fixed"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      reorderStrategy: {
-                        ...formData.reorderStrategy,
-                        type: e.target.value as
-                          | "fixed"
-                          | "seasonal"
-                          | "automated",
-                      },
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="fixed">Fixed Level</option>
-                  <option value="seasonal">Seasonal</option>
-                  <option value="automated">Automated</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Safety Stock
-                  </label>
-                  <Input
-                    type="number"
-                    value={formData.reorderStrategy?.safetyStock || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        reorderStrategy: {
-                          ...formData.reorderStrategy,
-                          safetyStock: parseInt(e.target.value),
-                        },
-                      })
-                    }
-                    placeholder="e.g., 5"
-                    className="border-gray-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lead Time (days)
-                  </label>
-                  <Input
-                    type="number"
-                    value={formData.reorderStrategy?.leadTimeDays || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        reorderStrategy: {
-                          ...formData.reorderStrategy,
-                          leadTimeDays: parseInt(e.target.value),
-                        },
-                      })
-                    }
-                    placeholder="e.g., 7"
-                    className="border-gray-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Economic Order Quantity
-                </label>
-                <Input
-                  type="number"
-                  value={formData.reorderStrategy?.economicOrderQuantity || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      reorderStrategy: {
-                        ...formData.reorderStrategy,
-                        economicOrderQuantity: parseInt(e.target.value),
-                      },
-                    })
-                  }
-                  placeholder="e.g., 50"
-                  className="border-gray-200"
-                />
-              </div>
+          {expandedSections.categoryFields && (
+            <div className="p-3 border-t border-gray-200">
+              {renderCategoryFields()}
             </div>
           )}
         </div>
