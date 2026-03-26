@@ -19,7 +19,7 @@ export function ProductInventoryCard({
   movements,
   onStockIn,
 }: ProductInventoryCardProps) {
-  const { settings } = useSettings();
+  const { settings, getDecimalPlaces } = useSettings();
 
   const lastMovement = movements
     .filter((m) => m.productId === product.id)
@@ -139,7 +139,7 @@ export function ProductInventoryCard({
             </span>
             <span className="font-medium text-gray-900 dark:text-teal-300">
               {settings?.currency?.symbol}
-              {product.unitPrice.toFixed(2)}
+              {product.unitPrice.toFixed(getDecimalPlaces())}
             </span>
           </div>
           <div className="flex justify-between">

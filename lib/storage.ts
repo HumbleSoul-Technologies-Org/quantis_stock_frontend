@@ -23,6 +23,16 @@ const DEFAULT_SETTINGS: AppSettings = {
     contactEmail: 'contact@company.com',
     theme: 'light',
   },
+  credentials: {
+    teamUsers: [],
+    passwordPolicy: {
+      minLength: 8,
+      requireMixedCase: true,
+      requireNumbers: true,
+      requireSpecialChars: false,
+    },
+    sessionTimeout: 30,
+  },
 };
 
 const DEFAULT_USERS: User[] = [
@@ -386,7 +396,26 @@ class StorageService {
 
   updateSettings(settings: Partial<AppSettings>): void {
     const state = this.getState();
-    state.settings = { ...state.settings, ...settings };
+    // Deep merge for nested objects
+    const updatedCredentials = settings.credentials
+      ? {
+          ...state.settings.credentials,
+          ...settings.credentials,
+          passwordPolicy: settings.credentials.passwordPolicy
+            ? { ...state.settings.credentials.passwordPolicy, ...settings.credentials.passwordPolicy }
+            : state.settings.credentials.passwordPolicy,
+        }
+      : state.settings.credentials;
+
+    state.settings = {
+      ...state.settings,
+      ...settings,
+      currency: { ...state.settings.currency, ...settings.currency },
+      units: { ...state.settings.units, ...settings.units },
+      notifications: { ...state.settings.notifications, ...settings.notifications },
+      general: { ...state.settings.general, ...settings.general },
+      credentials: updatedCredentials,
+    };
     this.saveState(state);
   }
 

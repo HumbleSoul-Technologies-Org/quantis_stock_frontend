@@ -1,16 +1,26 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AppSettings } from '@/lib/types';
-import { storage } from '@/lib/storage';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { AppSettings } from "@/lib/types";
+import { storage } from "@/lib/storage";
 
 interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
   formatCurrency: (amount: number) => string;
+  getCurrencySymbol: () => string;
+  getDecimalPlaces: () => number;
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined,
+);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -34,12 +44,28 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return `${currency.symbol}${formatted}`;
   };
 
+  const getCurrencySymbol = (): string => {
+    return settings?.currency?.symbol || "$";
+  };
+
+  const getDecimalPlaces = (): number => {
+    return settings?.currency?.decimalPlaces || 2;
+  };
+
   if (!settings) {
     return <>{children}</>;
   }
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, formatCurrency }}>
+    <SettingsContext.Provider
+      value={{
+        settings,
+        updateSettings,
+        formatCurrency,
+        getCurrencySymbol,
+        getDecimalPlaces,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );
@@ -48,7 +74,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
-    throw new Error('useSettings must be used within a SettingsProvider');
+    throw new Error("useSettings must be used within a SettingsProvider");
   }
   return context;
 }

@@ -190,6 +190,17 @@ export interface CategorySpecificFields {
   };
 }
 
+// Team User Type (for credentials management)
+export interface TeamUser {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: 'sales' | 'accountant' | 'manager';
+  createdAt: string;
+  lastLogin: string | null;
+}
+
 // Settings Types
 export interface AppSettings {
   currency: {
@@ -212,6 +223,16 @@ export interface AppSettings {
     companyName: string;
     contactEmail: string;
     theme: 'light' | 'dark';
+  };
+  credentials: {
+    teamUsers: TeamUser[];
+    passwordPolicy?: {
+      minLength: number;
+      requireMixedCase: boolean;
+      requireNumbers: boolean;
+      requireSpecialChars: boolean;
+    };
+    sessionTimeout?: number; // minutes
   };
 }
 

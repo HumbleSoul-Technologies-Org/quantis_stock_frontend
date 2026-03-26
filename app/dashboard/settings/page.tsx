@@ -33,9 +33,7 @@ export default function SettingsPage() {
           <TabsTrigger value="general" className="text-xs md:text-sm">
             General
           </TabsTrigger>
-          <TabsTrigger value="currency" className="text-xs md:text-sm">
-            Currency
-          </TabsTrigger>
+
           <TabsTrigger value="units" className="text-xs md:text-sm">
             Units
           </TabsTrigger>
@@ -56,10 +54,6 @@ export default function SettingsPage() {
             onUpdateBusiness={updateBusinessSetup}
             onUpdateGeneral={updateSettings}
           />
-        </TabsContent>
-
-        <TabsContent value="currency" className="space-y-4">
-          <CurrencySettings settings={settings} onUpdate={updateSettings} />
         </TabsContent>
 
         <TabsContent value="units" className="space-y-4">
