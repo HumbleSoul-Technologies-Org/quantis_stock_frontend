@@ -1,23 +1,31 @@
-'use client';
+"use client";
 
-import { Sidebar } from '@/components/shared/Sidebar';
-import { TopNav } from '@/components/shared/TopNav';
-import { Breadcrumb } from '@/components/shared/Breadcrumb';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { Sidebar } from "@/components/shared/Sidebar";
+import { TopNav } from "@/components/shared/TopNav";
+import { Breadcrumb } from "@/components/shared/Breadcrumb";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/auth/login');
+    if (!isLoading) {
+      if (!user) {
+        router.push("/auth/login");
+      } else if (!user.businessSetup) {
+        router.push("/onboarding");
+      }
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !user.businessSetup) {
     return (
       <div className="flex items-center justify-center h-screen bg-white dark:bg-slate-900">
         <div className="text-center">

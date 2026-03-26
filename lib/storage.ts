@@ -31,6 +31,17 @@ const DEFAULT_USERS: User[] = [
     username: 'admin',
     password: 'admin123', // In production, this would be hashed
     role: 'admin',
+    businessSetup: {
+      businessName: 'Demo Retail Store',
+      businessType: 'retail',
+      currency: 'KES',
+      lowStockThreshold: 20,
+      emailAlerts: true,
+      smsAlerts: false,
+      lowStockAlerts: true,
+      saleNotifications: true,
+      setupCompletedAt: new Date().toISOString(),
+    },
     createdAt: new Date().toISOString(),
   },
   {
@@ -38,6 +49,17 @@ const DEFAULT_USERS: User[] = [
     username: 'manager',
     password: 'manager123',
     role: 'manager',
+    businessSetup: {
+      businessName: 'Demo Retail Store',
+      businessType: 'retail',
+      currency: 'KES',
+      lowStockThreshold: 20,
+      emailAlerts: true,
+      smsAlerts: false,
+      lowStockAlerts: true,
+      saleNotifications: true,
+      setupCompletedAt: new Date().toISOString(),
+    },
     createdAt: new Date().toISOString(),
   },
   {
@@ -45,6 +67,17 @@ const DEFAULT_USERS: User[] = [
     username: 'sales',
     password: 'sales123',
     role: 'sales',
+    businessSetup: {
+      businessName: 'Demo Retail Store',
+      businessType: 'retail',
+      currency: 'KES',
+      lowStockThreshold: 20,
+      emailAlerts: true,
+      smsAlerts: false,
+      lowStockAlerts: true,
+      saleNotifications: true,
+      setupCompletedAt: new Date().toISOString(),
+    },
     createdAt: new Date().toISOString(),
   },
 ];
@@ -199,6 +232,27 @@ class StorageService {
       return true;
     }
     return false;
+  }
+
+  // Business Setup
+  updateBusinessSetup(userId: string, businessSetup: any): boolean {
+    const state = this.getState();
+    const user = state.users.find((u) => u.id === userId);
+    if (user) {
+      user.businessSetup = businessSetup;
+      if (state.currentUser?.id === userId) {
+        state.currentUser = user;
+      }
+      this.saveState(state);
+      return true;
+    }
+    return false;
+  }
+
+  getBusinessSetup(userId: string): any | null {
+    const state = this.getState();
+    const user = state.users.find((u) => u.id === userId);
+    return user?.businessSetup || null;
   }
 
   // Products

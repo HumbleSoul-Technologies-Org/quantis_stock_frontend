@@ -12,10 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useBusinessConfig } from "@/hooks/useBusinessConfig";
 
 interface ProductFormProps {
   product?: Product;
   suppliers: Supplier[];
+  categories?: string[];
   onSubmit: (product: Product) => void;
   onCancel: () => void;
 }
@@ -23,9 +25,11 @@ interface ProductFormProps {
 export function ProductForm({
   product,
   suppliers,
+  categories = [],
   onSubmit,
   onCancel,
 }: ProductFormProps) {
+  const { config: businessConfig } = useBusinessConfig();
   const [formData, setFormData] = useState<Partial<Product>>(
     product || {
       name: "",
@@ -69,15 +73,11 @@ export function ProductForm({
     }
   };
 
-  const units = ["units", "kg", "lbs", "oz", "L", "ml", "gallons", "boxes"];
-  const categories = [
-    "Electronics",
-    "Accessories",
-    "Cables",
-    "Software",
-    "Hardware",
-    "Other",
-  ];
+  const units = businessConfig.units;
+  const defaultCategories = businessConfig.categories;
+  const mergedCategories = Array.from(
+    new Set([...categories, ...defaultCategories]),
+  ).sort();
 
   const toggleSection = (section: string) => {
     setExpandedSections({
@@ -119,7 +119,7 @@ export function ProductForm({
       unit: formData.unit || "units",
       supplierId: formData.supplierId || "",
       reorderLevel: formData.reorderLevel || 10,
-      currentStock: product?.currentStock || 0,
+      currentStock: formData.currentStock ?? product?.currentStock ?? 0,
       createdAt: product?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
 
@@ -187,7 +187,7 @@ export function ProductForm({
             }`}
           >
             <option value="">Select category</option>
-            {categories.map((cat) => (
+            {mergedCategories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>

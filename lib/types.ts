@@ -1,11 +1,25 @@
 // Auth Types
 export type UserRole = 'admin' | 'manager' | 'sales';
+export type BusinessType = 'retail';
+
+export interface BusinessSetup {
+  businessName: string;
+  businessType: BusinessType;
+  currency: string; // Currency code (KES, USD, EUR, etc)
+  lowStockThreshold: number; // Percentage of reorder level
+  emailAlerts: boolean;
+  smsAlerts: boolean;
+  lowStockAlerts: boolean;
+  saleNotifications: boolean;
+  setupCompletedAt: string;
+}
 
 export interface User {
   id: string;
   username: string;
   password: string; // hashed in production
   role: UserRole;
+  businessSetup?: BusinessSetup; // Optional for backward compatibility
   createdAt: string;
 }
 

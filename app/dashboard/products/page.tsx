@@ -60,6 +60,7 @@ function ProductsPageContent() {
         isOpen={showDialog}
         product={editingProduct}
         suppliers={suppliers}
+        categories={categories}
         onSubmit={handleAddProduct}
         onOpenChange={(open) => {
           setShowDialog(open);
