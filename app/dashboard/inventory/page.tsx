@@ -8,6 +8,7 @@ import { ClientOnly } from "@/components/client-only";
 import { StockMovementForm } from "@/components/inventory/StockMovementForm";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { ProductInventoryCard } from "@/components/inventory/ProductInventoryCard";
+import { StockHistoryTable } from "@/components/inventory/StockHistoryTable";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, AlertTriangle, Search } from "lucide-react";
+import { Plus, AlertTriangle, Search, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function InventoryPageContent() {
@@ -29,6 +30,11 @@ function InventoryPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
+
+  // Stock in history filters
+  const [historyProductFilter, setHistoryProductFilter] = useState("");
+  const [historyDateFrom, setHistoryDateFrom] = useState("");
+  const [historyDateTo, setHistoryDateTo] = useState("");
 
   useEffect(() => {
     const productId = searchParams.get("productId");
@@ -73,6 +79,38 @@ function InventoryPageContent() {
     setSelectedProductId(product.id);
     setShowDialog(true);
   };
+
+  // Filter stock in movements for history section
+  const stockInMovements = stockMovements.filter((m) => m.type === "in");
+
+  const filteredStockInHistory = useMemo(() => {
+    return stockInMovements.filter((movement) => {
+      const matchesProduct =
+        !historyProductFilter || movement.productId === historyProductFilter;
+
+      let matchesDateRange = true;
+      if (historyDateFrom || historyDateTo) {
+        const movementDate = new Date(movement.createdAt).toDateString();
+        if (historyDateFrom) {
+          const fromDate = new Date(historyDateFrom).toDateString();
+          matchesDateRange = matchesDateRange && movementDate >= fromDate;
+        }
+        if (historyDateTo) {
+          const toDate = new Date(historyDateTo).toDateString();
+          matchesDateRange = matchesDateRange && movementDate <= toDate;
+        }
+      }
+
+      return matchesProduct && matchesDateRange;
+    });
+  }, [stockInMovements, historyProductFilter, historyDateFrom, historyDateTo]);
+
+  // Calculate stock in summary stats
+  const totalUnitsStockedIn = filteredStockInHistory.reduce(
+    (sum, m) => sum + m.quantity,
+    0,
+  );
+  const totalStockInTransactions = filteredStockInHistory.length;
 
   return (
     <div className="space-y-6">
@@ -227,6 +265,125 @@ function InventoryPageContent() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Stock In History Section */}
+      <div className="space-y-4 pt-6 border-t border-gray-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+              Stock In History
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Track all incoming stock movements
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-green-200 border-2 bg-green-50">
+            <CardContent className="pt-6">
+              <p className="text-sm text-gray-600 mb-1">
+                Total Units Stocked In
+              </p>
+              <p className="text-3xl font-bold text-green-700">
+                {totalUnitsStockedIn}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Based on current filters
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-blue-200 border-2 bg-blue-50">
+            <CardContent className="pt-6">
+              <p className="text-sm text-gray-600 mb-1">
+                Stock In Transactions
+              </p>
+              <p className="text-3xl font-bold text-blue-700">
+                {totalStockInTransactions}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Number of stock in records
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+          <h3 className="font-semibold text-gray-900">
+            Filter Stock In History
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Product
+              </label>
+              <select
+                value={historyProductFilter}
+                onChange={(e) => setHistoryProductFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-green-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">All Products</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} ({product.sku})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                From Date
+              </label>
+              <Input
+                type="date"
+                value={historyDateFrom}
+                onChange={(e) => setHistoryDateFrom(e.target.value)}
+                className="border-green-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                To Date
+              </label>
+              <Input
+                type="date"
+                value={historyDateTo}
+                onChange={(e) => setHistoryDateTo(e.target.value)}
+                className="border-green-200"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setHistoryProductFilter("");
+                setHistoryDateFrom("");
+                setHistoryDateTo("");
+              }}
+              className="text-gray-700"
+            >
+              Clear Filters
+            </Button>
+            <p className="text-xs text-gray-500 self-center ml-auto">
+              {filteredStockInHistory.length} record(s) found
+            </p>
+          </div>
+        </div>
+
+        {/* Stock History Table */}
+        <StockHistoryTable
+          movements={filteredStockInHistory}
+          products={products}
+        />
       </div>
     </div>
   );

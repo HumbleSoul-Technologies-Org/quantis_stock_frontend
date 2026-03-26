@@ -3,7 +3,13 @@
 import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit2, Trash2, AlertCircle, Plus } from "lucide-react";
+import { AlertCircle, MoreVertical, Edit2, Plus, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSettings } from "@/context/SettingsContext";
 
 interface ProductTableProps {
@@ -79,10 +85,7 @@ export function ProductTable({
                   <th className="text-center p-3 font-semibold text-gray-700">
                     Status
                   </th>
-                  <th
-                    className="text-center p-3 font-semibold text-gray-700"
-                    colSpan={2}
-                  >
+                  <th className="text-center p-3 font-semibold text-gray-700">
                     Actions
                   </th>
                 </tr>
@@ -123,35 +126,41 @@ export function ProductTable({
                       )}
                     </td>
                     <td className="p-3 text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onStockIn(product)}
-                        className="text-green-600 hover:bg-green-50 gap-1"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Stock In
-                      </Button>
-                    </td>
-                    <td className="p-3 text-center">
-                      <div className="flex justify-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(product)}
-                          className="text-blue-600 hover:bg-blue-50"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDelete(product.id)}
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => onEdit(product)}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onStockIn(product)}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Stock In
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onDelete(product.id)}
+                            variant="destructive"
+                            className="cursor-pointer gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
