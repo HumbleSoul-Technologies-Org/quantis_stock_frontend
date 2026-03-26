@@ -24,6 +24,7 @@ export function SalesForm({
   currentUsername,
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
+
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -96,6 +97,9 @@ export function SalesForm({
       notes,
       createdBy: currentUserId,
       createdAt: new Date().toISOString(),
+      customerName,
+      paymentType,
+      txnId: paymentType !== "cash" ? txnId : undefined,
     };
 
     onSubmit(sale);

@@ -124,6 +124,9 @@ export interface Sale {
   notes: string;
   createdBy: string;
   createdAt: string;
+  customerName?: string;
+  paymentType?: string;
+  txnId?: string;
 }
 
 export interface SaleItem {

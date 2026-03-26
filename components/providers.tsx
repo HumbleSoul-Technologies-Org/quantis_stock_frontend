@@ -1,10 +1,12 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { AuthProvider } from '@/context/AuthContext';
-import { SettingsProvider } from '@/context/SettingsContext';
-import { DataProvider } from '@/context/DataContext';
-import ThemeProvider from '@/components/theme-provider';
+import { ReactNode } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "@/context/SettingsContext";
+import { DataProvider } from "@/context/DataContext";
+import ThemeProvider from "@/components/theme-provider";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -13,13 +15,13 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <AuthProvider>
-        <SettingsProvider>
-          <DataProvider>
-            {children}
-          </DataProvider>
-        </SettingsProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SettingsProvider>
+            <DataProvider>{children}</DataProvider>
+          </SettingsProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

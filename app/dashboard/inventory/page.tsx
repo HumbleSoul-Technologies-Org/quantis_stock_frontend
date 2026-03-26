@@ -9,6 +9,7 @@ import { StockMovementForm } from "@/components/inventory/StockMovementForm";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { ProductInventoryCard } from "@/components/inventory/ProductInventoryCard";
 import { StockHistoryTable } from "@/components/inventory/StockHistoryTable";
+import { Product, StockMovement } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -45,9 +46,11 @@ function InventoryPageContent() {
   }, [searchParams]);
 
   const lowStockItems = products.filter(
-    (p) => p.currentStock <= p.reorderLevel,
+    (p: Product) => p.currentStock <= p.reorderLevel,
   );
-  const categories = Array.from(new Set(products.map((p) => p.category)));
+  const categories = Array.from(
+    new Set(products.map((p: Product) => p.category)),
+  );
 
   // Filter products based on search and filters
   const filteredProducts = useMemo(() => {
@@ -81,10 +84,12 @@ function InventoryPageContent() {
   };
 
   // Filter stock in movements for history section
-  const stockInMovements = stockMovements.filter((m) => m.type === "in");
+  const stockInMovements = stockMovements.filter(
+    (m: StockMovement) => m.type === "in",
+  );
 
   const filteredStockInHistory = useMemo(() => {
-    return stockInMovements.filter((movement) => {
+    return stockInMovements.filter((movement: StockMovement) => {
       const matchesProduct =
         !historyProductFilter || movement.productId === historyProductFilter;
 
@@ -107,7 +112,7 @@ function InventoryPageContent() {
 
   // Calculate stock in summary stats
   const totalUnitsStockedIn = filteredStockInHistory.reduce(
-    (sum, m) => sum + m.quantity,
+    (sum: number, m: any) => sum + m.quantity,
     0,
   );
   const totalStockInTransactions = filteredStockInHistory.length;
