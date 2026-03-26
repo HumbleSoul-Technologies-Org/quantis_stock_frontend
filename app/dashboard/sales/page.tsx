@@ -3,21 +3,21 @@
 import { useState, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { ClientOnly } from "@/components/client-only";
-import { SalesDialog } from "@/components/sales/SalesDialog";
+import { SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, X } from "lucide-react";
+import { Search, X, TrendingUp, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
 
 function SalesPageContent() {
   const { products, sales, addSale, deleteSale } = useData();
   const { user } = useAuth();
+  const { formatCurrency } = useSettings();
 
-  const [showDialog, setShowDialog] = useState(false);
-
-  // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -26,13 +26,38 @@ function SalesPageContent() {
 
   const handleAddSale = (sale: any) => {
     addSale(sale);
-    setShowDialog(false);
   };
 
   const userSales =
     user?.role === "sales"
       ? sales.filter((s: any) => s.createdBy === user.id)
       : sales;
+
+  // Calculate today's sales
+  const todaysSales = useMemo(() => {
+    const today = new Date().toDateString();
+    return userSales.filter(
+      (s: any) => new Date(s.date).toDateString() === today,
+    );
+  }, [userSales]);
+
+  // Calculate total sales for today
+  const totalSalesToday = useMemo(() => {
+    return todaysSales.reduce(
+      (sum: number, sale: any) => sum + sale.totalAmount,
+      0,
+    );
+  }, [todaysSales]);
+
+  // Get last sale time
+  const lastSaleTime = useMemo(() => {
+    if (todaysSales.length === 0) return null;
+    const lastSale = todaysSales.sort(
+      (a: any, b: any) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
+    return new Date(lastSale.createdAt);
+  }, [todaysSales]);
 
   // Filter sales based on search and filters
   const filteredSales = useMemo(() => {
@@ -106,32 +131,75 @@ function SalesPageContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sales</h1>
-          <p className="text-gray-600 mt-2">
-            Create and manage sales transactions
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowDialog(true)}
-          className="bg-green-600 hover:bg-green-700 gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Sale
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Sales</h1>
+        <p className="text-gray-600 mt-2">
+          Create and manage sales transactions
+        </p>
       </div>
 
-      {user && (
-        <SalesDialog
-          isOpen={showDialog}
-          products={products}
-          onSubmit={handleAddSale}
-          onOpenChange={setShowDialog}
-          currentUserId={user.id}
-          currentUsername={user.username}
-        />
-      )}
+      {/* Hero Section: Stats on Left, Form on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Statistics */}
+        <div className="space-y-4">
+          {/* Total Sales Today */}
+          <Card className="border-green-200 border-2 bg-green-50 dark:bg-slate-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                <TrendingUp className="w-5 h-5" />
+                Today's Sales
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(totalSalesToday)}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                {todaysSales.length} transaction
+                {todaysSales.length !== 1 ? "s" : ""}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Last Sale Time */}
+          <Card className="border-blue-200 border-2 bg-blue-50 dark:bg-slate-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Clock className="w-5 h-5" />
+                Last Sale
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {lastSaleTime ? format(lastSaleTime, "h:mm a") : "No sales yet"}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                {lastSaleTime ? format(lastSaleTime, "MMMM dd, yyyy") : "Today"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Sales Form */}
+        <div className="lg:col-span-2">
+          <Card className="border-green-200 border-2">
+            <CardHeader>
+              <CardTitle>Record New Sale</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user && (
+                <SalesForm
+                  products={products}
+                  onSubmit={handleAddSale}
+                  onCancel={() => {}}
+                  currentUserId={user.id}
+                  currentUsername={user.username}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Search and Filters Section */}
       <div className="space-y-4">
