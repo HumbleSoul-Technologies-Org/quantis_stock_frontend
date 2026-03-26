@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useData } from '@/context/DataContext';
-import { Product } from '@/lib/types';
-import { ProductDialog } from '@/components/products/ProductDialog';
-import { ProductTable } from '@/components/products/ProductTable';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
+import { useState } from "react";
+import { useData } from "@/context/DataContext";
+import { Product } from "@/lib/types";
+import { ClientOnly } from "@/components/client-only";
+import { ProductDialog } from "@/components/products/ProductDialog";
+import { ProductTable } from "@/components/products/ProductTable";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 
-export default function ProductsPage() {
-  const { products, suppliers, addProduct, updateProduct, deleteProduct } = useData();
+function ProductsPageContent() {
+  const { products, suppliers, addProduct, updateProduct, deleteProduct } =
+    useData();
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   const categories = Array.from(new Set(products.map((p) => p.category)));
 
@@ -45,7 +47,10 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Products</h1>
           <p className="text-gray-600 mt-2">Manage your product inventory</p>
         </div>
-        <Button onClick={() => setShowDialog(true)} className="bg-green-600 hover:bg-green-700 gap-2">
+        <Button
+          onClick={() => setShowDialog(true)}
+          className="bg-green-600 hover:bg-green-700 gap-2"
+        >
           <Plus className="w-4 h-4" />
           Add Product
         </Button>
@@ -95,5 +100,13 @@ export default function ProductsPage() {
         categoryFilter={categoryFilter}
       />
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <ClientOnly>
+      <ProductsPageContent />
+    </ClientOnly>
   );
 }

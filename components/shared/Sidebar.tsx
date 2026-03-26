@@ -1,11 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { LayoutDashboard, Package, Truck, ShoppingCart, BarChart3, Users, Settings, HelpCircle, LogOut, Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import {
+  LayoutDashboard,
+  Package,
+  Truck,
+  ShoppingCart,
+  BarChart3,
+  Users,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function Sidebar() {
   const { user } = useAuth();
@@ -16,21 +28,63 @@ export function Sidebar() {
   if (!user) return null;
 
   const menuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager'] },
-    { href: '/dashboard/products', label: 'Products', icon: Package, roles: ['admin', 'manager'] },
-    { href: '/dashboard/inventory', label: 'Inventory', icon: Truck, roles: ['admin', 'manager'] },
-    { href: '/dashboard/sales', label: 'Sales', icon: ShoppingCart, roles: ['admin', 'manager', 'sales'] },
-    { href: '/dashboard/suppliers', label: 'Suppliers', icon: Users, roles: ['admin', 'manager'] },
-    { href: '/dashboard/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'] },
-    { href: '/dashboard/settings', label: 'Settings', icon: Settings, roles: ['admin', 'manager'] },
-    { href: '/dashboard/help', label: 'Help', icon: HelpCircle, roles: ['admin', 'manager', 'sales'] },
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      roles: ["admin", "manager"],
+    },
+    {
+      href: "/dashboard/products",
+      label: "Products",
+      icon: Package,
+      roles: ["admin", "manager"],
+    },
+    {
+      href: "/dashboard/inventory",
+      label: "Inventory",
+      icon: Truck,
+      roles: ["admin", "manager"],
+    },
+    {
+      href: "/dashboard/sales",
+      label: "Sales",
+      icon: ShoppingCart,
+      roles: ["admin", "manager", "sales"],
+    },
+    {
+      href: "/dashboard/suppliers",
+      label: "Suppliers",
+      icon: Users,
+      roles: ["admin", "manager"],
+    },
+    {
+      href: "/dashboard/reports",
+      label: "Reports",
+      icon: BarChart3,
+      roles: ["admin", "manager"],
+    },
+    {
+      href: "/dashboard/settings",
+      label: "Settings",
+      icon: Settings,
+      roles: ["admin", "manager"],
+    },
+    {
+      href: "/dashboard/help",
+      label: "Help",
+      icon: HelpCircle,
+      roles: ["admin", "manager", "sales"],
+    },
   ];
 
-  const visibleItems = menuItems.filter((item) => item.roles.includes(user.role));
+  const visibleItems = menuItems.filter((item) =>
+    item.roles.includes(user.role),
+  );
 
   const handleLogout = () => {
     // logout handled in top nav
-    router.push('/auth/login');
+    router.push("/auth/login");
   };
 
   return (
@@ -41,10 +95,16 @@ export function Sidebar() {
           onClick={() => setIsMobileOpen(!isMobileOpen)}
           className="p-2 hover:bg-green-100 dark:hover:bg-teal-800 rounded-lg"
         >
-          {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {isMobileOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Menu className="w-6 h-6" />
+          )}
         </button>
         <div>
-          <h1 className="text-lg font-bold text-green-700 dark:text-green-300">StockOS</h1>
+          <h1 className="text-lg font-bold text-green-700 dark:text-green-300">
+            StockOS
+          </h1>
         </div>
         <div className="w-10" />
       </div>
@@ -60,18 +120,22 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`fixed lg:relative w-64 bg-gradient-to-b from-green-50 to-white dark:from-slate-800 dark:to-slate-900 border-r border-green-200 dark:border-teal-700 h-screen overflow-y-auto transition-transform duration-300 z-40 lg:translate-x-0 ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="p-4 lg:p-6 mt-14 lg:mt-0">
-          <h1 className="text-2xl font-bold text-green-700 dark:text-green-300">StockOS</h1>
-          <p className="text-sm text-green-600 dark:text-teal-400 mt-1">Stock Management</p>
+          <h1 className="text-2xl font-bold text-green-700 dark:text-green-300">
+            StockOS
+          </h1>
+          <p className="text-sm text-green-600 dark:text-teal-400 mt-1">
+            Stock Management
+          </p>
         </div>
 
         <nav className="px-4 py-6 space-y-2">
           {visibleItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -82,8 +146,8 @@ export function Sidebar() {
                   variant="ghost"
                   className={`w-full justify-start text-left ${
                     isActive
-                      ? 'bg-teal-700 dark:bg-teal-700 text-white dark:text-white font-semibold'
-                      : 'hover:bg-green-100 dark:hover:bg-teal-800 hover:text-green-700 dark:hover:text-teal-300 text-gray-700 dark:text-gray-300'
+                      ? "bg-teal-700 dark:bg-teal-700 text-white dark:text-white font-semibold"
+                      : "hover:bg-green-100 dark:hover:bg-teal-800 hover:text-green-700 dark:hover:text-teal-300 text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
@@ -96,9 +160,15 @@ export function Sidebar() {
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-teal-700 dark:border-teal-700 bg-green-50 dark:bg-slate-800">
           <div className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-            <p className="font-semibold text-gray-700 dark:text-teal-300">Logged in as</p>
-            <p className="text-green-700 dark:text-teal-400 truncate">{user.username}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 capitalize">{user.role}</p>
+            <p className="font-semibold text-gray-700 dark:text-teal-300">
+              Logged in as
+            </p>
+            <p className="text-green-700 dark:text-teal-400 truncate">
+              {user.username}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 capitalize">
+              {user.role}
+            </p>
           </div>
         </div>
       </aside>

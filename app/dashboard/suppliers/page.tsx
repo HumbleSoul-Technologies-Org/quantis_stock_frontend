@@ -1,19 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useData } from '@/context/DataContext';
-import { Supplier } from '@/lib/types';
-import { SupplierDialog } from '@/components/suppliers/SupplierDialog';
-import { SupplierTable } from '@/components/suppliers/SupplierTable';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
+import { useState } from "react";
+import { useData } from "@/context/DataContext";
+import { Supplier } from "@/lib/types";
+import { ClientOnly } from "@/components/client-only";
+import { SupplierDialog } from "@/components/suppliers/SupplierDialog";
+import { SupplierTable } from "@/components/suppliers/SupplierTable";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 
-export default function SuppliersPage() {
+function SuppliersPageContent() {
   const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useData();
   const [showDialog, setShowDialog] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | undefined>();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [editingSupplier, setEditingSupplier] = useState<
+    Supplier | undefined
+  >();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleAddSupplier = (supplier: Supplier) => {
     if (editingSupplier) {
@@ -39,9 +42,14 @@ export default function SuppliersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Suppliers</h1>
-          <p className="text-gray-600 mt-2">Manage your supplier contacts and information</p>
+          <p className="text-gray-600 mt-2">
+            Manage your supplier contacts and information
+          </p>
         </div>
-        <Button onClick={handleOpenDialog} className="bg-green-600 hover:bg-green-700 gap-2">
+        <Button
+          onClick={handleOpenDialog}
+          className="bg-green-600 hover:bg-green-700 gap-2"
+        >
           <Plus className="w-4 h-4" />
           Add Supplier
         </Button>
@@ -66,7 +74,20 @@ export default function SuppliersPage() {
         className="border-green-200"
       />
 
-      <SupplierTable suppliers={suppliers} onEdit={handleEditSupplier} onDelete={deleteSupplier} searchTerm={searchTerm} />
+      <SupplierTable
+        suppliers={suppliers}
+        onEdit={handleEditSupplier}
+        onDelete={deleteSupplier}
+        searchTerm={searchTerm}
+      />
     </div>
+  );
+}
+
+export default function SuppliersPage() {
+  return (
+    <ClientOnly>
+      <SuppliersPageContent />
+    </ClientOnly>
   );
 }

@@ -9,20 +9,74 @@ export interface User {
   createdAt: string;
 }
 
-// Product Types
+// Product Types - Extended ERP Support
+export interface UnitOfMeasure {
+  unit: string;
+  conversionFactor: number; // Relative to base unit
+}
+
+export interface SupplierInfo {
+  supplierId: string;
+  leadTimeDays: number;
+  minOrderQuantity: number;
+  costPrice: number;
+  isPreferred?: boolean;
+}
+
+export interface TrackingConfig {
+  trackByBatch?: boolean;
+  trackBySerial?: boolean;
+  requireExpiryDate?: boolean;
+}
+
+export interface ReorderStrategy {
+  type?: 'fixed' | 'seasonal' | 'automated'; // Default: 'fixed'
+  safetyStock?: number; // Buffer stock
+  leadTimeDays?: number; // Supplier lead time
+  economicOrderQuantity?: number; // Optimal order size
+}
+
 export interface Product {
+  // Core Fields (Required - existing)
   id: string;
   name: string;
   sku: string;
   category: string;
   unitPrice: number;
   costPrice: number;
-  unit: string; // kg, lbs, units, etc
+  unit: string; // kg, lbs, units, etc (base unit)
   supplierId: string;
   reorderLevel: number;
   currentStock: number;
   createdAt: string;
   updatedAt: string;
+
+  // Enhanced Fields (Optional - new)
+  description?: string;
+  status?: 'active' | 'discontinued'; // Default: 'active'
+  
+  // Multiple Units of Measure Support
+  baseUoM?: string; // Base unit identifier
+  alternateUoMs?: UnitOfMeasure[]; // Conversion rates
+  
+  // Tracking Configuration
+  tracking?: TrackingConfig;
+  
+  // Multiple Suppliers Support
+  suppliers?: SupplierInfo[]; // Additional supplier options
+  
+  // Advanced Reorder Strategy
+  reorderStrategy?: ReorderStrategy;
+  
+  // Multi-Warehouse Support
+  warehouseLocations?: string[]; // Warehouse IDs where product exists
+  
+  // Custom Attributes
+  customAttributes?: Record<string, any>;
+  
+  // Discontinuation Info
+  discontinuedDate?: string;
+  discontinuationReason?: string;
 }
 
 // Inventory Types

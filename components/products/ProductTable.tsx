@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Product, Supplier } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Edit2, Trash2, AlertCircle, Plus } from 'lucide-react';
-import { useSettings } from '@/context/SettingsContext';
+import { Product, Supplier } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Edit2, Trash2, AlertCircle, Plus } from "lucide-react";
+import { useSettings } from "@/context/SettingsContext";
 
 interface ProductTableProps {
   products: Product[];
@@ -22,8 +22,8 @@ export function ProductTable({
   onEdit,
   onDelete,
   onStockIn,
-  searchTerm = '',
-  categoryFilter = '',
+  searchTerm = "",
+  categoryFilter = "",
 }: ProductTableProps) {
   const { formatCurrency } = useSettings();
 
@@ -33,7 +33,7 @@ export function ProductTable({
     filtered = filtered.filter(
       (p) =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+        p.sku.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }
 
@@ -42,11 +42,11 @@ export function ProductTable({
   }
 
   const getSupplierName = (supplierId: string) => {
-    return suppliers.find((s) => s.id === supplierId)?.name || 'Unknown';
+    return suppliers.find((s) => s.id === supplierId)?.name || "Unknown";
   };
 
   return (
-    <Card className="border-green-200 border-2 mt-6">
+    <Card className="border-green-200 border-2 mt-6 h-screen">
       <CardHeader>
         <CardTitle>Products ({filtered.length})</CardTitle>
       </CardHeader>
@@ -58,26 +58,56 @@ export function ProductTable({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-green-200 bg-green-50">
-                  <th className="text-left p-3 font-semibold text-gray-700">Name</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">SKU</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Category</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Supplier</th>
-                  <th className="text-right p-3 font-semibold text-gray-700">Unit Price</th>
-                  <th className="text-right p-3 font-semibold text-gray-700">Stock</th>
-                  <th className="text-center p-3 font-semibold text-gray-700">Status</th>
-                  <th className="text-center p-3 font-semibold text-gray-700" colSpan={2}>Actions</th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Name
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    SKU
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Category
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Supplier
+                  </th>
+                  <th className="text-right p-3 font-semibold text-gray-700">
+                    Unit Price
+                  </th>
+                  <th className="text-right p-3 font-semibold text-gray-700">
+                    Stock
+                  </th>
+                  <th className="text-center p-3 font-semibold text-gray-700">
+                    Status
+                  </th>
+                  <th
+                    className="text-center p-3 font-semibold text-gray-700"
+                    colSpan={2}
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((product) => (
-                  <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="p-3 font-medium text-gray-900">{product.name}</td>
+                  <tr
+                    key={product.id}
+                    className="border-b border-gray-200 hover:bg-gray-50"
+                  >
+                    <td className="p-3 font-medium text-gray-900">
+                      {product.name}
+                    </td>
                     <td className="p-3 text-gray-600">{product.sku}</td>
                     <td className="p-3 text-gray-600">{product.category}</td>
-                    <td className="p-3 text-gray-600">{getSupplierName(product.supplierId)}</td>
-                    <td className="p-3 text-right text-gray-900 font-medium">{formatCurrency(product.unitPrice)}</td>
+                    <td className="p-3 text-gray-600">
+                      {getSupplierName(product.supplierId)}
+                    </td>
+                    <td className="p-3 text-right text-gray-900 font-medium">
+                      {formatCurrency(product.unitPrice)}
+                    </td>
                     <td className="p-3 text-right text-gray-900">
-                      <span className="font-medium">{product.currentStock}</span>
+                      <span className="font-medium">
+                        {product.currentStock}
+                      </span>
                       <span className="text-gray-600 ml-1">{product.unit}</span>
                     </td>
                     <td className="p-3 text-center">
