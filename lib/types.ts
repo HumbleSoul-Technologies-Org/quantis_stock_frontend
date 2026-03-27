@@ -19,10 +19,11 @@ export interface BusinessSetup {
 export interface User {
   id: string;
   username: string;
-  password: string; // hashed in production
+  password?: string; // hashed in production
   role: UserRole;
   businessSetup?: BusinessSetup; // Optional for backward compatibility
   createdAt: string;
+  token?: string; // For session management
 }
 
 // Product Types - Extended ERP Support
@@ -222,12 +223,15 @@ export interface CategorySpecificFields {
 // Team User Type (for credentials management)
 export interface TeamUser {
   id: string;
+  _id?: string; // For backward compatibility with older user objects
   name: string;
   email: string;
-  password: string;
+   username?: string; // Added for credentials display
   role: 'sales' | 'accountant' | 'manager';
   createdAt: string;
   lastLogin: string | null;
+  token?: string;
+  password?: string; // For registration; hashed in production
 }
 
 // Settings Types

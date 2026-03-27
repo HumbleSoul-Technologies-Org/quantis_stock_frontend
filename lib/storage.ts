@@ -259,8 +259,8 @@ class StorageService {
         id: teamUser.id,
         username: teamUser.email, // Use email as username for team users
         password: teamUser.password,
-        role: teamUser.role === 'accountant' ? 'manager' : (teamUser.role as UserRole), // Map accountant → manager
-        businessSetup: true, // Team users join existing business, so setup is complete
+        role: teamUser.role === 'accountant' ? 'manager' : (teamUser.role), // Map accountant → manager
+        businessSetup: undefined, // Team users join existing business, so setup is complete
         createdAt: teamUser.createdAt,
       };
       state.currentUser = user;

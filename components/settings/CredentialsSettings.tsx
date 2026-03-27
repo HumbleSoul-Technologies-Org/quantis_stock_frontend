@@ -1,9 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import {
@@ -13,8 +26,16 @@ import {
   Eye,
   EyeOff,
   Plus,
+  MoreVertical,
+  Edit2,
+  Ban,
+  Key,
 } from "lucide-react";
 import { TeamUser } from "@/lib/types";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { set } from "date-fns";
+import { te } from "date-fns/locale";
 
 interface CredentialsSettingsProps {
   role: string;
@@ -25,7 +46,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
   const { settings, updateSettings } = useSettings();
 
   // Get team users from centralized settings
-  const teamUsers = settings?.credentials?.teamUsers || [];
+  // const teamUsers = settings?.credentials?.teamUsers || [];
 
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -50,8 +71,40 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
   >({});
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [showCreateUserForm, setShowCreateUserForm] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(
+    null,
+  );
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [resetPasswordErrors, setResetPasswordErrors] = useState<
+    Record<string, string>
+  >({});
+
+  const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
 
   const isAdminOnly = role === "admin";
+
+  const { data: usersData, refetch: refetchUsers } = useQuery<TeamUser[]>({
+    queryKey: ["users"],
+  });
+
+  useEffect(() => {
+    if (usersData) {
+      setTeamUsers(
+        usersData.map((user) => ({
+          ...user,
+          id: (user as any).id || (user as any)._id,
+          // normalize for code paths that expect id in TeamUser
+        })),
+      );
+    } else {
+      setTeamUsers(settings?.credentials?.teamUsers);
+    }
+  }, [usersData, settings]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -91,18 +144,27 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createUserForm.email)) {
       newErrors.email = "Invalid email format";
-    } else if (teamUsers.some((u) => u.email === createUserForm.email)) {
+    } else if (
+      !editingUserId
+        ? teamUsers.some((u) => u.email === createUserForm.email)
+        : teamUsers.some(
+            (u) => u.email === createUserForm.email && u.id !== editingUserId,
+          )
+    ) {
       newErrors.email = "Email already exists";
     }
 
-    if (!createUserForm.password) {
-      newErrors.password = "Password is required";
-    } else if (createUserForm.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
+    // Only validate password when creating new user, not when editing
+    if (!editingUserId) {
+      if (!createUserForm.password) {
+        newErrors.password = "Password is required";
+      } else if (createUserForm.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      }
 
-    if (createUserForm.password !== createUserForm.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      if (createUserForm.password !== createUserForm.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
     }
 
     setCreateUserErrors(newErrors);
@@ -158,48 +220,123 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
     }
 
     try {
-      const newUser: User = {
-        id: Date.now().toString(),
-        username: createUserForm.email, // Use email as username
-        password: createUserForm.password,
-        role:
-          createUserForm.role === "accountant"
-            ? "manager"
-            : (createUserForm.role as UserRole), // Map accountant → manager
-        createdAt: new Date().toISOString(),
-      };
+      // Edit mode
+      if (editingUserId) {
+        const payLoad = {
+          username: createUserForm.name,
+          email: createUserForm.email,
+          role: createUserForm.role,
+        };
+        const res = await apiRequest(
+          "PUT",
+          `/users/${editingUserId}/update`,
+          payLoad,
+        );
+        if (!res.ok) {
+          const text = await res.text();
+          setMessage({
+            type: "error",
+            text: `Failed to update user: ${text}`,
+          });
+          return;
+        }
+        const data = await res.json();
 
-      // Add to actual users array (not settings)
-      const state = JSON.parse(
-        localStorage.getItem("erp_system_state") || "{}",
-      );
-      if (!state.users) state.users = [];
-      state.users.push(newUser);
-      localStorage.setItem("erp_system_state", JSON.stringify(state));
+        const updatedUser: TeamUser = {
+          id: editingUserId,
+          name: createUserForm.name,
+          email: createUserForm.email,
+          role: createUserForm.role,
+          lastLogin: data.user.lastLogin,
+          createdAt: data.user.createdAt,
+        };
 
-      // Also add to team users for display in settings
-      const newTeamUser: TeamUser = {
-        id: newUser.id,
-        name: createUserForm.name,
-        email: createUserForm.email,
-        password: createUserForm.password,
-        role: createUserForm.role,
-        createdAt: new Date().toISOString(),
-        lastLogin: null,
-      };
+        updateSettings({
+          credentials: {
+            ...settings.credentials,
+            teamUsers: teamUsers.map((u) =>
+              u.id === editingUserId ? updatedUser : u,
+            ),
+          },
+        });
 
-      const updatedUsers = [...teamUsers, newTeamUser];
-      updateSettings({
-        credentials: {
-          ...settings.credentials,
-          teamUsers: updatedUsers,
-        },
-      });
+        // Also update in localStorage
+        const state = JSON.parse(
+          localStorage.getItem("erp_system_state") || "{}",
+        );
+        if (state.users) {
+          state.users = state.users.map((user: any) =>
+            user.id === editingUserId
+              ? {
+                  ...user,
+                  username: createUserForm.email,
+                  role:
+                    createUserForm.role === "accountant"
+                      ? "manager"
+                      : createUserForm.role,
+                }
+              : user,
+          );
+          localStorage.setItem("erp_system_state", JSON.stringify(state));
+        }
 
-      setMessage({
-        type: "success",
-        text: `User "${createUserForm.name}" created successfully! They can now log in with email: ${createUserForm.email}`,
-      });
+        setMessage({
+          type: "success",
+          text: `User "${createUserForm.name}" updated successfully!`,
+        });
+      } else {
+        // Create mode
+        const payLoad = {
+          username: createUserForm.name,
+          password: createUserForm.password,
+          email: createUserForm.email,
+          role: createUserForm.role,
+        };
+
+        const res = await apiRequest("POST", "/users/register", payLoad);
+        let data = null;
+        if (!res.ok) {
+          const text = await res.text();
+          setMessage({
+            type: "error",
+            text: `Failed to create user: ${text}`,
+          });
+          return;
+        } else {
+          data = await res.json();
+        }
+
+        // Add to actual users array (not settings)
+        const state = JSON.parse(
+          localStorage.getItem("erp_system_state") || "{}",
+        );
+        if (!state.users) state.users = [];
+
+        // Also add to team users for display in settings
+        const newTeamUser: TeamUser = {
+          id: data.user.id,
+          name: createUserForm.name,
+          email: createUserForm.email,
+          username: createUserForm.name,
+          role: createUserForm.role,
+          createdAt: data.user.createdAt,
+          lastLogin: null,
+        };
+        state.users.push(newTeamUser);
+        localStorage.setItem("erp_system_state", JSON.stringify(state));
+        const updatedUsers = [...teamUsers, newTeamUser];
+        updateSettings({
+          credentials: {
+            ...settings.credentials,
+            teamUsers: updatedUsers,
+          },
+        });
+
+        setMessage({
+          type: "success",
+          text: `User "${createUserForm.name}" created successfully! They can now log in with email: ${createUserForm.email}`,
+        });
+      }
 
       setCreateUserForm({
         name: "",
@@ -209,12 +346,13 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         role: "sales",
       });
 
+      setEditingUserId(null);
       setShowCreateUserForm(false);
       setTimeout(() => setMessage(null), 5000);
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to create user",
+        text: "Failed to save user",
       });
     }
   };
@@ -237,6 +375,97 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         text: "User deleted successfully",
       });
 
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleEditUser = (user: TeamUser) => {
+    if (user) {
+      setCreateUserForm({
+        name: user.username || user.name,
+        email: user.email,
+        password: "", // Password cannot be edited directly; use reset password
+        confirmPassword: "",
+        role:
+          user.role === "manager"
+            ? "accountant"
+            : (user.role as "sales" | "accountant" | "manager"),
+      });
+      setEditingUserId(user.id);
+      setShowCreateUserForm(true);
+    }
+  };
+
+  const handleBanUser = (userId: string) => {
+    const userToBan = teamUsers.find((u) => u.id === userId);
+    if (confirm(`Are you sure you want to ban ${userToBan?.name}?`)) {
+      setMessage({
+        type: "success",
+        text: `User "${userToBan?.name}" has been banned.`,
+      });
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleOpenResetPassword = (userId: string) => {
+    setResetPasswordUserId(userId);
+    setResetPasswordForm({ newPassword: "", confirmPassword: "" });
+    setResetPasswordErrors({});
+    setShowResetPasswordDialog(true);
+  };
+
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+
+    if (!resetPasswordForm.newPassword) {
+      newErrors.newPassword = "New password is required";
+    } else if (resetPasswordForm.newPassword.length < 8) {
+      newErrors.newPassword = "Password must be at least 8 characters";
+    }
+
+    if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setResetPasswordErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0 && resetPasswordUserId) {
+      const updatedUsers = teamUsers.map((u) =>
+        u.id === resetPasswordUserId
+          ? { ...u, password: resetPasswordForm.newPassword }
+          : u,
+      );
+
+      updateSettings({
+        credentials: {
+          ...settings.credentials,
+          teamUsers: updatedUsers,
+        },
+      });
+
+      // Also update in localStorage
+      const state = JSON.parse(
+        localStorage.getItem("erp_system_state") || "{}",
+      );
+      if (state.users) {
+        state.users = state.users.map((user: any) =>
+          user.id === resetPasswordUserId
+            ? { ...user, password: resetPasswordForm.newPassword }
+            : user,
+        );
+        localStorage.setItem("erp_system_state", JSON.stringify(state));
+      }
+
+      const userResetting = teamUsers.find((u) => u.id === resetPasswordUserId);
+      setMessage({
+        type: "success",
+        text: `Password reset for "${userResetting?.name}" successfully!`,
+      });
+
+      setShowResetPasswordDialog(false);
+      setResetPasswordUserId(null);
+      setResetPasswordForm({ newPassword: "", confirmPassword: "" });
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -435,7 +664,18 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                 Team Users ({teamUsers.length})
               </CardTitle>
               <Button
-                onClick={() => setShowCreateUserForm(!showCreateUserForm)}
+                onClick={() => {
+                  setShowCreateUserForm(true);
+                  setEditingUserId(null);
+                  setCreateUserForm({
+                    name: "",
+                    email: "",
+                    password: "",
+                    confirmPassword: "",
+                    role: "sales",
+                  });
+                  setCreateUserErrors({});
+                }}
                 className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 gap-2"
               >
                 <Plus className="w-4 h-4" />
@@ -443,161 +683,298 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
               </Button>
             </CardHeader>
             <CardContent>
-              {/* Create User Form */}
-              {showCreateUserForm && (
-                <form
-                  onSubmit={handleCreateUser}
-                  className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4 dark:bg-blue-900/20 dark:border-blue-700"
-                >
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Name *
-                    </label>
-                    <Input
-                      type="text"
-                      value={createUserForm.name}
-                      onChange={(e) =>
-                        setCreateUserForm({
-                          ...createUserForm,
-                          name: e.target.value,
-                        })
-                      }
-                      placeholder="Full name"
-                      className={
-                        createUserErrors.name
-                          ? "border-red-500"
-                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
-                      }
-                    />
-                    {createUserErrors.name && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {createUserErrors.name}
-                      </p>
-                    )}
-                  </div>
+              {/* Create User Dialog */}
+              <Dialog
+                open={showCreateUserForm}
+                onOpenChange={(open) => {
+                  setShowCreateUserForm(open);
+                  if (!open) {
+                    setEditingUserId(null);
+                    setCreateUserForm({
+                      name: "",
+                      email: "",
+                      password: "",
+                      confirmPassword: "",
+                      role: "sales",
+                    });
+                    setCreateUserErrors({});
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-blue-700">
+                  <DialogHeader>
+                    <DialogTitle className="dark:text-teal-100">
+                      {editingUserId
+                        ? "Edit Team User"
+                        : "Create New Team User"}
+                    </DialogTitle>
+                    <DialogDescription className="dark:text-slate-400">
+                      {editingUserId
+                        ? "Update the user's credentials and role."
+                        : "Add a new team member to your system. They can log in immediately with the credentials you set."}
+                    </DialogDescription>
+                  </DialogHeader>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Email *
-                    </label>
-                    <Input
-                      type="email"
-                      value={createUserForm.email}
-                      onChange={(e) =>
-                        setCreateUserForm({
-                          ...createUserForm,
-                          email: e.target.value,
-                        })
-                      }
-                      placeholder="Email address"
-                      className={
-                        createUserErrors.email
-                          ? "border-red-500"
-                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
-                      }
-                    />
-                    {createUserErrors.email && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {createUserErrors.email}
-                      </p>
-                    )}
-                  </div>
+                  <form onSubmit={handleCreateUser} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Name *
+                      </label>
+                      <Input
+                        type="text"
+                        value={createUserForm.name}
+                        onChange={(e) =>
+                          setCreateUserForm({
+                            ...createUserForm,
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Full name"
+                        className={
+                          createUserErrors.name
+                            ? "border-red-500"
+                            : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        }
+                      />
+                      {createUserErrors.name && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {createUserErrors.name}
+                        </p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Password *
-                    </label>
-                    <Input
-                      type="password"
-                      value={createUserForm.password}
-                      onChange={(e) =>
-                        setCreateUserForm({
-                          ...createUserForm,
-                          password: e.target.value,
-                        })
-                      }
-                      placeholder="Enter password"
-                      className={
-                        createUserErrors.password
-                          ? "border-red-500"
-                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
-                      }
-                    />
-                    {createUserErrors.password && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {createUserErrors.password}
-                      </p>
-                    )}
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Email *
+                      </label>
+                      <Input
+                        type="email"
+                        value={createUserForm.email}
+                        onChange={(e) =>
+                          setCreateUserForm({
+                            ...createUserForm,
+                            email: e.target.value,
+                          })
+                        }
+                        placeholder="Email address"
+                        className={
+                          createUserErrors.email
+                            ? "border-red-500"
+                            : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        }
+                      />
+                      {createUserErrors.email && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {createUserErrors.email}
+                        </p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Confirm Password *
-                    </label>
-                    <Input
-                      type="password"
-                      value={createUserForm.confirmPassword}
-                      onChange={(e) =>
-                        setCreateUserForm({
-                          ...createUserForm,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      placeholder="Confirm password"
-                      className={
-                        createUserErrors.confirmPassword
-                          ? "border-red-500"
-                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
-                      }
-                    />
-                    {createUserErrors.confirmPassword && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {createUserErrors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Password {!editingUserId && "*"}
+                      </label>
+                      <Input
+                        type="password"
+                        disabled={editingUserId !== null}
+                        value={createUserForm.password}
+                        onChange={(e) =>
+                          setCreateUserForm({
+                            ...createUserForm,
+                            password: e.target.value,
+                          })
+                        }
+                        placeholder={
+                          editingUserId
+                            ? "Use Reset Password option to change"
+                            : "Enter password"
+                        }
+                        className={`${createUserErrors.password ? "border-red-500" : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"} ${editingUserId ? "opacity-50 cursor-not-allowed" : ""}`}
+                      />
+                      {createUserErrors.password && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {createUserErrors.password}
+                        </p>
+                      )}
+                      {editingUserId && (
+                        <p className="text-blue-500 dark:text-blue-400 text-xs mt-1">
+                          To change password, use the Reset Password option in
+                          the user menu.
+                        </p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Role *
-                    </label>
-                    <select
-                      value={createUserForm.role}
-                      onChange={(e) =>
-                        setCreateUserForm({
-                          ...createUserForm,
-                          role: e.target.value as
-                            | "sales"
-                            | "accountant"
-                            | "manager",
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-blue-700 rounded-md focus:outline-none focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-50"
-                    >
-                      <option value="sales">Sales</option>
-                      <option value="accountant">Accountant</option>
-                      <option value="manager">Manager</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Confirm Password {!editingUserId && "*"}
+                      </label>
+                      <Input
+                        type="password"
+                        disabled={editingUserId !== null}
+                        value={createUserForm.confirmPassword}
+                        onChange={(e) =>
+                          setCreateUserForm({
+                            ...createUserForm,
+                            confirmPassword: e.target.value,
+                          })
+                        }
+                        placeholder={
+                          editingUserId
+                            ? "Use Reset Password option to change"
+                            : "Confirm password"
+                        }
+                        className={`${createUserErrors.confirmPassword ? "border-red-500" : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"} ${editingUserId ? "opacity-50 cursor-not-allowed" : ""}`}
+                      />
+                      {createUserErrors.confirmPassword && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {createUserErrors.confirmPassword}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
-                    >
-                      Create User
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowCreateUserForm(false)}
-                      className="dark:border-blue-700 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Role *
+                      </label>
+                      <select
+                        value={createUserForm.role}
+                        onChange={(e) =>
+                          setCreateUserForm({
+                            ...createUserForm,
+                            role: e.target.value as
+                              | "sales"
+                              | "accountant"
+                              | "manager",
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-blue-200 dark:border-blue-700 rounded-md focus:outline-none focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-50"
+                      >
+                        <option value="sales">Sales</option>
+                        <option value="accountant">Accountant</option>
+                        <option value="manager">Manager</option>
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowCreateUserForm(false);
+                          setEditingUserId(null);
+                          setCreateUserForm({
+                            name: "",
+                            email: "",
+                            password: "",
+                            confirmPassword: "",
+                            role: "sales",
+                          });
+                        }}
+                        className="dark:border-blue-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+                      >
+                        {editingUserId ? "Update User" : "Create User"}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Reset Password Dialog */}
+              <Dialog
+                open={showResetPasswordDialog}
+                onOpenChange={setShowResetPasswordDialog}
+              >
+                <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-blue-700">
+                  <DialogHeader>
+                    <DialogTitle className="dark:text-teal-100">
+                      Reset User Password
+                    </DialogTitle>
+                    <DialogDescription className="dark:text-slate-400">
+                      Set a new password for this user. They will need to use
+                      the new password to log in.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        New Password *
+                      </label>
+                      <Input
+                        type="password"
+                        value={resetPasswordForm.newPassword}
+                        onChange={(e) =>
+                          setResetPasswordForm({
+                            ...resetPasswordForm,
+                            newPassword: e.target.value,
+                          })
+                        }
+                        placeholder="Enter new password"
+                        className={
+                          resetPasswordErrors.newPassword
+                            ? "border-red-500"
+                            : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        }
+                      />
+                      {resetPasswordErrors.newPassword && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {resetPasswordErrors.newPassword}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Confirm Password *
+                      </label>
+                      <Input
+                        type="password"
+                        value={resetPasswordForm.confirmPassword}
+                        onChange={(e) =>
+                          setResetPasswordForm({
+                            ...resetPasswordForm,
+                            confirmPassword: e.target.value,
+                          })
+                        }
+                        placeholder="Confirm password"
+                        className={
+                          resetPasswordErrors.confirmPassword
+                            ? "border-red-500"
+                            : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        }
+                      />
+                      {resetPasswordErrors.confirmPassword && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {resetPasswordErrors.confirmPassword}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowResetPasswordDialog(false)}
+                        className="dark:border-blue-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+                      >
+                        Reset Password
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
 
               {/* Users Table */}
               {teamUsers.length > 0 ? (
@@ -614,9 +991,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                         <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Role
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
-                          Password
-                        </th>
+
                         <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Created
                         </th>
@@ -635,7 +1010,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                           className="hover:bg-gray-50 dark:hover:bg-slate-700"
                         >
                           <td className="px-4 py-2 dark:text-slate-100">
-                            {teamUser.name}
+                            {teamUser.username || teamUser.name}
                           </td>
                           <td className="px-4 py-2 text-xs dark:text-slate-400">
                             {teamUser.email}
@@ -645,40 +1020,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                               {teamUser.role}
                             </span>
                           </td>
-                          <td className="px-4 py-2">
-                            <div className="flex items-center gap-1">
-                              <code className="text-xs bg-gray-100 dark:bg-slate-600 px-2 py-1 rounded dark:text-slate-100">
-                                {showPassword[teamUser.id]
-                                  ? teamUser.password
-                                  : "•".repeat(teamUser.password.length)}
-                              </code>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setShowPassword({
-                                    ...showPassword,
-                                    [teamUser.id]: !showPassword[teamUser.id],
-                                  })
-                                }
-                                className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded"
-                              >
-                                {showPassword[teamUser.id] ? (
-                                  <EyeOff className="w-3 h-3" />
-                                ) : (
-                                  <Eye className="w-3 h-3" />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleCopyPassword(teamUser.password)
-                                }
-                                className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded text-blue-600 dark:text-blue-400"
-                              >
-                                📋
-                              </button>
-                            </div>
-                          </td>
+
                           <td className="px-4 py-2 text-xs dark:text-slate-400">
                             {formatDate(teamUser.createdAt)}
                           </td>
@@ -687,15 +1029,69 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                               ? formatDate(teamUser.lastLogin)
                               : "Never"}
                           </td>
-                          <td className="px-4 py-2">
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(teamUser.id)}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded text-red-600 dark:text-red-400"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
+                          {(teamUser.role === "manager" ||
+                            teamUser.role === "sales" ||
+                            teamUser.role === "accountant") && (
+                            <td className="px-4 py-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 dark:hover:bg-slate-600"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="dark:bg-slate-800 dark:border-slate-700"
+                                >
+                                  {(teamUser.role === "manager" ||
+                                    teamUser.role === "sales" ||
+                                    teamUser.role === "accountant") && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        handleEditUser(teamUser);
+                                        setEditingUserId(
+                                          teamUser.id || teamUser._id || null,
+                                        );
+                                      }}
+                                      className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
+                                    >
+                                      <Edit2 className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => handleBanUser(teamUser.id)}
+                                    className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
+                                  >
+                                    <Ban className="mr-2 h-4 w-4" />
+                                    Ban
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleOpenResetPassword(teamUser.id)
+                                    }
+                                    className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
+                                  >
+                                    <Key className="mr-2 h-4 w-4" />
+                                    Reset Password
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleDeleteUser(teamUser.id)
+                                    }
+                                    className="text-red-600 dark:text-red-400 dark:focus:bg-red-900/20 cursor-pointer"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

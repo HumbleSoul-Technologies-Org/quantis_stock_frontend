@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { storage } from "@/lib/storage";
+import { apiRequest } from "@/lib/queryClient";
 
 export function RegisterForm() {
   const [username, setUsername] = useState("");
@@ -62,16 +63,35 @@ export function RegisterForm() {
     }
 
     // Create new admin user
-    const newUser = {
-      id: Date.now().toString(),
-      username: username.trim(),
+    let newUser = null;
+
+    const payLoad = {
+      username: username,
       password: password,
-      role: "admin" as const,
-      businessSetup: undefined, // Will be set during onboarding
-      createdAt: new Date().toISOString(),
+      role: "admin",
     };
 
-    storage.createUser(newUser);
+    const res = await apiRequest("POST", "/users/register", payLoad);
+    if (!res.ok) {
+      const text = await res.text();
+      setError(`Failed to create user: ${text}`);
+      setIsLoading(false);
+      return;
+    } else {
+      const data = await res.json();
+      newUser = {
+        id: data.user.id,
+        username: data.user.username,
+        role: data.user.role,
+        createdAt: data.user.createdAt,
+        token: data.token,
+      };
+    }
+
+    console.log("====================================");
+    console.log(newUser);
+    console.log("====================================");
+    // storage.createUser(newUser);
 
     setSuccess("Admin account created successfully! Logging you in...");
 

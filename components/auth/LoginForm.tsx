@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 export function LoginForm() {
   const [username, setUsername] = useState("admin");
@@ -26,8 +27,28 @@ export function LoginForm() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+    // const res = await apiRequest("POST", "/users/login", {
+    //   username,
+    //   password,
+    // });
+
+    // const data = await res.json();
+
+    // if (!res.ok) {
+    //   setError(data.message || "Login failed");
+    //   setIsLoading(false);
+    //   return;
+    // }
+    // const userData = {
+    //   id: data.user.id,
+    //   username: data.user.username,
+    //   role: data.user.role,
+    //   businessSetup: data.user.businessSetup,
+    //   token: data.token,
+    // };
 
     const success = login(username, password);
+    // let success = false;
     if (success) {
       router.push("/dashboard");
     } else {
