@@ -23,7 +23,7 @@ export function RegisterForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { loginWithApiData } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,23 +88,14 @@ export function RegisterForm() {
       };
     }
 
-    console.log("====================================");
-    console.log(newUser);
-    console.log("====================================");
-    // storage.createUser(newUser);
+    storage.createUser(newUser);
 
     setSuccess("Admin account created successfully! Logging you in...");
 
     // Auto-login after creation
     setTimeout(() => {
-      const loginSuccess = login(username.trim(), password);
-      if (loginSuccess) {
-        router.push("/dashboard");
-      } else {
-        setError(
-          "Account created but login failed. Please try logging in manually.",
-        );
-      }
+      loginWithApiData(newUser);
+      router.push("/dashboard");
     }, 1500);
 
     setIsLoading(false);

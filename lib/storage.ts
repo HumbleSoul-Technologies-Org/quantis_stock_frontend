@@ -36,60 +36,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const DEFAULT_USERS: User[] = [
-  {
-    id: '1',
-    username: 'admin',
-    password: 'admin123', // In production, this would be hashed
-    role: 'admin',
-    businessSetup: {
-      businessName: 'Demo Retail Store',
-      businessType: 'retail',
-      currency: 'KES',
-      lowStockThreshold: 20,
-      emailAlerts: true,
-      smsAlerts: false,
-      lowStockAlerts: true,
-      saleNotifications: true,
-      setupCompletedAt: new Date().toISOString(),
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    username: 'manager',
-    password: 'manager123',
-    role: 'manager',
-    businessSetup: {
-      businessName: 'Demo Retail Store',
-      businessType: 'retail',
-      currency: 'KES',
-      lowStockThreshold: 20,
-      emailAlerts: true,
-      smsAlerts: false,
-      lowStockAlerts: true,
-      saleNotifications: true,
-      setupCompletedAt: new Date().toISOString(),
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    username: 'sales',
-    password: 'sales123',
-    role: 'sales',
-    businessSetup: {
-      businessName: 'Demo Retail Store',
-      businessType: 'retail',
-      currency: 'KES',
-      lowStockThreshold: 20,
-      emailAlerts: true,
-      smsAlerts: false,
-      lowStockAlerts: true,
-      saleNotifications: true,
-      setupCompletedAt: new Date().toISOString(),
-    },
-    createdAt: new Date().toISOString(),
-  },
+  // Removed hardcoded demo users - authentication now handled by API
 ];
 
 const DEFAULT_PRODUCTS: Product[] = [
@@ -237,22 +184,14 @@ class StorageService {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  // Auth
+  // Auth - DEPRECATED: Use API authentication instead
   login(username: string, password: string): User | null {
     const state = this.getState();
-    
-    // First check DEFAULT_USERS (demo accounts)
-    const defaultUser = state.users.find((u) => u.username === username && u.password === password);
-    if (defaultUser) {
-      state.currentUser = defaultUser;
-      this.saveState(state);
-      return defaultUser;
-    }
 
-    // Then check team users created in Settings
+    // Only check team users created in Settings (for backward compatibility)
     const teamUsers = state.settings?.credentials?.teamUsers || [];
     const teamUser = teamUsers.find((u: any) => u.email === username && u.password === password);
-    
+
     if (teamUser) {
       // Convert TeamUser to User format for login
       const user: User = {

@@ -13,7 +13,8 @@ import { storage } from "@/lib/storage";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
+  loginWithApiData: (userData: User) => void;
   logout: () => void;
   updateCredentials: (
     newUsername: string,
@@ -36,20 +37,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    const loggedInUser = storage.login(username, password);
-    if (loggedInUser) {
-      setUser(loggedInUser);
-      return true;
+  const login = async (
+    username: string,
+    password: string,
+  ): Promise<boolean> => {
+    try {
+      // For now, fall back to storage login for backward compatibility
+      // TODO: Replace with API call when backend is ready
+      const loggedInUser = storage.login(username, password);
+      if (loggedInUser) {
+        setUser(loggedInUser);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Login error:", error);
+      return false;
     }
-    return false;
   };
 
+  const loginWithApiData = (userData: User): void => {
+    setUser(userData);
+    // Also store in localStorage for persistence
+    const state = JSON.parse(localStorage.getItem("erp_system_state") || "{}");
+    state.currentUser = userData;
+    localStorage.setItem("erp_system_state", JSON.stringify(state));
+  };
   const logout = (): void => {
     storage.logout();
     setUser(null);
   };
-
   const updateCredentials = (
     newUsername: string,
     newPassword: string,
@@ -94,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         login,
+        loginWithApiData,
         logout,
         updateCredentials,
         updateBusinessSetup,

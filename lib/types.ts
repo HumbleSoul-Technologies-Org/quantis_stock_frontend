@@ -22,7 +22,7 @@ export interface User {
   password?: string; // hashed in production
   role: UserRole;
   businessSetup?: BusinessSetup; // Optional for backward compatibility
-  createdAt: string;
+  createdAt?: string;
   token?: string; // For session management
 }
 

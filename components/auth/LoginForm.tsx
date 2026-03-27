@@ -16,53 +16,51 @@ import { AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export function LoginForm() {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { loginWithApiData } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    // const res = await apiRequest("POST", "/users/login", {
-    //   username,
-    //   password,
-    // });
 
-    // const data = await res.json();
+    try {
+      const res = await apiRequest("POST", "/users/login", {
+        username,
+        password,
+      });
 
-    // if (!res.ok) {
-    //   setError(data.message || "Login failed");
-    //   setIsLoading(false);
-    //   return;
-    // }
-    // const userData = {
-    //   id: data.user.id,
-    //   username: data.user.username,
-    //   role: data.user.role,
-    //   businessSetup: data.user.businessSetup,
-    //   token: data.token,
-    // };
+      const data = await res.json();
 
-    const success = login(username, password);
-    // let success = false;
-    if (success) {
+      if (!res.ok) {
+        setError(data.message || "Login failed");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store user data and token
+      const userData = {
+        id: data.user.id,
+        username: data.user.username,
+        role: data.user.role,
+        businessSetup: data.user.businessSetup,
+        token: data.token,
+      };
+
+      // Update auth context with API user data
+      loginWithApiData(userData);
+
       router.push("/dashboard");
-    } else {
-      setError("Invalid username or password");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Login failed");
     }
 
     setIsLoading(false);
   };
-
-  const demoCredentials = [
-    { role: "Admin", username: "admin", password: "admin123" },
-    { role: "Manager", username: "manager", password: "manager123" },
-    { role: "Sales", username: "sales", password: "sales123" },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
@@ -129,39 +127,10 @@ export function LoginForm() {
                 </a>
               </p>
             </div>
-            <div className="space-y-3">
-              {demoCredentials.map((cred) => (
-                <button
-                  key={cred.role}
-                  onClick={() => {
-                    setUsername(cred.username);
-                    setPassword(cred.password);
-                  }}
-                  className="w-full p-3 text-left border border-green-200 rounded-lg hover:bg-green-50 transition text-sm"
-                >
-                  <div className="font-medium text-gray-700">{cred.role}</div>
-                  <div className="text-xs text-gray-600">
-                    {cred.username} / {cred.password}
-                  </div>
-                </button>
-              ))}
-            </div>
 
             <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
-              <strong>💡 Tip:</strong> Team members created in Settings can log
-              in using their email address as the username.
-            </div>
-
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
-                <a
-                  href="/auth/register"
-                  className="text-green-600 hover:text-green-800 font-medium"
-                >
-                  Register as Admin
-                </a>
-              </p>
+              <strong>💡 Tip:</strong> Use your registered username and password
+              to log in.
             </div>
           </CardContent>
         </Card>
