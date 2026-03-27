@@ -158,8 +158,28 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
     }
 
     try {
-      const newUser: TeamUser = {
+      const newUser: User = {
         id: Date.now().toString(),
+        username: createUserForm.email, // Use email as username
+        password: createUserForm.password,
+        role:
+          createUserForm.role === "accountant"
+            ? "manager"
+            : (createUserForm.role as UserRole), // Map accountant → manager
+        createdAt: new Date().toISOString(),
+      };
+
+      // Add to actual users array (not settings)
+      const state = JSON.parse(
+        localStorage.getItem("erp_system_state") || "{}",
+      );
+      if (!state.users) state.users = [];
+      state.users.push(newUser);
+      localStorage.setItem("erp_system_state", JSON.stringify(state));
+
+      // Also add to team users for display in settings
+      const newTeamUser: TeamUser = {
+        id: newUser.id,
         name: createUserForm.name,
         email: createUserForm.email,
         password: createUserForm.password,
@@ -168,8 +188,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         lastLogin: null,
       };
 
-      // Update through centralized settings
-      const updatedUsers = [...teamUsers, newUser];
+      const updatedUsers = [...teamUsers, newTeamUser];
       updateSettings({
         credentials: {
           ...settings.credentials,
@@ -179,7 +198,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       setMessage({
         type: "success",
-        text: `User "${createUserForm.name}" created successfully!`,
+        text: `User "${createUserForm.name}" created successfully! They can now log in with email: ${createUserForm.email}`,
       });
 
       setCreateUserForm({
@@ -191,7 +210,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       });
 
       setShowCreateUserForm(false);
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => setMessage(null), 5000);
     } catch (error) {
       setMessage({
         type: "error",

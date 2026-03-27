@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -11,9 +11,14 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.push('/dashboard');
+        // Check if admin user has completed business setup
+        if (user.role === "admin" && !user.businessSetup) {
+          router.push("/onboarding");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
-        router.push('/auth/login');
+        router.push("/auth/login");
       }
     }
   }, [user, isLoading, router]);

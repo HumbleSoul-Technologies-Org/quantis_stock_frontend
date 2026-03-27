@@ -1,40 +1,46 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
 export function LoginForm() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     const success = login(username, password);
     if (success) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
-      setError('Invalid username or password');
+      setError("Invalid username or password");
     }
 
     setIsLoading(false);
   };
 
   const demoCredentials = [
-    { role: 'Admin', username: 'admin', password: 'admin123' },
-    { role: 'Manager', username: 'manager', password: 'manager123' },
-    { role: 'Sales', username: 'sales', password: 'sales123' },
+    { role: "Admin", username: "admin", password: "admin123" },
+    { role: "Manager", username: "manager", password: "manager123" },
+    { role: "Sales", username: "sales", password: "sales123" },
   ];
 
   return (
@@ -43,7 +49,9 @@ export function LoginForm() {
         <Card className="border-green-200 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-lg">
             <CardTitle className="text-3xl">StockOS</CardTitle>
-            <CardDescription className="text-green-50">Stock Management System</CardDescription>
+            <CardDescription className="text-green-50">
+              Stock Management System
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -55,7 +63,9 @@ export function LoginForm() {
               )}
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Username</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Username
+                </label>
                 <Input
                   type="text"
                   value={username}
@@ -66,7 +76,9 @@ export function LoginForm() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
                 <Input
                   type="password"
                   value={password}
@@ -81,29 +93,54 @@ export function LoginForm() {
                 disabled={isLoading}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
-                {isLoading ? 'Logging in...' : 'Login'}
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Demo Credentials</h3>
-              <div className="space-y-3">
-                {demoCredentials.map((cred) => (
-                  <button
-                    key={cred.role}
-                    onClick={() => {
-                      setUsername(cred.username);
-                      setPassword(cred.password);
-                    }}
-                    className="w-full p-3 text-left border border-green-200 rounded-lg hover:bg-green-50 transition text-sm"
-                  >
-                    <div className="font-medium text-gray-700">{cred.role}</div>
-                    <div className="text-xs text-gray-600">
-                      {cred.username} / {cred.password}
-                    </div>
-                  </button>
-                ))}
-              </div>
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <a
+                  href="/auth/register"
+                  className="text-green-600 hover:text-green-800 font-medium"
+                >
+                  Register as Admin
+                </a>
+              </p>
+            </div>
+            <div className="space-y-3">
+              {demoCredentials.map((cred) => (
+                <button
+                  key={cred.role}
+                  onClick={() => {
+                    setUsername(cred.username);
+                    setPassword(cred.password);
+                  }}
+                  className="w-full p-3 text-left border border-green-200 rounded-lg hover:bg-green-50 transition text-sm"
+                >
+                  <div className="font-medium text-gray-700">{cred.role}</div>
+                  <div className="text-xs text-gray-600">
+                    {cred.username} / {cred.password}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+              <strong>💡 Tip:</strong> Team members created in Settings can log
+              in using their email address as the username.
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <a
+                  href="/auth/register"
+                  className="text-green-600 hover:text-green-800 font-medium"
+                >
+                  Register as Admin
+                </a>
+              </p>
             </div>
           </CardContent>
         </Card>

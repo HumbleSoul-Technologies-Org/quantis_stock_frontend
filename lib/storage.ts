@@ -240,12 +240,34 @@ class StorageService {
   // Auth
   login(username: string, password: string): User | null {
     const state = this.getState();
-    const user = state.users.find((u) => u.username === username && u.password === password);
-    if (user) {
+    
+    // First check DEFAULT_USERS (demo accounts)
+    const defaultUser = state.users.find((u) => u.username === username && u.password === password);
+    if (defaultUser) {
+      state.currentUser = defaultUser;
+      this.saveState(state);
+      return defaultUser;
+    }
+
+    // Then check team users created in Settings
+    const teamUsers = state.settings?.credentials?.teamUsers || [];
+    const teamUser = teamUsers.find((u: any) => u.email === username && u.password === password);
+    
+    if (teamUser) {
+      // Convert TeamUser to User format for login
+      const user: User = {
+        id: teamUser.id,
+        username: teamUser.email, // Use email as username for team users
+        password: teamUser.password,
+        role: teamUser.role === 'accountant' ? 'manager' : (teamUser.role as UserRole), // Map accountant → manager
+        businessSetup: true, // Team users join existing business, so setup is complete
+        createdAt: teamUser.createdAt,
+      };
       state.currentUser = user;
       this.saveState(state);
       return user;
     }
+
     return null;
   }
 
@@ -269,6 +291,16 @@ class StorageService {
       return true;
     }
     return false;
+  }
+
+  createUser(user: User): void {
+    const state = this.getState();
+    state.users.push(user);
+    this.saveState(state);
+  }
+
+  getUsers(): User[] {
+    return this.getState().users;
   }
 
   // Business Setup
