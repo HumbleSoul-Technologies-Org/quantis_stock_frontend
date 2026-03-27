@@ -6,6 +6,7 @@ import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/context/AuthContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { DataProvider } from "@/context/DataContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import ThemeProvider from "@/components/theme-provider";
 
 interface ProvidersProps {
@@ -18,7 +19,9 @@ export function Providers({ children }: ProvidersProps) {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <SettingsProvider>
-            <DataProvider>{children}</DataProvider>
+            <DataProvider>
+              <NotificationProvider>{children}</NotificationProvider>
+            </DataProvider>
           </SettingsProvider>
         </AuthProvider>
       </QueryClientProvider>

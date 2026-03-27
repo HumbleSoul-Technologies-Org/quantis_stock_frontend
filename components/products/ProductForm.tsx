@@ -116,7 +116,7 @@ export function ProductForm({
       case "text":
         return (
           <div key={fieldDef.key} className={containerClass}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               {fieldDef.label}
             </label>
             <Input
@@ -125,7 +125,7 @@ export function ProductForm({
                 updateCategoryField(fieldDef.key, e.target.value)
               }
               placeholder={fieldDef.placeholder}
-              className="border-gray-200"
+              className="border-gray-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
             />
           </div>
         );
@@ -133,7 +133,7 @@ export function ProductForm({
       case "date":
         return (
           <div key={fieldDef.key} className={containerClass}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               {fieldDef.label}
             </label>
             <Input
@@ -142,7 +142,7 @@ export function ProductForm({
               onChange={(e) =>
                 updateCategoryField(fieldDef.key, e.target.value)
               }
-              className="border-gray-200"
+              className="border-gray-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
             />
           </div>
         );
@@ -150,7 +150,7 @@ export function ProductForm({
       case "textarea":
         return (
           <div key={fieldDef.key} className={containerClass}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               {fieldDef.label}
             </label>
             <textarea
@@ -160,7 +160,7 @@ export function ProductForm({
               }
               placeholder={fieldDef.placeholder}
               rows={fieldDef.rows || 2}
-              className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 rounded-md text-sm"
             />
           </div>
         );
@@ -168,7 +168,7 @@ export function ProductForm({
       case "select":
         return (
           <div key={fieldDef.key} className={containerClass}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               {fieldDef.label}
             </label>
             <select
@@ -176,7 +176,7 @@ export function ProductForm({
               onChange={(e) =>
                 updateCategoryField(fieldDef.key, e.target.value)
               }
-              className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 rounded-md text-sm"
             >
               <option value="">Select...</option>
               {fieldDef.options?.map((opt) => (
@@ -191,14 +191,14 @@ export function ProductForm({
       case "checkbox":
         return (
           <div key={fieldDef.key} className={containerClass}>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={value === true || value === "true"}
                 onChange={(e) =>
                   updateCategoryField(fieldDef.key, e.target.checked)
                 }
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 dark:border-teal-700"
               />
               {fieldDef.label}
             </label>
@@ -217,8 +217,10 @@ export function ProductForm({
     if (!schema) return null;
 
     return (
-      <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-        <h4 className="font-medium text-gray-700">{schema.name}</h4>
+      <div className="space-y-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-lg border border-gray-200 dark:border-teal-700">
+        <h4 className="font-medium text-gray-700 dark:text-slate-300">
+          {schema.name}
+        </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {schema.fields.map((field) => renderField(field))}
         </div>
@@ -285,14 +287,14 @@ export function ProductForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Product Name *
           </label>
           <Input
             value={formData.name || ""}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="e.g., Laptop Computer"
-            className={errors.name ? "border-red-500" : "border-green-200"}
+            className={`${errors.name ? "border-red-500" : "border-green-200 dark:border-teal-700"} dark:bg-slate-700 dark:text-slate-50`}
           />
           {errors.name && (
             <p className="text-red-500 text-xs mt-1">{errors.name}</p>
@@ -300,14 +302,14 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             SKU *
           </label>
           <Input
             value={formData.sku || ""}
             onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
             placeholder="e.g., LAP-001"
-            className={errors.sku ? "border-red-500" : "border-green-200"}
+            className={`${errors.sku ? "border-red-500" : "border-green-200 dark:border-teal-700"} dark:bg-slate-700 dark:text-slate-50`}
           />
           {errors.sku && (
             <p className="text-red-500 text-xs mt-1">{errors.sku}</p>
@@ -315,7 +317,7 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Category *
           </label>
           <select
@@ -323,8 +325,10 @@ export function ProductForm({
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
             }
-            className={`w-full px-3 py-2 border rounded-md text-sm ${
-              errors.category ? "border-red-500" : "border-green-200"
+            className={`w-full px-3 py-2 border rounded-md text-sm dark:bg-slate-700 dark:text-slate-50 ${
+              errors.category
+                ? "border-red-500"
+                : "border-green-200 dark:border-teal-700"
             }`}
           >
             <option value="">Select category</option>
@@ -340,7 +344,7 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Supplier *
           </label>
           <select
@@ -348,8 +352,10 @@ export function ProductForm({
             onChange={(e) =>
               setFormData({ ...formData, supplierId: e.target.value })
             }
-            className={`w-full px-3 py-2 border rounded-md text-sm ${
-              errors.supplierId ? "border-red-500" : "border-green-200"
+            className={`w-full px-3 py-2 border rounded-md text-sm dark:bg-slate-700 dark:text-slate-50 ${
+              errors.supplierId
+                ? "border-red-500"
+                : "border-green-200 dark:border-teal-700"
             }`}
           >
             <option value="">Select supplier</option>
@@ -365,7 +371,7 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Unit Price *
           </label>
           <Input
@@ -379,7 +385,7 @@ export function ProductForm({
               })
             }
             placeholder="0.00"
-            className={errors.unitPrice ? "border-red-500" : "border-green-200"}
+            className={`${errors.unitPrice ? "border-red-500" : "border-green-200 dark:border-teal-700"} dark:bg-slate-700 dark:text-slate-50`}
           />
           {errors.unitPrice && (
             <p className="text-red-500 text-xs mt-1">{errors.unitPrice}</p>
@@ -387,7 +393,7 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Cost Price
           </label>
           <Input
@@ -401,7 +407,7 @@ export function ProductForm({
               })
             }
             placeholder="0.00"
-            className={errors.costPrice ? "border-red-500" : "border-green-200"}
+            className={`${errors.costPrice ? "border-red-500" : "border-green-200 dark:border-teal-700"} dark:bg-slate-700 dark:text-slate-50`}
           />
           {errors.costPrice && (
             <p className="text-red-500 text-xs mt-1">{errors.costPrice}</p>
@@ -409,13 +415,13 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Unit
           </label>
           <select
             value={formData.unit || "units"}
             onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-            className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+            className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 rounded-md text-sm"
           >
             {units.map((u) => (
               <option key={u} value={u}>
@@ -426,7 +432,7 @@ export function ProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Reorder Level
           </label>
           <Input
@@ -439,9 +445,11 @@ export function ProductForm({
               })
             }
             placeholder="0"
-            className={
-              errors.reorderLevel ? "border-red-500" : "border-green-200"
-            }
+            className={`${
+              errors.reorderLevel
+                ? "border-red-500"
+                : "border-green-200 dark:border-teal-700"
+            } dark:bg-slate-700 dark:text-slate-50`}
           />
           {errors.reorderLevel && (
             <p className="text-red-500 text-xs mt-1">{errors.reorderLevel}</p>
@@ -449,17 +457,17 @@ export function ProductForm({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Product Image
           </label>
           <Input
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
-            className="border-green-200 cursor-pointer"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 cursor-pointer"
           />
           {uploadedImage && (
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
               Uploaded: {uploadedImage}
             </p>
           )}
@@ -467,27 +475,27 @@ export function ProductForm({
 
         {imagePreview && (
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
               Image Preview
             </label>
             <img
               src={imagePreview}
               alt="Product preview"
-              className="w-32 h-32 object-cover border border-green-200 rounded"
+              className="w-32 h-32 object-cover border border-green-200 dark:border-teal-700 rounded"
             />
           </div>
         )}
       </div>
 
       {/* Category-Specific Fields */}
-      <div className="space-y-3 pt-4 border-t border-gray-200">
-        <div className="border border-gray-200 rounded-lg">
+      <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-teal-700">
+        <div className="border border-gray-200 dark:border-teal-700 rounded-lg dark:bg-slate-700">
           <button
             type="button"
             onClick={() => toggleSection("categoryFields")}
-            className="w-full flex justify-between items-center p-3 hover:bg-gray-50"
+            className="w-full flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-600"
           >
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-gray-700 dark:text-slate-300">
               Category-Specific Fields
             </span>
             {expandedSections.categoryFields ? (
@@ -497,7 +505,7 @@ export function ProductForm({
             )}
           </button>
           {expandedSections.categoryFields && (
-            <div className="p-3 border-t border-gray-200">
+            <div className="p-3 border-t border-gray-200 dark:border-teal-700">
               {renderCategoryFields()}
             </div>
           )}
@@ -505,10 +513,18 @@ export function ProductForm({
       </div>
 
       <div className="flex gap-2 pt-4">
-        <Button type="submit" className="bg-green-600 hover:bg-green-700">
+        <Button
+          type="submit"
+          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+        >
           {product ? "Update Product" : "Add Product"}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
           Cancel
         </Button>
       </div>

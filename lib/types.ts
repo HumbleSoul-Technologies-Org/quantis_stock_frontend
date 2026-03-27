@@ -236,6 +236,25 @@ export interface AppSettings {
   };
 }
 
+// Notification Types
+export type NotificationType = 'low_stock' | 'stock_out' | 'new_sale' | 'new_product' | 'data_sync' | 'no_internet' | 'credentials_change' | 'info' | 'success' | 'error' | 'warning';
+export type NotificationPriority = 'high' | 'medium' | 'low';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  priority: NotificationPriority;
+  createdAt: Date;
+  read: boolean;
+  actionUrl?: string;
+  actionLabel?: string;
+  productId?: string;
+  saleId?: string;
+  metadata?: Record<string, any>;
+}
+
 // Report Types
 export interface InventorySummary {
   totalProducts: number;

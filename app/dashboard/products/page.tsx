@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
+import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { Product } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
 import { ProductDialog } from "@/components/products/ProductDialog";
@@ -13,6 +14,7 @@ import { Plus } from "lucide-react";
 function ProductsPageContent() {
   const { products, suppliers, addProduct, updateProduct, deleteProduct } =
     useData();
+  const { notifyNewProduct, notifySuccess } = useNotificationActions();
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,8 +25,10 @@ function ProductsPageContent() {
   const handleAddProduct = (product: Product) => {
     if (editingProduct) {
       updateProduct(editingProduct.id, product);
+      notifySuccess("Product Updated", `${product.name} has been updated.`);
     } else {
       addProduct(product);
+      notifyNewProduct(product.name);
     }
     setShowDialog(false);
     setEditingProduct(undefined);
@@ -42,14 +46,18 @@ function ProductsPageContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 px-2 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600 mt-2">Manage your product inventory</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
+            Products
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
+            Manage your product inventory
+          </p>
         </div>
         <Button
           onClick={() => setShowDialog(true)}
-          className="bg-green-600 hover:bg-green-700 gap-2"
+          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           Add Product
@@ -75,12 +83,12 @@ function ProductsPageContent() {
           placeholder="Search by name or SKU..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="border-green-200 flex-1"
+          className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 flex-1"
         />
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 border border-green-200 rounded-md text-sm w-full sm:w-48"
+          className="px-3 py-2 border border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 rounded-md text-sm w-full sm:w-48"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { ClientOnly } from "@/components/client-only";
 import { SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
@@ -17,6 +18,7 @@ function SalesPageContent() {
   const { products, sales, addSale, deleteSale } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
+  const { notifyNewSale, notifySuccess } = useNotificationActions();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -26,6 +28,7 @@ function SalesPageContent() {
 
   const handleAddSale = (sale: any) => {
     addSale(sale);
+    notifyNewSale(sale.saleNumber, formatCurrency(sale.totalAmount));
   };
 
   const userSales =
@@ -131,9 +134,11 @@ function SalesPageContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Sales</h1>
-        <p className="text-gray-600 mt-2">
+      <div className="px-2 sm:px-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
+          Sales
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
           Create and manage sales transactions
         </p>
       </div>
@@ -143,18 +148,18 @@ function SalesPageContent() {
         {/* Left: Statistics */}
         <div className="space-y-4">
           {/* Total Sales Today */}
-          <Card className="border-green-200 border-2 bg-green-50 dark:bg-slate-800">
+          <Card className="border-green-200 dark:border-teal-700 border-2 bg-green-50 dark:bg-slate-800">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-teal-300">
                 <TrendingUp className="w-5 h-5" />
                 Today's Sales
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {formatCurrency(totalSalesToday)}
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
                 {todaysSales.length} transaction
                 {todaysSales.length !== 1 ? "s" : ""}
               </p>
@@ -162,7 +167,7 @@ function SalesPageContent() {
           </Card>
 
           {/* Last Sale Time */}
-          <Card className="border-blue-200 border-2 bg-blue-50 dark:bg-slate-800">
+          <Card className="border-blue-200 dark:border-blue-700 border-2 bg-blue-50 dark:bg-slate-800">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
                 <Clock className="w-5 h-5" />
@@ -170,10 +175,10 @@ function SalesPageContent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="text-2xl font-bold text-gray-900 dark:text-teal-100">
                 {lastSaleTime ? format(lastSaleTime, "h:mm a") : "No sales yet"}
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
                 {lastSaleTime ? format(lastSaleTime, "MMMM dd, yyyy") : "Today"}
               </p>
             </CardContent>
@@ -182,9 +187,11 @@ function SalesPageContent() {
 
         {/* Right: Sales Form */}
         <div className="lg:col-span-2">
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 dark:border-teal-700 border-2 dark:bg-slate-800">
             <CardHeader>
-              <CardTitle>Record New Sale</CardTitle>
+              <CardTitle className="dark:text-teal-100">
+                Record New Sale
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {user && (

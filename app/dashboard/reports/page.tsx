@@ -88,10 +88,10 @@ function ReportsPageContent() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
             Reports & Analytics
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
             View insights and generate reports
           </p>
         </div>
@@ -103,8 +103,8 @@ function ReportsPageContent() {
           variant={selectedReport === "inventory" ? "default" : "outline"}
           className={
             selectedReport === "inventory"
-              ? "bg-green-600 hover:bg-green-700"
-              : ""
+              ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+              : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
           }
         >
           Inventory Report
@@ -113,7 +113,9 @@ function ReportsPageContent() {
           onClick={() => setSelectedReport("sales")}
           variant={selectedReport === "sales" ? "default" : "outline"}
           className={
-            selectedReport === "sales" ? "bg-green-600 hover:bg-green-700" : ""
+            selectedReport === "sales"
+              ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+              : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
           }
         >
           Sales Report
@@ -123,13 +125,17 @@ function ReportsPageContent() {
           variant={selectedReport === "summary" ? "default" : "outline"}
           className={
             selectedReport === "summary"
-              ? "bg-green-600 hover:bg-green-700"
-              : ""
+              ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+              : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
           }
         >
           Summary
         </Button>
-        <Button onClick={exportCSV} variant="outline" className="ml-auto gap-2">
+        <Button
+          onClick={exportCSV}
+          variant="outline"
+          className="ml-auto gap-2 dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
           <Download className="w-4 h-4" />
           Export CSV
         </Button>
@@ -137,79 +143,79 @@ function ReportsPageContent() {
 
       {selectedReport === "summary" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
                 Total Products
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {totalProducts}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
                 Inventory Value
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {formatCurrency(totalInventoryValue)}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
                 Avg Stock Level
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {averageStockLevel}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
                 Total Sales
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {completedSales.length}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
                 Total Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {formatCurrency(totalRevenue)}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 border-2">
+          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
                 Avg Order Value
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
                 {formatCurrency(avgOrderValue)}
               </div>
             </CardContent>
@@ -218,61 +224,69 @@ function ReportsPageContent() {
       )}
 
       {selectedReport === "inventory" && (
-        <Card className="border-green-200 border-2">
+        <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
           <CardHeader>
-            <CardTitle>Inventory Summary</CardTitle>
+            <CardTitle className="dark:text-teal-100">
+              Inventory Summary
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-600 font-medium">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-900/20 dark:border-blue-700">
+                <p className="text-sm text-blue-600 font-medium dark:text-blue-300">
                   Total Products
                 </p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
                   {totalProducts}
                 </p>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-sm text-purple-600 font-medium">
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700">
+                <p className="text-sm text-purple-600 font-medium dark:text-purple-300">
                   Inventory Value
                 </p>
-                <p className="text-2xl font-bold text-purple-900 mt-1">
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
                   {formatCurrency(totalInventoryValue)}
                 </p>
               </div>
-              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                <p className="text-sm text-red-600 font-medium">
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200 dark:bg-red-900/20 dark:border-red-700">
+                <p className="text-sm text-red-600 font-medium dark:text-red-300">
                   Low Stock Items
                 </p>
-                <p className="text-2xl font-bold text-red-900 mt-1">
+                <p className="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
                   {lowStockItems.length}
                 </p>
               </div>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900 mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
                 Top 5 Best Selling Products
               </h3>
               {topProducts.length === 0 ? (
-                <p className="text-gray-600 text-sm">No sales data yet</p>
+                <p className="text-gray-600 dark:text-slate-400 text-sm">
+                  No sales data yet
+                </p>
               ) : (
                 <div className="space-y-2">
                   {topProducts.map((p, idx) => (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded border border-gray-200 dark:border-teal-700"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="bg-green-100 text-green-700 font-bold w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                        <div className="bg-green-100 text-green-700 dark:bg-teal-900 dark:text-teal-200 font-bold w-6 h-6 rounded-full flex items-center justify-center text-xs">
                           {idx + 1}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{p.name}</p>
-                          <p className="text-xs text-gray-600">{p.sku}</p>
+                          <p className="font-medium text-gray-900 dark:text-slate-100">
+                            {p.name}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-slate-400">
+                            {p.sku}
+                          </p>
                         </div>
                       </div>
-                      <p className="font-bold text-gray-900">
+                      <p className="font-bold text-gray-900 dark:text-teal-100">
                         {p.salesVolume} units sold
                       </p>
                     </div>
@@ -282,14 +296,17 @@ function ReportsPageContent() {
             </div>
 
             {lowStockItems.length > 0 && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="flex items-center gap-2 font-semibold text-amber-900 mb-2">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-900/20 dark:border-amber-700">
+                <p className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200 mb-2">
                   <AlertCircle className="w-4 h-4" />
                   Low Stock Items Need Reordering
                 </p>
                 <div className="space-y-1">
                   {lowStockItems.map((item) => (
-                    <p key={item.id} className="text-sm text-amber-800">
+                    <p
+                      key={item.id}
+                      className="text-sm text-amber-800 dark:text-amber-300"
+                    >
                       • {item.name}: {item.currentStock} {item.unit} (Reorder
                       at: {item.reorderLevel})
                     </p>
@@ -302,65 +319,81 @@ function ReportsPageContent() {
       )}
 
       {selectedReport === "sales" && (
-        <Card className="border-green-200 border-2">
+        <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
           <CardHeader>
-            <CardTitle>Sales Summary</CardTitle>
+            <CardTitle className="dark:text-teal-100">Sales Summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-600 font-medium">
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200 dark:bg-green-900/20 dark:border-green-700">
+                <p className="text-sm text-green-600 font-medium dark:text-green-300">
                   Total Sales
                 </p>
-                <p className="text-2xl font-bold text-green-900 mt-1">
+                <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
                   {completedSales.length}
                 </p>
               </div>
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-600 font-medium">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-900/20 dark:border-blue-700">
+                <p className="text-sm text-blue-600 font-medium dark:text-blue-300">
                   Total Revenue
                 </p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
                   {formatCurrency(totalRevenue)}
                 </p>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-sm text-purple-600 font-medium">
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700">
+                <p className="text-sm text-purple-600 font-medium dark:text-purple-300">
                   Average Order Value
                 </p>
-                <p className="text-2xl font-bold text-purple-900 mt-1">
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
                   {formatCurrency(avgOrderValue)}
                 </p>
               </div>
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Recent Sales</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+                Recent Sales
+              </h3>
               {completedSales.length === 0 ? (
-                <p className="text-gray-600 text-sm">No sales recorded yet</p>
+                <p className="text-gray-600 dark:text-slate-400 text-sm">
+                  No sales recorded yet
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="text-left p-3 font-semibold">Sale #</th>
-                        <th className="text-left p-3 font-semibold">Date</th>
-                        <th className="text-center p-3 font-semibold">Items</th>
-                        <th className="text-right p-3 font-semibold">Amount</th>
+                      <tr className="border-b border-gray-200 dark:border-teal-700 bg-gray-50 dark:bg-slate-700">
+                        <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
+                          Sale #
+                        </th>
+                        <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
+                          Date
+                        </th>
+                        <th className="text-center p-3 font-semibold text-gray-700 dark:text-slate-300">
+                          Items
+                        </th>
+                        <th className="text-right p-3 font-semibold text-gray-700 dark:text-slate-300">
+                          Amount
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {completedSales.slice(0, 10).map((s) => (
                         <tr
                           key={s.id}
-                          className="border-b border-gray-200 hover:bg-gray-50"
+                          className="border-b border-gray-200 dark:border-teal-700 hover:bg-gray-50 dark:hover:bg-slate-700"
                         >
-                          <td className="p-3 font-medium">{s.saleNumber}</td>
-                          <td className="p-3 text-gray-600">{s.date}</td>
-                          <td className="p-3 text-center text-gray-600">
+                          <td className="p-3 font-medium text-gray-900 dark:text-slate-100">
+                            {s.saleNumber}
+                          </td>
+                          <td className="p-3 text-gray-600 dark:text-slate-400">
+                            {s.date}
+                          </td>
+                          <td className="p-3 text-center text-gray-600 dark:text-slate-400">
                             {s.items.length}
                           </td>
-                          <td className="p-3 text-right font-medium">
+                          <td className="p-3 text-right font-medium text-gray-900 dark:text-teal-100">
                             {formatCurrency(s.totalAmount)}
                           </td>
                         </tr>

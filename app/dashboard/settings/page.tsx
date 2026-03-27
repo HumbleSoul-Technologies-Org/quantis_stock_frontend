@@ -21,15 +21,17 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">
+      <div className="px-2 sm:px-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
+          Settings
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
           Manage your system configuration and preferences
         </p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 bg-gray-100 p-1">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 bg-gray-100 dark:bg-slate-700 p-1">
           <TabsTrigger value="general" className="text-xs md:text-sm">
             General
           </TabsTrigger>
@@ -71,8 +73,8 @@ export default function SettingsPage() {
         )}
       </Tabs>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-900">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+        <p className="text-sm text-blue-900 dark:text-blue-300">
           <strong>Note:</strong> All settings are saved automatically. Changes
           to currency and units will be reflected across the entire system.
         </p>

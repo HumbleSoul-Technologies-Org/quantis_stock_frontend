@@ -247,8 +247,8 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         <div
           className={`flex items-center gap-2 p-3 rounded ${
             message.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-700 border border-red-200"
+              ? "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700"
+              : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
           }`}
         >
           {message.type === "success" ? (
@@ -261,13 +261,15 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       )}
 
       {/* Change Credentials Card */}
-      <Card className="border-green-200 border-2">
+      <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
         <CardHeader>
-          <CardTitle>Change Credentials</CardTitle>
+          <CardTitle className="dark:text-teal-100">
+            Change Credentials
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {!isAdminOnly && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800 flex gap-2">
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800 flex gap-2 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 Managers cannot change their credentials. Contact your admin to
@@ -278,7 +280,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Current Password *
               </label>
               <Input
@@ -289,7 +291,9 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                 }
                 placeholder="Enter your current password"
                 className={
-                  errors.currentPassword ? "border-red-500" : "border-green-200"
+                  errors.currentPassword
+                    ? "border-red-500"
+                    : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
                 }
                 disabled={!isAdminOnly}
               />
@@ -301,11 +305,12 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 New Username *
               </label>
-              <div className="text-xs text-gray-600 mb-1">
-                Current username: <strong>{user?.username}</strong>
+              <div className="text-xs text-gray-600 dark:text-slate-400 mb-1">
+                Current username:{" "}
+                <strong className="dark:text-teal-100">{user?.username}</strong>
               </div>
               <Input
                 type="text"
@@ -315,7 +320,9 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                 }
                 placeholder="Enter new username"
                 className={
-                  errors.newUsername ? "border-red-500" : "border-green-200"
+                  errors.newUsername
+                    ? "border-red-500"
+                    : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
                 }
                 disabled={!isAdminOnly}
               />
@@ -327,7 +334,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 New Password *
               </label>
               <Input
@@ -338,7 +345,9 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                 }
                 placeholder="Enter new password"
                 className={
-                  errors.newPassword ? "border-red-500" : "border-green-200"
+                  errors.newPassword
+                    ? "border-red-500"
+                    : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
                 }
                 disabled={!isAdminOnly}
               />
@@ -350,7 +359,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Confirm Password *
               </label>
               <Input
@@ -361,7 +370,9 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                 }
                 placeholder="Confirm new password"
                 className={
-                  errors.confirmPassword ? "border-red-500" : "border-green-200"
+                  errors.confirmPassword
+                    ? "border-red-500"
+                    : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
                 }
                 disabled={!isAdminOnly}
               />
@@ -375,17 +386,17 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
             <Button
               type="submit"
               disabled={!isAdminOnly}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
             >
               Update Credentials
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-2">
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-teal-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
               Security Tips:
             </p>
-            <ul className="text-sm text-gray-600 space-y-1">
+            <ul className="text-sm text-gray-600 dark:text-slate-400 space-y-1">
               <li>• Use a strong password with mixed characters</li>
               <li>
                 • Keep your credentials secure and don&apos;t share with others
@@ -399,12 +410,14 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       {/* Team Users Management (Admin Only) */}
       {isAdminOnly && (
         <>
-          <Card className="border-blue-200 border-2">
+          <Card className="border-blue-200 border-2 dark:bg-slate-800 dark:border-blue-700">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Team Users ({teamUsers.length})</CardTitle>
+              <CardTitle className="dark:text-teal-100">
+                Team Users ({teamUsers.length})
+              </CardTitle>
               <Button
                 onClick={() => setShowCreateUserForm(!showCreateUserForm)}
-                className="bg-blue-600 hover:bg-blue-700 gap-2"
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add User
@@ -415,10 +428,10 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
               {showCreateUserForm && (
                 <form
                   onSubmit={handleCreateUser}
-                  className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4"
+                  className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4 dark:bg-blue-900/20 dark:border-blue-700"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Name *
                     </label>
                     <Input
@@ -434,7 +447,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                       className={
                         createUserErrors.name
                           ? "border-red-500"
-                          : "border-blue-200"
+                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
                       }
                     />
                     {createUserErrors.name && (
@@ -445,7 +458,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Email *
                     </label>
                     <Input
@@ -461,7 +474,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                       className={
                         createUserErrors.email
                           ? "border-red-500"
-                          : "border-blue-200"
+                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
                       }
                     />
                     {createUserErrors.email && (
@@ -472,7 +485,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Password *
                     </label>
                     <Input
@@ -488,7 +501,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                       className={
                         createUserErrors.password
                           ? "border-red-500"
-                          : "border-blue-200"
+                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
                       }
                     />
                     {createUserErrors.password && (
@@ -499,7 +512,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Confirm Password *
                     </label>
                     <Input
@@ -515,7 +528,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                       className={
                         createUserErrors.confirmPassword
                           ? "border-red-500"
-                          : "border-blue-200"
+                          : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
                       }
                     />
                     {createUserErrors.confirmPassword && (
@@ -526,7 +539,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Role *
                     </label>
                     <select
@@ -540,7 +553,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                             | "manager",
                         })
                       }
-                      className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-blue-700 rounded-md focus:outline-none focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-50"
                     >
                       <option value="sales">Sales</option>
                       <option value="accountant">Accountant</option>
@@ -551,7 +564,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                   <div className="flex gap-2">
                     <Button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
                     >
                       Create User
                     </Button>
@@ -559,6 +572,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                       type="button"
                       variant="outline"
                       onClick={() => setShowCreateUserForm(false)}
+                      className="dark:border-blue-700 dark:text-slate-300 dark:hover:bg-slate-700"
                     >
                       Cancel
                     </Button>
@@ -570,46 +584,51 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
               {teamUsers.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-slate-700">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Name
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Email
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Role
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Password
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Created
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Last Login
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
+                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                       {teamUsers.map((teamUser) => (
-                        <tr key={teamUser.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2">{teamUser.name}</td>
-                          <td className="px-4 py-2 text-xs">
+                        <tr
+                          key={teamUser.id}
+                          className="hover:bg-gray-50 dark:hover:bg-slate-700"
+                        >
+                          <td className="px-4 py-2 dark:text-slate-100">
+                            {teamUser.name}
+                          </td>
+                          <td className="px-4 py-2 text-xs dark:text-slate-400">
                             {teamUser.email}
                           </td>
                           <td className="px-4 py-2">
-                            <span className="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                            <span className="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
                               {teamUser.role}
                             </span>
                           </td>
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-1">
-                              <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                              <code className="text-xs bg-gray-100 dark:bg-slate-600 px-2 py-1 rounded dark:text-slate-100">
                                 {showPassword[teamUser.id]
                                   ? teamUser.password
                                   : "•".repeat(teamUser.password.length)}
@@ -622,7 +641,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                                     [teamUser.id]: !showPassword[teamUser.id],
                                   })
                                 }
-                                className="p-1 hover:bg-gray-200 rounded"
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded"
                               >
                                 {showPassword[teamUser.id] ? (
                                   <EyeOff className="w-3 h-3" />
@@ -635,16 +654,16 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                                 onClick={() =>
                                   handleCopyPassword(teamUser.password)
                                 }
-                                className="p-1 hover:bg-gray-200 rounded text-blue-600"
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded text-blue-600 dark:text-blue-400"
                               >
                                 📋
                               </button>
                             </div>
                           </td>
-                          <td className="px-4 py-2 text-xs">
+                          <td className="px-4 py-2 text-xs dark:text-slate-400">
                             {formatDate(teamUser.createdAt)}
                           </td>
-                          <td className="px-4 py-2 text-xs">
+                          <td className="px-4 py-2 text-xs dark:text-slate-400">
                             {teamUser.lastLogin
                               ? formatDate(teamUser.lastLogin)
                               : "Never"}
@@ -653,7 +672,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                             <button
                               type="button"
                               onClick={() => handleDeleteUser(teamUser.id)}
-                              className="p-1 hover:bg-red-100 rounded text-red-600"
+                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded text-red-600 dark:text-red-400"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -664,7 +683,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-500">
+                <div className="text-center py-6 text-gray-500 dark:text-slate-400">
                   No team users yet. Create one to get started!
                 </div>
               )}

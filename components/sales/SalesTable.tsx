@@ -144,19 +144,26 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
   );
 
   return (
-    <Card className="border-green-200 border-2 mt-6">
+    <Card className="border-green-200 dark:border-teal-700 border-2 mt-6 bg-white dark:bg-slate-800">
       <CardHeader>
-        <CardTitle>Sales ({sorted.length})</CardTitle>
+        <CardTitle className="dark:text-teal-100">
+          Sales ({sorted.length})
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {sorted.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No sales recorded</p>
+          <p className="text-gray-500 dark:text-slate-400 text-center py-8">
+            No sales recorded
+          </p>
         ) : (
           <div className="space-y-2">
             {sorted.map((sale) => (
-              <div key={sale.id} className="border border-gray-200 rounded-lg">
+              <div
+                key={sale.id}
+                className="border border-gray-200 dark:border-slate-700 dark:bg-slate-700 rounded-lg"
+              >
                 <div
-                  className="p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                  className="p-3 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer flex items-center justify-between"
                   onClick={() => toggleExpand(sale.id)}
                 >
                   <div className="flex-1">
@@ -166,17 +173,20 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                       ) : (
                         <ChevronDown className="w-4 h-4" />
                       )}
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-gray-900 dark:text-teal-100">
                         {sale.saleNumber}
                       </p>
-                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium capitalize">
+                      <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-medium capitalize">
                         {sale.status}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 ml-6">
+                    <p className="text-sm text-gray-600 dark:text-slate-400 ml-6">
                       Customer:{" "}
-                      <strong>{sale.customerName || "Anonymous"}</strong> |
-                      Items: {sale.items.length} | Qty: {getTotalQuantity(sale)}
+                      <strong className="dark:text-teal-100">
+                        {sale.customerName || "Anonymous"}
+                      </strong>{" "}
+                      | Items: {sale.items.length} | Qty:{" "}
+                      {getTotalQuantity(sale)}
                     </p>
                   </div>
                   <div className="text-right">

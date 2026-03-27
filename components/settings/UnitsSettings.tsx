@@ -59,10 +59,10 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
   };
 
   return (
-    <Card className="border-green-200 border-2">
+    <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
       <CardHeader>
-        <CardTitle>Measurement Units</CardTitle>
-        <p className="text-xs text-gray-500 mt-2">
+        <CardTitle className="dark:text-teal-100">Measurement Units</CardTitle>
+        <p className="text-xs text-gray-500 dark:text-slate-500 mt-2">
           Available units for your {businessConfig.units.length} unit types
         </p>
       </CardHeader>
@@ -70,7 +70,7 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
         {/* Weight Units */}
         {selectedWeightUnits.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Weight Unit{" "}
               {selectedWeightUnits.length === 1 ? "(Only option)" : ""}
             </label>
@@ -79,7 +79,7 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
               onChange={(e) =>
                 setFormData({ ...formData, weight: e.target.value })
               }
-              className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
             >
               {selectedWeightUnits.map((u) => (
                 <option key={u} value={u}>
@@ -93,7 +93,7 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
         {/* Volume Units */}
         {selectedVolumeUnits.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Volume Unit{" "}
               {selectedVolumeUnits.length === 1 ? "(Only option)" : ""}
             </label>
@@ -102,7 +102,7 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
               onChange={(e) =>
                 setFormData({ ...formData, volume: e.target.value })
               }
-              className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
             >
               {selectedVolumeUnits.map((u) => (
                 <option key={u} value={u}>
@@ -116,7 +116,7 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
         {/* Count Units */}
         {selectedCountUnits.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Count Unit{" "}
               {selectedCountUnits.length === 1 ? "(Only option)" : ""}
             </label>
@@ -125,7 +125,7 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
               onChange={(e) =>
                 setFormData({ ...formData, count: e.target.value })
               }
-              className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
             >
               {selectedCountUnits.map((u) => (
                 <option key={u} value={u}>
@@ -137,37 +137,46 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
         )}
 
         {/* Current Units Summary */}
-        <div className="p-3 bg-gray-50 rounded border border-gray-200">
-          <p className="text-sm text-gray-600 mb-2">Current Unit Selection:</p>
-          <ul className="text-sm text-gray-900 space-y-1">
+        <div className="p-3 bg-gray-50 rounded border border-gray-200 dark:bg-slate-700 dark:border-teal-700">
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
+            Current Unit Selection:
+          </p>
+          <ul className="text-sm text-gray-900 dark:text-slate-100 space-y-1">
             {selectedWeightUnits.length > 0 && (
               <li>
-                Weight: <strong>{formData.weight}</strong>
+                Weight:{" "}
+                <strong className="dark:text-teal-100">
+                  {formData.weight}
+                </strong>
               </li>
             )}
             {selectedVolumeUnits.length > 0 && (
               <li>
-                Volume: <strong>{formData.volume}</strong>
+                Volume:{" "}
+                <strong className="dark:text-teal-100">
+                  {formData.volume}
+                </strong>
               </li>
             )}
             {selectedCountUnits.length > 0 && (
               <li>
-                Count: <strong>{formData.count}</strong>
+                Count:{" "}
+                <strong className="dark:text-teal-100">{formData.count}</strong>
               </li>
             )}
           </ul>
         </div>
 
         {/* All Available Units Info */}
-        <div className="p-3 bg-blue-50 rounded border border-blue-200">
-          <p className="text-xs font-medium text-blue-900 mb-2">
+        <div className="p-3 bg-blue-50 rounded border border-blue-200 dark:bg-blue-900/20 dark:border-blue-700">
+          <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-2">
             Available Units:
           </p>
           <div className="flex flex-wrap gap-1">
             {availableUnits.map((unit) => (
               <span
                 key={unit}
-                className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 rounded"
               >
                 {unit}
               </span>
@@ -176,14 +185,14 @@ export function UnitsSettings({ settings, onUpdate }: UnitsSettingsProps) {
         </div>
 
         {saved && (
-          <p className="text-green-600 text-sm">
+          <p className="text-green-600 dark:text-green-400 text-sm">
             ✓ Unit settings saved successfully
           </p>
         )}
 
         <Button
           onClick={handleSave}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
           Save Changes
         </Button>

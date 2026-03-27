@@ -109,7 +109,7 @@ export function SalesForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Customer Name *
           </label>
           <Input
@@ -117,7 +117,9 @@ export function SalesForm({
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Enter customer name"
             className={
-              errors.customerName ? "border-red-500" : "border-green-200"
+              errors.customerName
+                ? "border-red-500"
+                : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
             }
           />
           {errors.customerName && (
@@ -126,25 +128,25 @@ export function SalesForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Date of Sale *
           </label>
           <Input
             type="date"
             value={saleDate}
             onChange={(e) => setSaleDate(e.target.value)}
-            className="border-green-200"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Payment Type *
           </label>
           <select
             value={paymentType}
             onChange={(e) => setPaymentType(e.target.value)}
-            className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+            className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
           >
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -156,14 +158,18 @@ export function SalesForm({
 
         {paymentType !== "cash" && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Transaction ID *
             </label>
             <Input
               value={txnId}
               onChange={(e) => setTxnId(e.target.value)}
               placeholder="e.g., TXN-123456"
-              className={errors.txnId ? "border-red-500" : "border-green-200"}
+              className={
+                errors.txnId
+                  ? "border-red-500"
+                  : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+              }
             />
             {errors.txnId && (
               <p className="text-red-500 text-xs mt-1">{errors.txnId}</p>
@@ -173,14 +179,14 @@ export function SalesForm({
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
           Add Products
         </label>
         <div className="flex gap-2">
           <select
             value={selectedProductId}
             onChange={(e) => setSelectedProductId(e.target.value)}
-            className="flex-1 px-3 py-2 border border-green-200 rounded-md text-sm"
+            className="flex-1 px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
           >
             <option value="">Select product</option>
             {products
@@ -197,12 +203,12 @@ export function SalesForm({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="Qty"
-            className="w-20 border-green-200"
+            className="w-20 border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
           />
           <Button
             type="button"
             onClick={addItem}
-            className="bg-green-600 hover:bg-green-700 gap-1"
+            className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-1"
           >
             <Plus className="w-4 h-4" />
             Add
@@ -217,9 +223,9 @@ export function SalesForm({
       </div>
 
       {items.length > 0 && (
-        <Card className="bg-gray-50">
+        <Card className="bg-gray-50 dark:bg-slate-700 dark:border-teal-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">
+            <CardTitle className="text-sm dark:text-teal-100">
               Sale Items ({items.length})
             </CardTitle>
           </CardHeader>
@@ -229,13 +235,13 @@ export function SalesForm({
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                  className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-teal-700"
                 >
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
                       {product?.name}
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-600 dark:text-slate-400">
                       {item.quantity} × {formatCurrency(item.unitPrice)} ={" "}
                       {formatCurrency(item.total)}
                     </p>
@@ -245,15 +251,15 @@ export function SalesForm({
                     variant="ghost"
                     size="sm"
                     onClick={() => removeItem(index)}
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               );
             })}
-            <div className="border-t border-gray-200 pt-2 mt-2">
-              <p className="text-sm font-bold text-gray-900">
+            <div className="border-t border-gray-200 dark:border-teal-700 pt-2 mt-2">
+              <p className="text-sm font-bold text-gray-900 dark:text-teal-100">
                 Total: {formatCurrency(totalAmount)}
               </p>
             </div>
@@ -262,7 +268,7 @@ export function SalesForm({
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
           Notes (Optional)
         </label>
         <textarea
@@ -270,17 +276,25 @@ export function SalesForm({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add any sale notes..."
           rows={3}
-          className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+          className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
         />
       </div>
 
       {errors.items && <p className="text-red-500 text-sm">{errors.items}</p>}
 
       <div className="flex gap-2 pt-4">
-        <Button type="submit" className="bg-green-600 hover:bg-green-700">
+        <Button
+          type="submit"
+          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+        >
           Complete Sale
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
           Cancel
         </Button>
       </div>

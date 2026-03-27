@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams } from "next/navigation";
+import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { ClientOnly } from "@/components/client-only";
 import { StockMovementForm } from "@/components/inventory/StockMovementForm";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
@@ -26,6 +27,8 @@ function InventoryPageContent() {
   const { products, stockMovements, addStockMovement } = useData();
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const { notifyLowStock, notifyStockOut, notifySuccess, notifyDataSync } =
+    useNotificationActions();
   const [showDialog, setShowDialog] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +79,33 @@ function InventoryPageContent() {
 
   const handleAddMovement = (movement: any) => {
     addStockMovement(movement);
+
+    // Get product name
+    const product = products.find((p) => p.id === movement.productId);
+    const productName = product?.name || "Unknown Product";
+
+    // Notify based on movement type and stock level
+    if (movement.type === "in") {
+      notifySuccess(
+        "Stock In",
+        `${movement.quantity} units of ${productName} stocked in.`,
+      );
+    } else {
+      notifySuccess(
+        "Stock Out",
+        `${movement.quantity} units of ${productName} stocked out.`,
+      );
+
+      // Check if product is now at reorder level or out of stock
+      const updatedProduct = products.find((p) => p.id === movement.productId);
+      if (updatedProduct) {
+        if (updatedProduct.currentStock === 0) {
+          notifyStockOut(productName);
+        } else if (updatedProduct.currentStock <= updatedProduct.reorderLevel) {
+          notifyLowStock(productName);
+        }
+      }
+    }
   };
 
   const handleStockIn = (product: any) => {
@@ -120,18 +150,18 @@ function InventoryPageContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 px-2 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
             Inventory Management
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
             Track and manage stock levels in real-time
           </p>
         </div>
         <Button
           onClick={() => setShowDialog(true)}
-          className="bg-green-600 hover:bg-green-700 gap-2"
+          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           Stock In
@@ -143,21 +173,24 @@ function InventoryPageContent() {
 
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (
-        <Card className="border-amber-200 border-2 bg-amber-50">
+        <Card className="border-amber-200 dark:border-amber-700 border-2 bg-amber-50 dark:bg-amber-900/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-amber-900 flex items-center gap-2">
+            <CardTitle className="text-amber-900 dark:text-amber-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               Low Stock Alert
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-amber-800 text-sm">
+            <p className="text-amber-800 dark:text-amber-300 text-sm">
               {lowStockItems.length} product(s) are running low on stock. Please
               reorder soon.
             </p>
             <div className="mt-3 space-y-1">
               {lowStockItems.map((item) => (
-                <p key={item.id} className="text-sm text-amber-700">
+                <p
+                  key={item.id}
+                  className="text-sm text-amber-700 dark:text-amber-400"
+                >
                   • {item.name}: {item.currentStock} {item.unit} (Reorder at:{" "}
                   {item.reorderLevel})
                 </p>

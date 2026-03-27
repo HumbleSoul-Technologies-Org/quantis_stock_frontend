@@ -2,8 +2,7 @@
 
 import { Product, StockMovement } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, AlertCircle, Package } from "lucide-react";
-import { useSettings } from "@/context/SettingsContext";
+import { TrendingUp, AlertCircle, Package, AlertTriangle } from "lucide-react";
 
 interface InventoryStatsProps {
   products: Product[];
@@ -11,8 +10,6 @@ interface InventoryStatsProps {
 }
 
 export function InventoryStats({ products, movements }: InventoryStatsProps) {
-  const { settings, getCurrencySymbol } = useSettings();
-
   // Calculate recent restocks (last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -25,14 +22,17 @@ export function InventoryStats({ products, movements }: InventoryStatsProps) {
     (p) => p.currentStock <= p.reorderLevel,
   ).length;
 
+  // Calculate total stock outs (amount of stock issued/removed)
+  const totalStockOuts = movements
+    .filter((m) => m.type === "out")
+    .reduce((sum, m) => sum + m.quantity, 0);
+
   // Calculate total storage capacity
   const totalCapacity = products.reduce((sum, p) => sum + p.currentStock, 0);
 
-  const currencySymbol = getCurrencySymbol();
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card className="bg-gradient-to-br from-green-50 dark:from-teal-900 to-green-100 dark:to-slate-800 border-green-200 dark:border-teal-700">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card className="bg-green-50 dark:bg-slate-800 border-green-200 dark:border-teal-700">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
@@ -51,7 +51,7 @@ export function InventoryStats({ products, movements }: InventoryStatsProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-amber-50 dark:from-slate-800 to-amber-100 dark:to-slate-900 border-amber-200 dark:border-cyan-600">
+      <Card className="bg-amber-50 dark:bg-slate-800 border-amber-200 dark:border-cyan-600">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
@@ -70,7 +70,26 @@ export function InventoryStats({ products, movements }: InventoryStatsProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-blue-50 dark:from-slate-800 to-blue-100 dark:to-teal-900 border-blue-200 dark:border-teal-700">
+      <Card className="bg-red-50 dark:bg-slate-800 border-red-200 dark:border-red-700">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                Stock Outs
+              </p>
+              <p className="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">
+                {totalStockOuts}
+              </p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                Units issued
+              </p>
+            </div>
+            <AlertTriangle className="w-12 h-12 text-red-600 dark:text-red-400 opacity-20" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-teal-700">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>

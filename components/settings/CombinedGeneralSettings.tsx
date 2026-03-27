@@ -82,9 +82,9 @@ export function CombinedGeneralSettings({
 
   return (
     <div className="space-y-6">
-      <Card className="border-green-200 border-2">
+      <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 dark:text-teal-100">
             <Building2 className="w-5 h-5" />
             Business Information
           </CardTitle>
@@ -92,7 +92,7 @@ export function CombinedGeneralSettings({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Business Name *
               </label>
               <Input
@@ -105,7 +105,9 @@ export function CombinedGeneralSettings({
                 }
                 placeholder="e.g., My Retail Store"
                 className={
-                  errors.businessName ? "border-red-500" : "border-green-200"
+                  errors.businessName
+                    ? "border-red-500"
+                    : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
                 }
               />
               {errors.businessName && (
@@ -116,34 +118,34 @@ export function CombinedGeneralSettings({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Business Type
               </label>
-              <div className="px-3 py-2 bg-gray-50 border border-green-200 rounded-md text-sm text-gray-600">
+              <div className="px-3 py-2 bg-gray-50 border border-green-200 rounded-md text-sm text-gray-600 dark:bg-slate-700 dark:border-teal-700 dark:text-slate-400">
                 {businessData.businessType === "retail"
                   ? "Retail - Optimized for retail stores"
                   : "Other"}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
                 Contact support to change
               </p>
             </div>
           </div>
 
           {/* Currency Section */}
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-4">
+          <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
+            <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
               Currency Settings
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                   Currency *
                 </label>
                 <select
                   value={businessData.currency}
                   onChange={(e) => handleCurrencyChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-green-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-700 dark:text-slate-50"
                 >
                   {CURRENCIES.map((curr) => (
                     <option key={curr.code} value={curr.code}>
@@ -199,10 +201,12 @@ export function CombinedGeneralSettings({
           </div>
 
           {/* Other Settings Section */}
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-4">Other Settings</h3>
+          <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
+            <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
+              Other Settings
+            </h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Low Stock Warning Threshold (%) *
               </label>
               <Input
@@ -219,7 +223,7 @@ export function CombinedGeneralSettings({
                 className={
                   errors.lowStockThreshold
                     ? "border-red-500"
-                    : "border-green-200"
+                    : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
                 }
               />
               {errors.lowStockThreshold && (
@@ -233,14 +237,17 @@ export function CombinedGeneralSettings({
       </Card>
 
       {saved && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-700 text-sm">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 dark:bg-green-900/20 dark:border-green-700">
+          <p className="text-green-700 dark:text-green-300 text-sm">
             ✓ Settings saved successfully
           </p>
         </div>
       )}
 
-      <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+      <Button
+        onClick={handleSave}
+        className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+      >
         Save All Changes
       </Button>
     </div>
