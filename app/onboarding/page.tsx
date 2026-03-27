@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { ClientOnly } from "@/components/client-only";
 import { BusinessSetupForm } from "@/components/onboarding/BusinessSetupForm";
 import { BusinessSetup } from "@/lib/types";
+import { CURRENCIES } from "@/lib/business-config";
 
 function OnboardingContent() {
   const router = useRouter();
   const { user, updateBusinessSetup } = useAuth();
+  const { settings, updateSettings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,6 +34,31 @@ function OnboardingContent() {
     try {
       const success = updateBusinessSetup(businessSetup);
       if (success) {
+        // Reflect onboarding settings into shared app settings
+        const selectedCurrency = CURRENCIES.find(
+          (c) => c.code === businessSetup.currency,
+        );
+
+        if (selectedCurrency) {
+          updateSettings({
+            currency: {
+              code: selectedCurrency.code,
+              symbol: selectedCurrency.symbol,
+              decimalPlaces: 2,
+            },
+            general: {
+              ...settings.general,
+              companyName: businessSetup.businessName,
+            },
+            notifications: {
+              emailAlerts: businessSetup.emailAlerts,
+              smsAlerts: businessSetup.smsAlerts,
+              lowStockAlerts: businessSetup.lowStockAlerts,
+              saleNotifications: businessSetup.saleNotifications,
+            },
+          });
+        }
+
         // Redirect to dashboard
         router.push("/dashboard");
       } else {
