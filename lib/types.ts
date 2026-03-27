@@ -94,6 +94,10 @@ export interface Product {
   // Discontinuation Info
   discontinuedDate?: string;
   discontinuationReason?: string;
+  
+  // Cloudinary image data
+  imageUrl?: string;
+  imagePublicId?: string;
 }
 
 // Inventory Types
@@ -142,11 +146,36 @@ export interface Supplier {
   name: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  country: string;
-  paymentTerms: string;
+  // Address can be a structured object; keep city/country top-level for compatibility
+  address?: {
+    street?: string;
+    city?: string;
+    country?: string;
+  };
+  // Backwards-compatible flat fields (some components read these)
+  city?: string;
+  country?: string;
+  // Contact persons
+  contact?: {
+    primaryContact?: string;
+    primaryPhone?: string;
+    secondaryContact?: string;
+    secondaryPhone?: string;
+  };
+  // Payment details
+  paymentTerms?: string;
+  payment?: {
+    bankDetails?: string;
+    taxId?: string;
+  };
   website?: string;
+  // Product ids or names supplied by this supplier
+  products?: string[];
+  status?: 'active' | 'inactive' | 'blocked';
+  rating?: number; // 1-5
+  notes?: string;
+  documentUrl?: string;
+  documentPublicId?: string;
   createdAt: string;
   updatedAt: string;
 }

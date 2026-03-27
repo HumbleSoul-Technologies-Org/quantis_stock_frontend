@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { uploadImage } from "@/lib/cloudinary";
 import { useBusinessConfig } from "@/hooks/useBusinessConfig";
 import {
   getFieldSchemaForCategory,
@@ -51,8 +52,11 @@ export function ProductForm({
     },
   );
 
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [imagePreview, setImagePreview] = useState<string>(
+    product?.imageUrl || "",
+  );
   const [uploadedImage, setUploadedImage] = useState<string>("");
+  const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
@@ -65,15 +69,25 @@ export function ProductForm({
     product?.customAttributes || {},
   );
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setUploadedImage(file.name);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsImageUploading(true);
+    setUploadedImage(file.name);
+
+    try {
+      const uploadResult = await uploadImage(file);
+      setFormData({
+        ...formData,
+        imageUrl: uploadResult.secure_url,
+        imagePublicId: uploadResult.public_id,
+      });
+      setImagePreview(uploadResult.secure_url);
+    } catch (error) {
+      console.error("Image upload failed", error);
+    } finally {
+      setIsImageUploading(false);
     }
   };
 
@@ -278,6 +292,8 @@ export function ProductForm({
       customAttributes: categoryFields,
       discontinuedDate: formData.discontinuedDate,
       discontinuationReason: formData.discontinuationReason,
+      imageUrl: formData.imageUrl,
+      imagePublicId: formData.imagePublicId,
     };
 
     onSubmit(newProduct);
@@ -313,6 +329,50 @@ export function ProductForm({
           />
           {errors.sku && (
             <p className="text-red-500 text-xs mt-1">{errors.sku}</p>
+          )}
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Product Image
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="product-image-upload"
+          />
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("product-image-upload")?.click()
+            }
+            className="inline-flex items-center justify-center rounded-md border border-green-200 px-4 py-2 text-sm font-medium text-green-700 dark:text-teal-100 bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600"
+          >
+            Choose Image
+          </button>
+          {uploadedImage && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+              Selected: {uploadedImage}
+            </p>
+          )}
+          {isImageUploading && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+              Uploading image...
+            </p>
+          )}
+          {imagePreview && (
+            <div className="mt-3">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Preview:
+              </p>
+              <img
+                src={imagePreview}
+                alt="Product preview"
+                className="mt-1 h-24 w-24 object-cover rounded border dark:border-teal-700"
+              />
+            </div>
           )}
         </div>
 
@@ -455,36 +515,6 @@ export function ProductForm({
             <p className="text-red-500 text-xs mt-1">{errors.reorderLevel}</p>
           )}
         </div>
-
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            Product Image
-          </label>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50 cursor-pointer"
-          />
-          {uploadedImage && (
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-              Uploaded: {uploadedImage}
-            </p>
-          )}
-        </div>
-
-        {imagePreview && (
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-              Image Preview
-            </label>
-            <img
-              src={imagePreview}
-              alt="Product preview"
-              className="w-32 h-32 object-cover border border-green-200 dark:border-teal-700 rounded"
-            />
-          </div>
-        )}
       </div>
 
       {/* Category-Specific Fields */}

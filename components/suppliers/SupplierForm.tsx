@@ -5,6 +5,7 @@ import { Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload } from "lucide-react";
+import { uploadFile } from "@/lib/cloudinary";
 
 interface SupplierFormProps {
   supplier?: Supplier;
@@ -22,25 +23,62 @@ export function SupplierForm({
       name: "",
       email: "",
       phone: "",
-      address: "",
+      address: { street: "", city: "", country: "" },
       city: "",
       country: "",
+      contact: {
+        primaryContact: "",
+        primaryPhone: "",
+        secondaryContact: "",
+        secondaryPhone: "",
+      },
       paymentTerms: "",
+      payment: { bankDetails: "", taxId: "" },
       website: "",
+      products: [],
+      status: "active",
+      rating: 0,
+      notes: "",
     },
   );
 
   const [productsSupplied, setProductsSupplied] = useState(
     supplier?.name || "",
   );
-  const [supplyContact, setSupplyContact] = useState("");
+  const [supplyContact, setSupplyContact] = useState(
+    supplier?.contact?.primaryContact || "",
+  );
   const [uploadedFile, setUploadedFile] = useState<string>("");
+  const [documentUrl, setDocumentUrl] = useState<string>(
+    supplier?.documentUrl || "",
+  );
+  const [documentPublicId, setDocumentPublicId] = useState<string>(
+    supplier?.documentPublicId || "",
+  );
+  const [isDocumentUploading, setIsDocumentUploading] =
+    useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFile(file.name);
+    if (!file) return;
+
+    setUploadedFile(file.name);
+    setIsDocumentUploading(true);
+
+    try {
+      const uploadResult = await uploadFile(file);
+      setDocumentUrl(uploadResult.secure_url);
+      setDocumentPublicId(uploadResult.public_id);
+      setFormData({
+        ...formData,
+        documentUrl: uploadResult.secure_url,
+        documentPublicId: uploadResult.public_id,
+      });
+    } catch (error) {
+      console.error("Document upload failed", error);
+    } finally {
+      setIsDocumentUploading(false);
     }
   };
 
@@ -53,9 +91,11 @@ export function SupplierForm({
       newErrors.email = "Invalid email format";
     }
     if (!formData.phone?.trim()) newErrors.phone = "Phone is required";
-    if (!formData.address?.trim()) newErrors.address = "Address is required";
-    if (!formData.city?.trim()) newErrors.city = "City is required";
-    if (!formData.country?.trim()) newErrors.country = "Country is required";
+    if (!formData.address || !formData.address.street?.trim())
+      newErrors.address = "Street address is required";
+    if (!formData.address?.city?.trim()) newErrors.city = "City is required";
+    if (!formData.address?.country?.trim())
+      newErrors.country = "Country is required";
     if (!productsSupplied.trim())
       newErrors.productsSupplied = "Products supplied is required";
     if (!supplyContact.trim())
@@ -75,11 +115,30 @@ export function SupplierForm({
       name: formData.name || "",
       email: formData.email || "",
       phone: formData.phone || "",
-      address: formData.address || "",
-      city: formData.city || "",
-      country: formData.country || "",
+      address: formData.address || { street: "", city: "", country: "" },
+      city: formData.address?.city || formData.city || "",
+      country: formData.address?.country || formData.country || "",
+      contact: {
+        primaryContact: supplyContact,
+        primaryPhone: formData.contact?.primaryPhone || "",
+        secondaryContact: formData.contact?.secondaryContact || "",
+        secondaryPhone: formData.contact?.secondaryPhone || "",
+      },
       paymentTerms: formData.paymentTerms || "",
+      payment: {
+        bankDetails: formData.payment?.bankDetails || "",
+        taxId: formData.payment?.taxId || "",
+      },
       website: formData.website || "",
+      products: productsSupplied
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean),
+      status: (formData.status as any) || "active",
+      rating: formData.rating || 0,
+      notes: formData.notes || "",
+      documentUrl: documentUrl || formData.documentUrl,
+      documentPublicId: documentPublicId || formData.documentPublicId,
       createdAt: supplier?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -157,9 +216,12 @@ export function SupplierForm({
             Address *
           </label>
           <Input
-            value={formData.address || ""}
+            value={formData.address?.street || ""}
             onChange={(e) =>
-              setFormData({ ...formData, address: e.target.value })
+              setFormData({
+                ...formData,
+                address: { ...formData.address, street: e.target.value },
+              })
             }
             placeholder="Street address"
             className={
@@ -178,8 +240,13 @@ export function SupplierForm({
             City *
           </label>
           <Input
-            value={formData.city || ""}
-            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            value={formData.address?.city || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, city: e.target.value },
+              })
+            }
             placeholder="City"
             className={
               errors.city
@@ -197,9 +264,12 @@ export function SupplierForm({
             Country *
           </label>
           <Input
-            value={formData.country || ""}
+            value={formData.address?.country || ""}
             onChange={(e) =>
-              setFormData({ ...formData, country: e.target.value })
+              setFormData({
+                ...formData,
+                address: { ...formData.address, country: e.target.value },
+              })
             }
             placeholder="Country"
             className={
@@ -255,7 +325,7 @@ export function SupplierForm({
           <Input
             value={productsSupplied}
             onChange={(e) => setProductsSupplied(e.target.value)}
-            placeholder="e.g., Laptops, Desktops, Accessories"
+            placeholder="Comma-separated product SKUs or names"
             className={
               errors.productsSupplied
                 ? "border-red-500"
@@ -271,7 +341,7 @@ export function SupplierForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            Supply Contact Name *
+            Primary Contact Name *
           </label>
           <Input
             value={supplyContact}
@@ -286,6 +356,145 @@ export function SupplierForm({
           {errors.supplyContact && (
             <p className="text-red-500 text-xs mt-1">{errors.supplyContact}</p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Primary Contact Phone
+          </label>
+          <Input
+            value={formData.contact?.primaryPhone || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: { ...formData.contact, primaryPhone: e.target.value },
+              })
+            }
+            placeholder="Contact phone number"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Secondary Contact
+          </label>
+          <Input
+            value={formData.contact?.secondaryContact || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: {
+                  ...formData.contact,
+                  secondaryContact: e.target.value,
+                },
+              })
+            }
+            placeholder="Secondary contact name"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Secondary Contact Phone
+          </label>
+          <Input
+            value={formData.contact?.secondaryPhone || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: {
+                  ...formData.contact,
+                  secondaryPhone: e.target.value,
+                },
+              })
+            }
+            placeholder="Secondary contact phone"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Bank Details
+          </label>
+          <Input
+            value={formData.payment?.bankDetails || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                payment: { ...formData.payment, bankDetails: e.target.value },
+              })
+            }
+            placeholder="Bank name, account"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Tax ID
+          </label>
+          <Input
+            value={formData.payment?.taxId || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                payment: { ...formData.payment, taxId: e.target.value },
+              })
+            }
+            placeholder="Tax / VAT ID"
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Status
+          </label>
+          <select
+            value={formData.status || "active"}
+            onChange={(e) =>
+              setFormData({ ...formData, status: e.target.value as any })
+            }
+            className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm dark:bg-slate-700 dark:text-slate-100"
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="blocked">Blocked</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Rating
+          </label>
+          <Input
+            type="number"
+            min={0}
+            max={5}
+            value={formData.rating || 0}
+            onChange={(e) =>
+              setFormData({ ...formData, rating: Number(e.target.value) })
+            }
+            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-100"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Notes
+          </label>
+          <textarea
+            value={formData.notes || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, notes: e.target.value })
+            }
+            rows={3}
+            className="w-full px-3 py-2 border rounded-md text-sm dark:bg-slate-700 dark:text-slate-100 border-green-200 dark:border-teal-700"
+            placeholder="Internal notes about this supplier"
+          />
         </div>
 
         <div>

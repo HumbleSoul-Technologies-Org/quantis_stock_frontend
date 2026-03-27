@@ -64,118 +64,97 @@ export function ProductTable({
             No products found
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-green-200 dark:border-teal-700 bg-green-50 dark:bg-slate-700">
-                  <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Name
-                  </th>
-                  <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    SKU
-                  </th>
-                  <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Category
-                  </th>
-                  <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Supplier
-                  </th>
-                  <th className="text-right p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Unit Price
-                  </th>
-                  <th className="text-right p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Stock
-                  </th>
-                  <th className="text-center p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Status
-                  </th>
-                  <th className="text-center p-3 font-semibold text-gray-700 dark:text-slate-300">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((product) => (
-                  <tr
-                    key={product.id}
-                    className="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700"
-                  >
-                    <td className="p-3 font-medium text-gray-900 dark:text-teal-100">
-                      {product.name}
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-slate-400">
-                      {product.sku}
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-slate-400">
-                      {product.category}
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-slate-400">
-                      {getSupplierName(product.supplierId)}
-                    </td>
-                    <td className="p-3 text-right text-gray-900 dark:text-teal-100 font-medium">
-                      {formatCurrency(product.unitPrice)}
-                    </td>
-                    <td className="p-3 text-right text-gray-900 dark:text-teal-100">
-                      <span className="font-medium">
-                        {product.currentStock}
-                      </span>
-                      <span className="text-gray-600 dark:text-slate-400 ml-1">
-                        {product.unit}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      {product.currentStock <= product.reorderLevel ? (
-                        <div className="flex items-center justify-center gap-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-2 py-1 rounded text-xs font-medium w-fit mx-auto">
-                          <AlertCircle className="w-3 h-3" />
-                          Low Stock
-                        </div>
-                      ) : (
-                        <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-2 py-1 rounded text-xs font-medium w-fit mx-auto">
-                          In Stock
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => onEdit(product)}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onStockIn(product)}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Stock In
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onDelete(product.id)}
-                            variant="destructive"
-                            className="cursor-pointer gap-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filtered.map((product) => {
+              const lowStock = product.currentStock <= product.reorderLevel;
+              const backgroundImage = product.imageUrl
+                ? `url(${product.imageUrl})`
+                : "url(https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg)";
+
+              return (
+                <div
+                  key={product.id}
+                  className="relative h-64 overflow-hidden rounded-xl border border-green-200 dark:border-teal-700 shadow-sm bg-slate-100 dark:bg-slate-800 transition-transform duration-300 ease-out hover:-translate-y-1 hover:shadow-xl"
+                  style={{
+                    backgroundImage,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    backgroundColor: product.imageUrl
+                      ? "transparent"
+                      : "#1f2937",
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                  {!product.imageUrl && (
+                    <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-white/90">
+                      No image available
+                    </div>
+                  )}
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="rounded-full bg-black/60 px-2 py-1 text-xs font-semibold text-white">
+                        {product.category || "Uncategorized"}
+                      </div>
+                      <div
+                        className={`rounded-full px-2 py-1 text-xs font-semibold text-white ${
+                          lowStock ? "bg-red-600/80" : "bg-green-600/80"
+                        }`}
+                      >
+                        {lowStock ? "Low Stock" : "In Stock"}
+                      </div>
+                    </div>
+
+                    <div className="bg-black/55 rounded-lg p-3 text-white backdrop-blur-sm">
+                      <h3 className="font-bold text-lg text-white line-clamp-2">
+                        {product.name || "Untitled Product"}
+                      </h3>
+                      <p className="text-xs text-slate-200 line-clamp-1">
+                        SKU: {product.sku}
+                      </p>
+
+                      <div className="mt-2 text-sm space-y-1">
+                        <p className="line-clamp-1">
+                          <span className="font-semibold">Supplier:</span>{" "}
+                          {getSupplierName(product.supplierId)}
+                        </p>
+                        <p className="line-clamp-1">
+                          <span className="font-semibold">Price:</span>{" "}
+                          {formatCurrency(product.unitPrice)}
+                        </p>
+                        <p className="line-clamp-1">
+                          <span className="font-semibold">Stock:</span>{" "}
+                          {product.currentStock} {product.unit}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onEdit(product)}
+                        className="bg-white/85 text-slate-900 hover:bg-white"
+                      >
+                        Edit
+                      </Button>
+                      <div className="flex gap-1">
+                        <Button size="icon" onClick={() => onStockIn(product)}>
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          onClick={() => onDelete(product.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>

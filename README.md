@@ -274,25 +274,31 @@ db.stock_movements.createIndex({ createdAt: -1 });
   name: String,                     // Required, unique
   email: String,
   phone: String,
+  // Structured postal address
   address: {
     street: String,
     city: String,
-    state: String,
-    zipCode: String,
     country: String
   },
+  // Backwards-compatible flat fields (some frontend components use these)
+  city: String,
+  country: String,
+  // Primary and secondary contact persons
   contact: {
     primaryContact: String,
     primaryPhone: String,
     secondaryContact: String,
     secondaryPhone: String
   },
+  // Payment-related details
+  paymentTerms: String,              // e.g., '30 days', 'COD'
   payment: {
-    terms: String,                  // '30 days', 'COD', etc.
     bankDetails: String,
     taxId: String
   },
-  products: [ObjectId],             // References to products supplied
+  // Products this supplier provides (SKUs or product IDs)
+  products: [String],
+  // Operational metadata
   status: String,                   // 'active', 'inactive', 'blocked'
   rating: Number,                   // 1-5
   notes: String,
@@ -374,24 +380,98 @@ db.categories.createIndex({ slug: 1 });
 
 ### 8. **Settings Collection**
 
+This project defines its settings shape in the frontend TypeScript type `AppSettings`. See the canonical interface in [lib/types.ts](lib/types.ts#L1-L200).
+
+Preferred document layout (single document that stores the core app settings):
+
 ```javascript
 {
   _id: ObjectId(),
-  key: String,                      // Unique
-  value: any,                       // Mixed types
-  type: String,                     // 'string', 'number', 'boolean', 'object'
+  // Top-level settings object matching `AppSettings` in the frontend
+  settings: {
+    currency: {
+      symbol: String,       // e.g. '$'
+      code: String,         // e.g. 'USD'
+      decimalPlaces: Number // e.g. 2
+    },
+    units: {
+      weight: String, // 'kg', 'lbs'
+      volume: String, // 'L', 'ml'
+      count: String   // 'units', 'boxes'
+    },
+    notifications: {
+      emailAlerts: Boolean,
+      smsAlerts: Boolean,
+      lowStockAlerts: Boolean,
+      saleNotifications: Boolean
+    },
+    general: {
+      companyName: String,
+      contactEmail: String,
+      theme: String // 'light' | 'dark'
+    },
+    credentials: {
+      teamUsers: [
+        {
+          id: String,
+          name: String,
+          email: String,
+          password: String, // hashed on server
+          role: String,
+          createdAt: Date,
+          lastLogin: Date | null
+        }
+      ],
+      passwordPolicy: {
+        minLength: Number,
+        requireMixedCase: Boolean,
+        requireNumbers: Boolean,
+        requireSpecialChars: Boolean
+      },
+      sessionTimeout: Number // minutes
+    }
+  },
   updatedBy: ObjectId,
   updatedAt: Date
 }
 ```
 
-**Example Documents:**
+Notes:
 
-```javascript
-{ key: "app_version", value: "1.0.0", type: "string" }
-{ key: "max_login_attempts", value: 5, type: "number" }
-{ key: "enable_sms_alerts", value: false, type: "boolean" }
+- The frontend expects the `AppSettings` shape defined in [lib/types.ts](lib/types.ts#L1-L200) and uses default values seeded in [lib/storage.ts](lib/storage.ts#L1-L120).
+- In the current demo implementation `settings` are stored client-side in localStorage under a single `STORAGE_KEY`. When you migrate to a backend, persist the `settings` object in a `settings` collection (single document keyed by environment or `businessId` for multi-tenant setups).
+
+**Example (default) settings document:**
+
+```json
+{
+  "currency": { "symbol": "$", "code": "USD", "decimalPlaces": 2 },
+  "units": { "weight": "kg", "volume": "L", "count": "units" },
+  "notifications": {
+    "emailAlerts": true,
+    "smsAlerts": false,
+    "lowStockAlerts": true,
+    "saleNotifications": true
+  },
+  "general": {
+    "companyName": "My Stock Manager",
+    "contactEmail": "contact@company.com",
+    "theme": "light"
+  },
+  "credentials": {
+    "teamUsers": [],
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireMixedCase": true,
+      "requireNumbers": true,
+      "requireSpecialChars": false
+    },
+    "sessionTimeout": 30
+  }
+}
 ```
+
+When implementing API endpoints, map frontend `updateSettings()` calls to `PATCH /api/settings` or `PUT /api/settings/:id` and validate incoming payloads against this schema.
 
 ---
 
