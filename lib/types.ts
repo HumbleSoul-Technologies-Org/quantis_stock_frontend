@@ -232,6 +232,8 @@ export interface TeamUser {
   lastLogin: string | null;
   token?: string;
   password?: string; // For registration; hashed in production
+  isActive?: boolean; // For soft deletion
+  isBanned?: boolean; // For banning users without deletion
 }
 
 // Settings Types

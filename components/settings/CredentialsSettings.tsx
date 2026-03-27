@@ -36,6 +36,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { set } from "date-fns";
 import { te } from "date-fns/locale";
+import { Badge } from "../ui/badge";
 
 interface CredentialsSettingsProps {
   role: string;
@@ -396,14 +397,27 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
     }
   };
 
-  const handleBanUser = (userId: string) => {
-    const userToBan = teamUsers.find((u) => u.id === userId);
-    if (confirm(`Are you sure you want to ban ${userToBan?.name}?`)) {
+  const handleBanUser = async (userId: string) => {
+    try {
+      await apiRequest("POST", `/users/${userId}/toggle-ban`);
+      const updatedUsers = teamUsers.map((u) =>
+        u.id === userId ? { ...u, isBanned: !u.isBanned } : u,
+      );
+      updateSettings({
+        credentials: {
+          ...settings.credentials,
+          teamUsers: updatedUsers,
+        },
+      });
+      const user = teamUsers.find((u) => u.id === userId);
       setMessage({
         type: "success",
-        text: `User "${userToBan?.name}" has been banned.`,
+        text: `${user?.name} has been ${user?.isBanned ? "unbanned" : "banned"} successfully!`,
       });
-      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
     }
   };
 
@@ -999,6 +1013,9 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                           Last Login
                         </th>
                         <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Status
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                           Actions
                         </th>
                       </tr>
@@ -1028,6 +1045,18 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                             {teamUser.lastLogin
                               ? formatDate(teamUser.lastLogin)
                               : "Never"}
+                          </td>
+                          <td className="px-4 py-2 text-xs dark:text-slate-400">
+                            {teamUser.isActive === false ? (
+                              "Inactive"
+                            ) : teamUser.isBanned ? (
+                              <Badge className="text-xs bg-red-300 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                <Ban className="mr-2 h-4 w-4" />
+                                Banned
+                              </Badge>
+                            ) : (
+                              "Active"
+                            )}
                           </td>
                           {(teamUser.role === "manager" ||
                             teamUser.role === "sales" ||
@@ -1065,10 +1094,19 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
                                   )}
                                   <DropdownMenuItem
                                     onClick={() => handleBanUser(teamUser.id)}
-                                    className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
+                                    className={`dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer ${teamUser.isBanned ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"} `}
                                   >
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    Ban
+                                    {teamUser.isBanned ? (
+                                      <>
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                        Unban
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Ban className="mr-2 h-4 w-4" />
+                                        Ban
+                                      </>
+                                    )}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() =>
