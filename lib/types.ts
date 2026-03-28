@@ -143,7 +143,8 @@ export interface SaleItem {
 
 // Supplier Types
 export interface Supplier {
-  id: string;
+  id?: string;
+  _id?: string; // For backward compatibility with older supplier objects
   name: string;
   email: string;
   phone: string;
@@ -177,8 +178,12 @@ export interface Supplier {
   notes?: string;
   documentUrl?: string;
   documentPublicId?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  contract?: {
+    url: string;
+    publicId?: string;
+  };
 }
 
 // Category-Specific Field Definitions

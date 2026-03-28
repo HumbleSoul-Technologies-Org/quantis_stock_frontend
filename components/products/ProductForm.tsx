@@ -518,29 +518,31 @@ export function ProductForm({
       </div>
 
       {/* Category-Specific Fields */}
-      <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-teal-700">
-        <div className="border border-gray-200 dark:border-teal-700 rounded-lg dark:bg-slate-700">
-          <button
-            type="button"
-            onClick={() => toggleSection("categoryFields")}
-            className="w-full flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-600"
-          >
-            <span className="font-medium text-gray-700 dark:text-slate-300">
-              Category-Specific Fields
-            </span>
-            {expandedSections.categoryFields ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
+      {formData.category && (
+        <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-teal-700">
+          <div className="border border-gray-200 dark:border-teal-700 rounded-lg dark:bg-slate-700">
+            <button
+              type="button"
+              onClick={() => toggleSection("categoryFields")}
+              className="w-full flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-600"
+            >
+              <span className="font-medium text-gray-700 dark:text-slate-300">
+                Category-Specific Fields
+              </span>
+              {expandedSections.categoryFields ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+            {expandedSections.categoryFields && (
+              <div className="p-3 border-t border-gray-200 dark:border-teal-700">
+                {renderCategoryFields()}
+              </div>
             )}
-          </button>
-          {expandedSections.categoryFields && (
-            <div className="p-3 border-t border-gray-200 dark:border-teal-700">
-              {renderCategoryFields()}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex gap-2 pt-4">
         <Button

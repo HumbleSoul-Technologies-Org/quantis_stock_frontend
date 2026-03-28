@@ -3,6 +3,7 @@
 import { useNotifications } from "@/context/NotificationContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/context/AuthContext";
 import {
   X,
   CheckCheck,
@@ -81,6 +82,8 @@ export function NotificationSidebar({
         return "bg-blue-50 border-blue-200";
     }
   };
+
+  const { user } = useAuth();
 
   if (!isOpen) return null;
 

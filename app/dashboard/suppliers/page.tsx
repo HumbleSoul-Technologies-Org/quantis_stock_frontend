@@ -13,27 +13,26 @@ import { Plus } from "lucide-react";
 function SuppliersPageContent() {
   const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useData();
   const [showDialog, setShowDialog] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<
-    Supplier | undefined
-  >();
+  const [editingSupplier, setEditingSupplier] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleAddSupplier = (supplier: Supplier) => {
     if (editingSupplier) {
-      updateSupplier(editingSupplier.id, supplier);
+      updateSupplier(editingSupplier?.id, supplier);
     } else {
       addSupplier(supplier);
     }
-    setEditingSupplier(undefined);
+    // setEditingSupplier(undefined);
   };
 
   const handleEditSupplier = (supplier: Supplier) => {
+    setEditingSupplier(supplier);
     setEditingSupplier(supplier);
     setShowDialog(true);
   };
 
   const handleOpenDialog = () => {
-    setEditingSupplier(undefined);
+    // setEditingSupplier(undefined);
     setShowDialog(true);
   };
 

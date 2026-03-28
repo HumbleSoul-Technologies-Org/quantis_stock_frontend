@@ -10,6 +10,8 @@ import {
 } from "react";
 import { Product, Supplier, Sale, StockMovement } from "@/lib/types";
 import { storage } from "@/lib/storage";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "./AuthContext";
 
 interface DataContextType {
   // Products
@@ -45,6 +47,12 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+
+  const { data: supplierData } = useQuery<Supplier[]>({
+    queryKey: ["suppliers/all", user?.token],
+  });
+
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -55,10 +63,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadData = () => {
       setProducts(storage.getProducts());
-      setSuppliers(storage.getSuppliers());
+
       setSales(storage.getSales());
       setStockMovements(storage.getStockMovements());
       setIsInitialized(true);
+
+      if (supplierData) {
+        setSuppliers(supplierData);
+      } else {
+        setSuppliers(storage.getSuppliers());
+      }
     };
 
     loadData();

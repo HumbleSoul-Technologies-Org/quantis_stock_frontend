@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload } from "lucide-react";
 import { uploadFile } from "@/lib/cloudinary";
+import { useAuth } from "@/context/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SupplierFormProps {
   supplier?: Supplier;
@@ -59,6 +60,8 @@ export function SupplierForm({
     useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const { user } = useAuth();
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -105,45 +108,148 @@ export function SupplierForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    try {
+      if (!validateForm()) return;
 
-    const newSupplier: Supplier = {
-      id: supplier?.id || Math.random().toString(36).substr(2, 9),
-      name: formData.name || "",
-      email: formData.email || "",
-      phone: formData.phone || "",
-      address: formData.address || { street: "", city: "", country: "" },
-      city: formData.address?.city || formData.city || "",
-      country: formData.address?.country || formData.country || "",
-      contact: {
-        primaryContact: supplyContact,
-        primaryPhone: formData.contact?.primaryPhone || "",
-        secondaryContact: formData.contact?.secondaryContact || "",
-        secondaryPhone: formData.contact?.secondaryPhone || "",
-      },
-      paymentTerms: formData.paymentTerms || "",
-      payment: {
-        bankDetails: formData.payment?.bankDetails || "",
-        taxId: formData.payment?.taxId || "",
-      },
-      website: formData.website || "",
-      products: productsSupplied
-        .split(",")
-        .map((p) => p.trim())
-        .filter(Boolean),
-      status: (formData.status as any) || "active",
-      rating: formData.rating || 0,
-      notes: formData.notes || "",
-      documentUrl: documentUrl || formData.documentUrl,
-      documentPublicId: documentPublicId || formData.documentPublicId,
-      createdAt: supplier?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      const payLoad: Supplier = {
+        name: formData.name || "",
+        email: formData.email || "",
+        phone: formData.phone || "",
+        address: formData.address || { street: "", city: "", country: "" },
+        city: formData.address?.city || formData.city || "",
+        country: formData.address?.country || formData.country || "",
+        contact: {
+          primaryContact: supplyContact,
+          primaryPhone: formData.contact?.primaryPhone || "",
+          secondaryContact: formData.contact?.secondaryContact || "",
+          secondaryPhone: formData.contact?.secondaryPhone || "",
+        },
+        paymentTerms: formData.paymentTerms || "",
+        payment: {
+          bankDetails: formData.payment?.bankDetails || "",
+          taxId: formData.payment?.taxId || "",
+        },
+        website: formData.website || "",
+        products: productsSupplied
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean),
+        status: (formData.status as any) || "active",
+        rating: formData.rating || 0,
+        notes: formData.notes || "",
+        contract: {
+          url: documentUrl || formData?.contract?.url || "",
+          publicId: documentPublicId || formData?.contract?.publicId || "",
+        },
+      };
 
-    onSubmit(newSupplier);
+      if (supplier && supplier.id) {
+        const res = await apiRequest(
+          "PUT",
+          `/suppliers/${supplier.id}/update`,
+          payLoad,
+          user?.token,
+        );
+
+        const data = await res.json();
+
+        const updatedData: Supplier = {
+          id: data.supplier._id,
+          name: formData.name || "",
+          email: formData.email || "",
+          phone: formData.phone || "",
+          address: formData.address || { street: "", city: "", country: "" },
+          city: formData.address?.city || formData.city || "",
+          country: formData.address?.country || formData.country || "",
+          contact: {
+            primaryContact: supplyContact,
+            primaryPhone: formData.contact?.primaryPhone || "",
+            secondaryContact: formData.contact?.secondaryContact || "",
+            secondaryPhone: formData.contact?.secondaryPhone || "",
+          },
+          paymentTerms: formData.paymentTerms || "",
+          payment: {
+            bankDetails: formData.payment?.bankDetails || "",
+            taxId: formData.payment?.taxId || "",
+          },
+          website: formData.website || "",
+          products: productsSupplied
+            .split(",")
+            .map((p) => p.trim())
+            .filter(Boolean),
+          status: (formData.status as any) || "active",
+          rating: formData.rating || 0,
+          notes: formData.notes || "",
+          documentUrl: documentUrl || formData.documentUrl,
+          documentPublicId: documentPublicId || formData.documentPublicId,
+          createdAt: data.supplier.createdAt,
+          updatedAt: data.supplier.updatedAt,
+        };
+
+        // onSubmit(updatedData);
+
+        console.log("====================================");
+        console.log({ "updated data": updatedData });
+        console.log("====================================");
+      } else {
+        const res = await apiRequest(
+          "POST",
+          "/suppliers/create",
+          payLoad,
+          user?.token,
+        );
+
+        const data = await res.json();
+
+        const newSupplier: Supplier = {
+          id: data.supplier._id,
+          name: formData.name || "",
+          email: formData.email || "",
+          phone: formData.phone || "",
+          address: formData.address || { street: "", city: "", country: "" },
+          city: formData.address?.city || formData.city || "",
+          country: formData.address?.country || formData.country || "",
+          contact: {
+            primaryContact: supplyContact,
+            primaryPhone: formData.contact?.primaryPhone || "",
+            secondaryContact: formData.contact?.secondaryContact || "",
+            secondaryPhone: formData.contact?.secondaryPhone || "",
+          },
+          paymentTerms: formData.paymentTerms || "",
+          payment: {
+            bankDetails: formData.payment?.bankDetails || "",
+            taxId: formData.payment?.taxId || "",
+          },
+          website: formData.website || "",
+          products: productsSupplied
+            .split(",")
+            .map((p) => p.trim())
+            .filter(Boolean),
+          status: (formData.status as any) || "active",
+          rating: formData.rating || 0,
+          notes: formData.notes || "",
+          documentUrl: documentUrl || formData.documentUrl,
+          documentPublicId: documentPublicId || formData.documentPublicId,
+          createdAt: data.supplier.createdAt,
+          updatedAt: data.supplier.updatedAt,
+        };
+
+        console.log("====================================");
+        console.log({ "new data": newSupplier });
+        console.log("====================================");
+
+        // onSubmit(newSupplier);
+      }
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
+
+    // onSubmit(newSupplier);
   };
 
   return (

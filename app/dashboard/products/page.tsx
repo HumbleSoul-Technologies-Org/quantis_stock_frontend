@@ -24,14 +24,14 @@ function ProductsPageContent() {
 
   const handleAddProduct = (product: Product) => {
     if (editingProduct) {
-      updateProduct(editingProduct.id, product);
+      updateProduct(editingProduct?.id, product);
       notifySuccess("Product Updated", `${product.name} has been updated.`);
     } else {
       addProduct(product);
       notifyNewProduct(product.name);
     }
-    setShowDialog(false);
-    setEditingProduct(undefined);
+    // setShowDialog(false);
+    // setEditingProduct(undefined);
   };
 
   const handleEditProduct = (product: Product) => {
