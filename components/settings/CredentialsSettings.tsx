@@ -89,14 +89,15 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
   const isAdminOnly = role === "admin";
 
-  const { data: usersData, refetch: refetchUsers } = useQuery<TeamUser[]>({
-    queryKey: ["users"],
+  const { data: usersData, refetch: refetchUsers } = useQuery<any[]>({
+    queryKey: ["users", user?.token],
+    enabled: !!user?.token,
   });
 
   useEffect(() => {
     if (usersData) {
       setTeamUsers(
-        usersData.map((user) => ({
+        usersData.map((user: any) => ({
           ...user,
           id: (user as any).id || (user as any)._id,
           // normalize for code paths that expect id in TeamUser
@@ -172,20 +173,34 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
 
-    if (!validateForm()) {
-      return;
-    }
+    // if (!validateForm()) {
+    //   return;
+    // }
 
     try {
-      const success = updateCredentials(
-        formData.newUsername,
-        formData.newPassword,
-        formData.currentPassword,
+      const payLoad = {
+        newUserName: formData.newUsername,
+        newPassword: formData.newPassword,
+        currentPassword: formData.currentPassword,
+      };
+
+      await apiRequest(
+        "POST",
+        `/users/${user?.id}/admin-update-credentials`,
+        payLoad,
+        user?.token,
       );
+      // const success = updateCredentials(
+      //   formData.newUsername,
+      //   formData.newPassword,
+      //   formData.currentPassword,
+      // );
+
+      var success = null;
 
       if (success) {
         setMessage({
@@ -227,11 +242,13 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           username: createUserForm.name,
           email: createUserForm.email,
           role: createUserForm.role,
+          // businessSetup:   // Pass existing business setup to prevent it from being overwritten
         };
         const res = await apiRequest(
           "PUT",
           `/users/${editingUserId}/update`,
           payLoad,
+          user?.token,
         );
         if (!res.ok) {
           const text = await res.text();
@@ -358,9 +375,14 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    const userToDelete = teamUsers.find((u) => u.id === userId);
-    if (confirm(`Are you sure you want to delete ${userToDelete?.name}?`)) {
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await apiRequest(
+        "DELETE",
+        `/users/${userId}/delete`,
+        undefined,
+        user?.token,
+      );
       const updatedUsers = teamUsers.filter((u) => u.id !== userId);
 
       // Update through centralized settings
@@ -377,6 +399,10 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       });
 
       setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
     }
   };
 
@@ -399,7 +425,12 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
   const handleBanUser = async (userId: string) => {
     try {
-      await apiRequest("POST", `/users/${userId}/toggle-ban`);
+      await apiRequest(
+        "POST",
+        `/users/${userId}/toggle-ban`,
+        undefined,
+        user?.token,
+      );
       const updatedUsers = teamUsers.map((u) =>
         u.id === userId ? { ...u, isBanned: !u.isBanned } : u,
       );
@@ -409,10 +440,10 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           teamUsers: updatedUsers,
         },
       });
-      const user = teamUsers.find((u) => u.id === userId);
+      const userData = teamUsers.find((u) => u.id === userId);
       setMessage({
         type: "success",
-        text: `${user?.name} has been ${user?.isBanned ? "unbanned" : "banned"} successfully!`,
+        text: `${userData?.name} has been ${userData?.isBanned ? "unbanned" : "banned"} successfully!`,
       });
     } catch (error) {
       console.log("====================================");
@@ -428,48 +459,32 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
     setShowResetPasswordDialog(true);
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: Record<string, string> = {};
+    try {
+      const newErrors: Record<string, string> = {};
 
-    if (!resetPasswordForm.newPassword) {
-      newErrors.newPassword = "New password is required";
-    } else if (resetPasswordForm.newPassword.length < 8) {
-      newErrors.newPassword = "Password must be at least 8 characters";
-    }
-
-    if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setResetPasswordErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0 && resetPasswordUserId) {
-      const updatedUsers = teamUsers.map((u) =>
-        u.id === resetPasswordUserId
-          ? { ...u, password: resetPasswordForm.newPassword }
-          : u,
-      );
-
-      updateSettings({
-        credentials: {
-          ...settings.credentials,
-          teamUsers: updatedUsers,
-        },
-      });
-
-      // Also update in localStorage
-      const state = JSON.parse(
-        localStorage.getItem("erp_system_state") || "{}",
-      );
-      if (state.users) {
-        state.users = state.users.map((user: any) =>
-          user.id === resetPasswordUserId
-            ? { ...user, password: resetPasswordForm.newPassword }
-            : user,
-        );
-        localStorage.setItem("erp_system_state", JSON.stringify(state));
+      if (!resetPasswordForm.newPassword) {
+        newErrors.newPassword = "New password is required";
+      } else if (resetPasswordForm.newPassword.length < 8) {
+        newErrors.newPassword = "Password must be at least 8 characters";
       }
+
+      if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
+
+      setResetPasswordErrors(newErrors);
+
+      await apiRequest(
+        "POST",
+        `/users/${user?.id}/reset-password`,
+        {
+          newPassword: resetPasswordForm.newPassword,
+          userId: resetPasswordUserId,
+        },
+        user?.token,
+      );
 
       const userResetting = teamUsers.find((u) => u.id === resetPasswordUserId);
       setMessage({
@@ -481,17 +496,12 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setResetPasswordUserId(null);
       setResetPasswordForm({ newPassword: "", confirmPassword: "" });
       setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Failed to reset password",
+      });
     }
-  };
-
-  const handleCopyPassword = (password: string) => {
-    navigator.clipboard.writeText(password);
-    setMessage({
-      type: "success",
-      text: "Password copied to clipboard",
-    });
-
-    setTimeout(() => setMessage(null), 2000);
   };
 
   const formatDate = (dateString: string) => {

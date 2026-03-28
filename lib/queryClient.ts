@@ -42,6 +42,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown,
+  token?: string,
 ): Promise<Response> {
   checkRateLimit();
 
@@ -49,8 +50,12 @@ export async function apiRequest(
   const headers: Record<string, string> = {};
   let body: BodyInit | undefined;
 
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   if (data instanceof FormData) {
-    // leave headers empty, fetch will add appropriate content-type including boundary
+    // leave headers empty for multipart except auth
     body = data;
   } else if (data !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -87,11 +92,14 @@ export const getQueryFn: <T>(options: {
     const timer = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const url = `/${queryKey.join("/")}`;
+      const args = queryKey as unknown as [string, string?, string?];
+      const url = `/${args[0]}`;
+      const token = args[1] as string | undefined;
 
       const response = await axiosClient.get(url, {
         signal: controller.signal,
         withCredentials: false, // Explicitly disable credentials for GET requests
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
       return response.data;

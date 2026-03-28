@@ -115,7 +115,7 @@ export function SalesForm({
             Customer Name *
           </label>
           <Input
-            disabled={user?.role === "accountant" || user?.role === "admin"}
+            disabled={user?.role === "accountant"}
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Enter customer name"
@@ -135,7 +135,7 @@ export function SalesForm({
             Date of Sale *
           </label>
           <Input
-            disabled={user?.role === "accountant" || user?.role === "admin"}
+            disabled={user?.role === "accountant"}
             type="date"
             value={saleDate}
             onChange={(e) => setSaleDate(e.target.value)}
@@ -148,7 +148,7 @@ export function SalesForm({
             Payment Type *
           </label>
           <select
-            disabled={user?.role === "accountant" || user?.role === "admin"}
+            disabled={user?.role === "accountant"}
             value={paymentType}
             onChange={(e) => setPaymentType(e.target.value)}
             className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
@@ -167,7 +167,7 @@ export function SalesForm({
               Transaction ID *
             </label>
             <Input
-              disabled={user?.role === "accountant" || user?.role === "admin"}
+              disabled={user?.role === "accountant"}
               value={txnId}
               onChange={(e) => setTxnId(e.target.value)}
               placeholder="e.g., TXN-123456"
@@ -190,7 +190,7 @@ export function SalesForm({
         </label>
         <div className="flex gap-2">
           <select
-            disabled={user?.role === "accountant" || user?.role === "admin"}
+            disabled={user?.role === "accountant"}
             value={selectedProductId}
             onChange={(e) => setSelectedProductId(e.target.value)}
             className="flex-1 px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
@@ -205,7 +205,7 @@ export function SalesForm({
               ))}
           </select>
           <Input
-            disabled={user?.role === "accountant" || user?.role === "admin"}
+            disabled={user?.role === "accountant"}
             type="number"
             min="1"
             value={quantity}
@@ -214,7 +214,7 @@ export function SalesForm({
             className="w-20 border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
           />
           <Button
-            disabled={user?.role === "accountant" || user?.role === "admin"}
+            disabled={user?.role === "accountant"}
             type="button"
             onClick={addItem}
             className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-1"
@@ -281,7 +281,7 @@ export function SalesForm({
           Notes (Optional)
         </label>
         <textarea
-          disabled={user?.role === "accountant" || user?.role === "admin"}
+          disabled={user?.role === "accountant"}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add any sale notes..."
@@ -294,14 +294,14 @@ export function SalesForm({
 
       <div className="flex gap-2 pt-4">
         <Button
-          disabled={user?.role === "accountant" || user?.role === "admin"}
+          disabled={user?.role === "accountant"}
           type="submit"
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
           Complete Sale
         </Button>
         <Button
-          disabled={user?.role === "accountant" || user?.role === "admin"}
+          disabled={user?.role === "accountant"}
           type="button"
           variant="outline"
           onClick={onCancel}
