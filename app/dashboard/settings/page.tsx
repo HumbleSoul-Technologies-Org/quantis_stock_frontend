@@ -36,9 +36,9 @@ export default function SettingsPage() {
             General
           </TabsTrigger>
 
-          <TabsTrigger value="units" className="text-xs md:text-sm">
+          {/* <TabsTrigger value="units" className="text-xs md:text-sm">
             Units
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="notifications" className="text-xs md:text-sm">
             Notifications
           </TabsTrigger>

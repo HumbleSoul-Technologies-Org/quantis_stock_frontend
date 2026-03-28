@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CURRENCIES } from "@/lib/business-config";
 import { Building2, Settings } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CombinedGeneralSettingsProps {
   businessSetup: BusinessSetup | undefined;
@@ -35,6 +37,7 @@ export function CombinedGeneralSettings({
 
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { user } = useAuth();
 
   // Get the selected currency object
   const selectedCurrency = CURRENCIES.find(
@@ -45,28 +48,47 @@ export function CombinedGeneralSettings({
     setBusinessData({ ...businessData, currency: newCurrencyCode });
   };
 
-  const handleSave = () => {
-    const newErrors: Record<string, string> = {};
+  const handleSave = async () => {
+    try {
+      const newErrors: Record<string, string> = {};
 
-    if (!businessData.businessName?.trim()) {
-      newErrors.businessName = "Business name is required";
-    }
-    if (!businessData.currency?.trim()) {
-      newErrors.currency = "Currency is required";
-    }
-    if (
-      businessData.lowStockThreshold < 1 ||
-      businessData.lowStockThreshold > 100
-    ) {
-      newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
-    }
+      if (!businessData.businessName?.trim()) {
+        newErrors.businessName = "Business name is required";
+      }
+      if (!businessData.currency?.trim()) {
+        newErrors.currency = "Currency is required";
+      }
+      if (
+        businessData.lowStockThreshold < 1 ||
+        businessData.lowStockThreshold > 100
+      ) {
+        newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
+      }
 
-    setErrors(newErrors);
+      setErrors(newErrors);
 
-    if (Object.keys(newErrors).length === 0) {
-      onUpdateBusiness(businessData);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      const payLoad = {
+        businessName: businessData.businessName,
+        businessType: businessData.businessType,
+        currency: businessData.currency,
+        lowStockThreshold: businessData.lowStockThreshold,
+      };
+
+      await apiRequest(
+        "PUT",
+        `/users/${user?.id}/business-setup`,
+        payLoad,
+        user?.token,
+      );
+      if (Object.keys(newErrors).length === 0) {
+        onUpdateBusiness(businessData);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
     }
   };
 

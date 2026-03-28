@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/context/AuthContext";
 
 interface NotificationSettingsProps {
   settings: AppSettings;
@@ -17,11 +19,24 @@ export function NotificationSettings({
 }: NotificationSettingsProps) {
   const [formData, setFormData] = useState(settings.notifications);
   const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
 
-  const handleSave = () => {
-    onUpdate({ notifications: formData });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    try {
+      await apiRequest(
+        "PUT",
+        `/users/${user?.id}/notifications`,
+        formData,
+        user?.token,
+      );
+      onUpdate({ notifications: formData });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
   };
 
   const toggleNotification = (key: keyof typeof formData) => {
