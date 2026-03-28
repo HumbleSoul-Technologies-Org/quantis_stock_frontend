@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useSettings } from "@/context/SettingsContext";
 import { format } from "date-fns";
 import { AlertCircle, TrendingUp } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProductInventoryCardProps {
   product: Product;
@@ -20,6 +21,7 @@ export function ProductInventoryCard({
   onStockIn,
 }: ProductInventoryCardProps) {
   const { settings, getDecimalPlaces } = useSettings();
+  const { user } = useAuth();
 
   const lastMovement = movements
     .filter((m) => m.productId === product.id)
@@ -153,13 +155,15 @@ export function ProductInventoryCard({
         </div>
 
         {/* Action Button */}
-        <button
-          onClick={() => onStockIn(product)}
-          className="w-full mt-4 px-3 py-2 bg-green-600 hover:bg-green-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
-        >
-          <TrendingUp className="w-4 h-4" />
-          Stock In
-        </button>
+        {user && (user.role === "admin" || user.role === "manager") && (
+          <button
+            onClick={() => onStockIn(product)}
+            className="w-full mt-4 px-3 py-2 bg-green-600 hover:bg-green-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+          >
+            <TrendingUp className="w-4 h-4" />
+            Stock In
+          </button>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,65 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useSettings } from "@/context/SettingsContext";
 import { ClientOnly } from "@/components/client-only";
 import { BusinessSetupForm } from "@/components/onboarding/BusinessSetupForm";
 import { BusinessSetup } from "@/lib/types";
-import { CURRENCIES } from "@/lib/business-config";
+import { apiRequest } from "@/lib/queryClient";
 
 function OnboardingContent() {
   const router = useRouter();
   const { user, updateBusinessSetup } = useAuth();
-  const { settings, updateSettings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect if already has business setup
-  if (user?.businessSetup) {
-    router.push("/dashboard");
-    return null;
-  }
+  useEffect(() => {
+    userRedirecting();
+  }, [user]); // Re-run when user changes to handle redirects
 
-  if (!user) {
-    router.push("/auth/login");
-    return null;
-  }
+  const userRedirecting = () => {
+    // Redirect if already has business setup
+    if (user?.role === "admin" && user?.businessSetup) {
+      router.push("/dashboard");
+      return null;
+    }
 
-  const handleSubmit = (businessSetup: BusinessSetup) => {
+    if (!user) {
+      router.push("/auth/login");
+      return null;
+    }
+  };
+
+  const handleSubmit = async (businessSetup: BusinessSetup) => {
     setIsLoading(true);
     setError("");
 
     try {
+      await apiRequest("POST", `/users/${user?.id}/onboarding`, {
+        businessSetup,
+      });
       const success = updateBusinessSetup(businessSetup);
       if (success) {
-        // Reflect onboarding settings into shared app settings
-        const selectedCurrency = CURRENCIES.find(
-          (c) => c.code === businessSetup.currency,
-        );
-
-        if (selectedCurrency) {
-          updateSettings({
-            currency: {
-              code: selectedCurrency.code,
-              symbol: selectedCurrency.symbol,
-              decimalPlaces: 2,
-            },
-            general: {
-              ...settings.general,
-              companyName: businessSetup.businessName,
-            },
-            notifications: {
-              emailAlerts: businessSetup.emailAlerts,
-              smsAlerts: businessSetup.smsAlerts,
-              lowStockAlerts: businessSetup.lowStockAlerts,
-              saleNotifications: businessSetup.saleNotifications,
-            },
-          });
-        }
-
-        // Redirect to dashboard
+        // SettingsContext will automatically sync the currency from businessSetup
         router.push("/dashboard");
       } else {
         setError("Failed to save business setup. Please try again.");

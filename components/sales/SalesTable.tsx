@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Printer, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -16,6 +17,7 @@ interface SalesTableProps {
 
 export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
   const { formatCurrency } = useSettings();
+  const { user } = useAuth();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
 
   const toggleExpand = (saleId: string) => {
@@ -291,15 +293,18 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                         <Printer className="w-4 h-4" />
                         Print
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onDelete(sale.id)}
-                        className="text-red-600 hover:bg-red-50 gap-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </Button>
+                      {user &&
+                        (user.role === "admin" || user.role === "manager") && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onDelete(sale.id)}
+                            className="text-red-600 hover:bg-red-50 gap-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </Button>
+                        )}
                     </div>
                   </div>
                 )}

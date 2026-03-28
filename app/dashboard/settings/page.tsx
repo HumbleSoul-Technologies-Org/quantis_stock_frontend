@@ -54,7 +54,6 @@ export default function SettingsPage() {
             businessSetup={user.businessSetup}
             settings={settings}
             onUpdateBusiness={updateBusinessSetup}
-            onUpdateGeneral={updateSettings}
           />
         </TabsContent>
 

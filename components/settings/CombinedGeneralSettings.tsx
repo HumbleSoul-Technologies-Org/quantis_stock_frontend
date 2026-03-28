@@ -12,20 +12,18 @@ interface CombinedGeneralSettingsProps {
   businessSetup: BusinessSetup | undefined;
   settings: AppSettings;
   onUpdateBusiness: (businessSetup: BusinessSetup) => void;
-  onUpdateGeneral: (settings: Partial<AppSettings>) => void;
 }
 
 export function CombinedGeneralSettings({
   businessSetup,
   settings,
   onUpdateBusiness,
-  onUpdateGeneral,
 }: CombinedGeneralSettingsProps) {
   const [businessData, setBusinessData] = useState<BusinessSetup>(
     businessSetup || {
       businessName: "",
       businessType: "retail",
-      currency: "KES",
+      currency: "",
       lowStockThreshold: 20,
       emailAlerts: true,
       smsAlerts: false,
@@ -35,8 +33,6 @@ export function CombinedGeneralSettings({
     },
   );
 
-  const [generalData, setGeneralData] = useState(settings.general);
-  const [currencyData, setCurrencyData] = useState(settings.currency);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -46,15 +42,7 @@ export function CombinedGeneralSettings({
   );
 
   const handleCurrencyChange = (newCurrencyCode: string) => {
-    const currency = CURRENCIES.find((c) => c.code === newCurrencyCode);
-    if (currency) {
-      setBusinessData({ ...businessData, currency: newCurrencyCode });
-      setCurrencyData({
-        code: currency.code,
-        symbol: currency.symbol,
-        decimalPlaces: 2, // Default to 2 decimal places
-      });
-    }
+    setBusinessData({ ...businessData, currency: newCurrencyCode });
   };
 
   const handleSave = () => {
@@ -62,6 +50,9 @@ export function CombinedGeneralSettings({
 
     if (!businessData.businessName?.trim()) {
       newErrors.businessName = "Business name is required";
+    }
+    if (!businessData.currency?.trim()) {
+      newErrors.currency = "Currency is required";
     }
     if (
       businessData.lowStockThreshold < 1 ||
@@ -74,7 +65,6 @@ export function CombinedGeneralSettings({
 
     if (Object.keys(newErrors).length === 0) {
       onUpdateBusiness(businessData);
-      onUpdateGeneral({ general: generalData, currency: currencyData });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }
@@ -137,67 +127,39 @@ export function CombinedGeneralSettings({
             <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
               Currency Settings
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                  Currency *
-                </label>
-                <select
-                  value={businessData.currency}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-700 dark:text-slate-50"
-                >
-                  {CURRENCIES.map((curr) => (
-                    <option key={curr.code} value={curr.code}>
-                      {curr.code} - {curr.name} ({curr.symbol})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Currency Symbol
-                </label>
-                <Input
-                  value={currencyData.symbol}
-                  onChange={(e) =>
-                    setCurrencyData({ ...currencyData, symbol: e.target.value })
-                  }
-                  placeholder="$"
-                  className="border-green-200"
-                  maxLength={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Decimal Places
-                </label>
-                <select
-                  value={currencyData.decimalPlaces}
-                  onChange={(e) =>
-                    setCurrencyData({
-                      ...currencyData,
-                      decimalPlaces: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-green-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value={0}>0 (12)</option>
-                  <option value={1}>1 (12.5)</option>
-                  <option value={2}>2 (12.50)</option>
-                  <option value={3}>3 (12.500)</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Currency *
+              </label>
+              <select
+                value={businessData.currency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-700 dark:text-slate-50 ${
+                  errors.currency
+                    ? "border-red-500"
+                    : "border-green-200 dark:border-teal-700"
+                }`}
+              >
+                <option value="">-- Select a currency --</option>
+                {CURRENCIES.map((curr) => (
+                  <option key={curr.code} value={curr.code}>
+                    {curr.code} - {curr.name} ({curr.symbol})
+                  </option>
+                ))}
+              </select>
+              {errors.currency && (
+                <p className="text-red-500 text-xs mt-1">{errors.currency}</p>
+              )}
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
-              <p className="text-xs text-blue-700">
-                <strong>Preview:</strong> {currencyData.symbol}
-                {(100).toFixed(currencyData.decimalPlaces)}
-              </p>
-            </div>
+            {selectedCurrency && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4 dark:bg-blue-900/20 dark:border-blue-700">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  <strong>Selected:</strong> {selectedCurrency.code} -{" "}
+                  {selectedCurrency.name} ({selectedCurrency.symbol})
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Other Settings Section */}

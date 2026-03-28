@@ -159,13 +159,13 @@ function InventoryPageContent() {
             Track and manage stock levels in real-time
           </p>
         </div>
-        <Button
+        {/* <Button
           onClick={() => setShowDialog(true)}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           Stock In
-        </Button>
+        </Button> */}
       </div>
 
       {/* Stats */}

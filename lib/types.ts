@@ -1,5 +1,5 @@
 // Auth Types
-export type UserRole = 'admin' | 'manager' | 'sales';
+export type UserRole = 'admin' | 'manager' | 'sales' | 'accountant';
 export type BusinessType = 'retail';
 export type RetailSubType = 'electronics' | 'clothing' | 'food_beverage' | 'beauty' | 'home_hardware' | 'general';
 

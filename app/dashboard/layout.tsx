@@ -19,13 +19,15 @@ export default function DashboardLayout({
     if (!isLoading) {
       if (!user) {
         router.push("/auth/login");
-      } else if (!user.businessSetup) {
+      } else if (user && user.role === "admin" && !user.businessSetup) {
         router.push("/onboarding");
+      } else {
+        router.push("/dashboard");
       }
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || !user || !user.businessSetup) {
+  if (isLoading || !user) {
     return (
       <div className="flex items-center justify-center h-screen bg-white dark:bg-slate-900">
         <div className="text-center">

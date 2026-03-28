@@ -44,25 +44,25 @@ export function Sidebar() {
       href: "/dashboard/inventory",
       label: "Inventory",
       icon: Truck,
-      roles: ["admin", "manager"],
+      roles: ["admin", "manager", "accountant"],
     },
     {
       href: "/dashboard/sales",
       label: "Sales",
       icon: ShoppingCart,
-      roles: ["admin", "manager", "sales"],
+      roles: ["admin", "manager", "sales", "accountant"],
     },
     {
       href: "/dashboard/suppliers",
       label: "Suppliers",
       icon: Users,
-      roles: ["admin", "manager"],
+      roles: ["admin", "manager", "accountant"],
     },
     {
       href: "/dashboard/reports",
       label: "Reports",
       icon: BarChart3,
-      roles: ["admin", "manager"],
+      roles: ["admin", "manager", "accountant"],
     },
     {
       href: "/dashboard/settings",
@@ -74,7 +74,7 @@ export function Sidebar() {
       href: "/dashboard/help",
       label: "Help",
       icon: HelpCircle,
-      roles: ["admin", "manager", "sales"],
+      roles: ["admin", "manager", "sales", "accountant"],
     },
   ];
 

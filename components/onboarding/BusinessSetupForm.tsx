@@ -17,7 +17,7 @@ export function BusinessSetupForm({
 }: BusinessSetupFormProps) {
   const [formData, setFormData] = useState({
     businessName: "",
-    currency: "KES",
+    currency: "",
     lowStockThreshold: 20,
     emailAlerts: true,
     smsAlerts: false,
@@ -33,6 +33,9 @@ export function BusinessSetupForm({
 
     if (!formData.businessName?.trim()) {
       newErrors.businessName = "Business name is required";
+    }
+    if (!formData.currency?.trim()) {
+      newErrors.currency = "Currency is required";
     }
     if (formData.lowStockThreshold < 1 || formData.lowStockThreshold > 100) {
       newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
@@ -114,14 +117,20 @@ export function BusinessSetupForm({
             onChange={(e) =>
               setFormData({ ...formData, currency: e.target.value })
             }
-            className="w-full px-3 py-2 border border-green-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              errors.currency ? "border-red-500" : "border-green-200"
+            }`}
           >
+            <option value="">-- Select a currency --</option>
             {CURRENCIES.map((curr) => (
               <option key={curr.code} value={curr.code}>
                 {curr.code} - {curr.name} ({curr.symbol})
               </option>
             ))}
           </select>
+          {errors.currency && (
+            <p className="text-red-500 text-xs mt-1">{errors.currency}</p>
+          )}
           <p className="text-xs text-gray-500 mt-1">
             Includes East African currencies (KES, UGX, TZS, ETB, RWF) and major
             international currencies (USD, EUR, GBP)

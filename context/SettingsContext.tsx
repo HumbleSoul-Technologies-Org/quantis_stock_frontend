@@ -9,6 +9,8 @@ import {
 } from "react";
 import { AppSettings } from "@/lib/types";
 import { storage } from "@/lib/storage";
+import { CURRENCIES } from "@/lib/business-config";
+import { useAuth } from "@/context/AuthContext";
 
 interface SettingsContextType {
   settings: AppSettings;
@@ -24,12 +26,28 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const { user } = useAuth();
 
-  // Initialize from storage on mount
+  // Initialize from storage on mount and sync currency from user's businessSetup
   useEffect(() => {
     const storedSettings = storage.getSettings();
+
+    // If user has businessSetup with currency, derive currency settings from it
+    if (user?.businessSetup?.currency) {
+      const currencyObj = CURRENCIES.find(
+        (c) => c.code === user.businessSetup!.currency,
+      );
+      if (currencyObj) {
+        storedSettings.currency = {
+          code: currencyObj.code,
+          symbol: currencyObj.symbol,
+          decimalPlaces: 2,
+        };
+      }
+    }
+
     setSettings(storedSettings);
-  }, []);
+  }, [user?.businessSetup?.currency]);
 
   const updateSettings = (newSettings: Partial<AppSettings>): void => {
     const updated = { ...settings, ...newSettings };
@@ -41,11 +59,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (!settings) return amount.toString();
     const { currency } = settings;
     const formatted = amount.toFixed(currency.decimalPlaces);
-    return `${currency.symbol}${formatted}`;
+    return `${currency.symbol} ${formatted}`;
   };
 
   const getCurrencySymbol = (): string => {
-    return settings?.currency?.symbol || "$";
+    return settings?.currency?.symbol || "USh";
   };
 
   const getDecimalPlaces = (): number => {

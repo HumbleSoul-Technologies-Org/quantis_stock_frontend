@@ -12,7 +12,6 @@ export interface BusinessConfig {
     symbol: string;
     name: string;
   }[];
-  defaultCurrency: string;
   lowStockWarningThreshold: number;
 }
 
@@ -46,7 +45,6 @@ const ELECTRONICS_CONFIG: BusinessConfig = {
   ],
   units: ['units', 'pieces', 'boxes', 'cartons'],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
@@ -63,7 +61,6 @@ const CLOTHING_CONFIG: BusinessConfig = {
   ],
   units: ['units', 'pieces', 'boxes'],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
@@ -80,7 +77,6 @@ const FOOD_BEVERAGE_CONFIG: BusinessConfig = {
   ],
   units: ['units', 'kg', 'lbs', 'L', 'ml', 'gallons', 'boxes'],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
@@ -97,7 +93,6 @@ const BEAUTY_CONFIG: BusinessConfig = {
   ],
   units: ['units', 'ml', 'oz'],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
@@ -115,7 +110,6 @@ const HOME_HARDWARE_CONFIG: BusinessConfig = {
   ],
   units: ['units', 'pieces', 'boxes', 'kg', 'L', 'm', 'cm'],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
@@ -134,7 +128,6 @@ const MEDICINE_CONFIG: BusinessConfig = {
   ],
   units: ['units', 'tablets', 'capsules', 'ml', 'L', 'boxes', 'bottles'],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
@@ -166,7 +159,6 @@ const GENERAL_RETAIL_CONFIG: BusinessConfig = {
     'gallons',
   ],
   currencies: CURRENCIES,
-  defaultCurrency: 'KES',
   lowStockWarningThreshold: 20,
 };
 
