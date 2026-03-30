@@ -224,7 +224,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Utilities
   const getProductById = useCallback(
-    (id: string) => products.find((p) => p.id === id),
+    (id: string) => products.find((p) => p.id === id || (p as any)._id === id),
     [products],
   );
 

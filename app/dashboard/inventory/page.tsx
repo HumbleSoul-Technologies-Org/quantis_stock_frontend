@@ -83,7 +83,9 @@ function InventoryPageContent() {
     addStockMovement(movement);
 
     // Get product name
-    const product = products.find((p) => p._id === movement.productId);
+    const product = products.find(
+      (p) => p._id === movement.productId || p.id === movement.productId,
+    );
     const productName = product?.name || "Unknown Product";
 
     // Notify based on movement type and stock level
@@ -112,7 +114,7 @@ function InventoryPageContent() {
 
   const handleStockIn = (product: any) => {
     setSelectedMovement(null);
-    setSelectedProductId(product._id);
+    setSelectedProductId(product._id || product.id);
     setShowDialog(true);
   };
 

@@ -30,7 +30,10 @@ export function StockHistoryTable({
   );
 
   const getProductName = (productId: string) => {
-    return products.find((p) => p.id === productId)?.name || "Unknown Product";
+    return (
+      products.find((p) => p.id === productId || (p as any)._id === productId)
+        ?.name || "Unknown Product"
+    );
   };
 
   const getTypeIcon = (type: string) => {
@@ -119,7 +122,7 @@ export function StockHistoryTable({
                       {movement.reference}
                     </td>
                     <td className="p-2 sm:p-3 text-gray-600 dark:text-slate-400 text-xs whitespace-nowrap">
-                      {format(new Date(movement.createdAt), "MMM d")}
+                      {format(new Date(movement.createdAt), "MMM d yyyy")}
                     </td>
                     <td className="p-2 sm:p-3 text-gray-600 dark:text-slate-400 text-xs hidden md:table-cell">
                       {movement.createdBy?.username || "Unknown User"}

@@ -430,8 +430,10 @@ class StorageService {
     const state = this.getState();
     state.stockMovements.push(movement);
 
-    // Update product stock
-    const product = state.products.find((p:any) => p.id === movement.productId);
+    // Update product stock (support id and _id from various data sources)
+    const product = state.products.find(
+      (p:any) => p.id === movement.productId || p._id === movement.productId,
+    );
     if (product) {
       if (movement.type === 'in') {
         product.currentStock += movement.quantity;

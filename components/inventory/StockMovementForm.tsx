@@ -181,11 +181,14 @@ export function StockMovementForm({
             }`}
           >
             <option value="">Select product</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} (Stock: {p.currentStock})
-              </option>
-            ))}
+            {products.map((p) => {
+              const productId = p._id || p.id;
+              return (
+                <option key={productId} value={productId}>
+                  {p.name} (Stock: {p.currentStock})
+                </option>
+              );
+            })}
           </select>
           {errors.productId && (
             <p className="text-red-500 text-xs mt-1">{errors.productId}</p>
