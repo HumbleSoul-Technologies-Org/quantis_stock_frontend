@@ -19,7 +19,7 @@ export function SupplierTable({
   onDelete,
   searchTerm = "",
 }: SupplierTableProps) {
-  let filtered = suppliers;
+  let filtered = suppliers || [];
 
   if (searchTerm) {
     filtered =
@@ -44,7 +44,7 @@ export function SupplierTable({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {filtered.length === 0 ? (
+        {filtered?.length === 0 ? (
           <p className="text-gray-500 dark:text-slate-400 text-center py-8">
             No suppliers found
           </p>
@@ -77,7 +77,7 @@ export function SupplierTable({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((supplier, index) => (
+                {filtered?.map((supplier, index) => (
                   <tr
                     key={index}
                     className="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700"

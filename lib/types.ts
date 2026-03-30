@@ -319,7 +319,7 @@ export interface AppState {
   users: User[];
   currentUser: User | null;
   products: Product[];
-  suppliers: Supplier[];
+  suppliers: Supplier[] | any
   sales: Sale[];
   stockMovements: StockMovement[];
   settings: AppSettings;

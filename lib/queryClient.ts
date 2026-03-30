@@ -37,7 +37,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// ✅ Handles POST / PUT / PATCH / DELETE
+// ✅ Handles GET / POST / PUT / PATCH / DELETE
 export async function apiRequest(
   method: string,
   url: string,
@@ -49,12 +49,29 @@ export async function apiRequest(
   // prepare headers/body properly; support FormData by letting the browser set multipart boundary
   const headers: Record<string, string> = {};
   let body: BodyInit | undefined;
+  let finalUrl = url;
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  if (data instanceof FormData) {
+  // For GET requests, convert data to query parameters and don't send body
+  if (method.toUpperCase() === 'GET') {
+    if (data && typeof data === 'object') {
+      const params = new URLSearchParams();
+      Object.entries(data as Record<string, any>).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      if (queryString) {
+        finalUrl = `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
+      }
+    }
+    // GET requests never have a body
+    body = undefined;
+  } else if (data instanceof FormData) {
     // leave headers empty for multipart except auth
     body = data;
   } else if (data !== undefined) {
@@ -62,10 +79,10 @@ export async function apiRequest(
     body = JSON.stringify(data);
   }
 
-  const res = await fetch(`${BASE_URL}${url}`, {
+  const res = await fetch(`${BASE_URL}${finalUrl}`, {
     method,
     headers,
-    body,
+    ...(body !== undefined && { body }), // Only include body if it's defined
     // Don't include credentials by default - let the backend handle CORS properly
     // credentials: "include",
   });

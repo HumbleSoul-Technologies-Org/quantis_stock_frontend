@@ -189,11 +189,7 @@ export function SupplierForm({
           updatedAt: data.supplier.updatedAt,
         };
 
-        // onSubmit(updatedData);
-
-        console.log("====================================");
-        console.log({ "updated data": updatedData });
-        console.log("====================================");
+        onSubmit(updatedData);
       } else {
         const res = await apiRequest(
           "POST",
@@ -237,11 +233,7 @@ export function SupplierForm({
           updatedAt: data.supplier.updatedAt,
         };
 
-        console.log("====================================");
-        console.log({ "new data": newSupplier });
-        console.log("====================================");
-
-        // onSubmit(newSupplier);
+        onSubmit(newSupplier);
       }
     } catch (error) {
       console.log("====================================");

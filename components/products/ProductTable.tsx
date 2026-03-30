@@ -74,7 +74,7 @@ export function ProductTable({
               return (
                 <div
                   key={product.id}
-                  className="relative h-64 overflow-hidden rounded-xl border border-green-200 dark:border-teal-700 shadow-sm bg-slate-100 dark:bg-slate-800 transition-transform duration-300 ease-out hover:-translate-y-1 hover:shadow-xl"
+                  className="group relative h-96 overflow-hidden rounded-2xl border border-green-200 dark:border-teal-700 shadow-lg bg-slate-50 dark:bg-slate-800 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-green-500/10 dark:hover:shadow-teal-500/10 cursor-pointer"
                   style={{
                     backgroundImage,
                     backgroundSize: "cover",
@@ -85,67 +85,105 @@ export function ProductTable({
                       : "#1f2937",
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/70 group-hover:via-black/10 transition-all duration-300" />
                   {!product.imageUrl && (
-                    <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-white/90">
-                      No image available
+                    <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white/80">
+                      <div className="text-center">
+                        <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white/10 flex items-center justify-center">
+                          <AlertCircle className="w-6 h-6" />
+                        </div>
+                        No image available
+                      </div>
                     </div>
                   )}
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
                     <div className="flex justify-between items-start gap-2">
-                      <div className="rounded-full bg-black/60 px-2 py-1 text-xs font-semibold text-white">
+                      <div className="rounded-full bg-black/70 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white border border-white/20">
                         {product.category || "Uncategorized"}
                       </div>
                       <div
-                        className={`rounded-full px-2 py-1 text-xs font-semibold text-white ${
-                          lowStock ? "bg-red-600/80" : "bg-green-600/80"
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold text-white border backdrop-blur-sm ${
+                          lowStock
+                            ? "bg-red-500/90 border-red-400/50"
+                            : "bg-emerald-500/90 border-emerald-400/50"
                         }`}
                       >
                         {lowStock ? "Low Stock" : "In Stock"}
                       </div>
                     </div>
 
-                    <div className="bg-black/55 rounded-lg p-3 text-white backdrop-blur-sm">
-                      <h3 className="font-bold text-lg text-white line-clamp-2">
+                    <div className="bg-black/60 backdrop-blur-md rounded-xl p-4 text-white border border-white/10 group-hover:bg-black/50 transition-all duration-300">
+                      <h3 className="font-bold text-lg text-white line-clamp-2 mb-2 leading-tight">
                         {product.name || "Untitled Product"}
                       </h3>
-                      <p className="text-xs text-slate-200 line-clamp-1">
+                      <p className="text-xs text-slate-300 line-clamp-1 mb-3 font-medium">
                         SKU: {product.sku}
                       </p>
 
-                      <div className="mt-2 text-sm space-y-1">
-                        <p className="line-clamp-1">
-                          <span className="font-semibold">Supplier:</span>{" "}
-                          {getSupplierName(product.supplierId)}
-                        </p>
-                        <p className="line-clamp-1">
-                          <span className="font-semibold">Price:</span>{" "}
-                          {formatCurrency(product.unitPrice)}
-                        </p>
-                        <p className="line-clamp-1">
-                          <span className="font-semibold">Stock:</span>{" "}
-                          {product.currentStock} {product.unit}
-                        </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-slate-300">
+                            Supplier:
+                          </span>
+                          <span className="text-white line-clamp-1 text-right">
+                            {getSupplierName(product.supplierId)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-slate-300">
+                            Price:
+                          </span>
+                          <span className="text-white font-semibold">
+                            {formatCurrency(product.unitPrice)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-slate-300">
+                            Stock:
+                          </span>
+                          <span
+                            className={`font-semibold ${
+                              lowStock ? "text-red-300" : "text-emerald-300"
+                            }`}
+                          >
+                            {product.currentStock} {product.unit}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-3">
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => onEdit(product)}
-                        className="bg-white/85 text-slate-900 hover:bg-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(product);
+                        }}
+                        className="bg-white/90 text-slate-900 hover:bg-white font-medium shadow-md hover:shadow-lg transition-all duration-200 flex-1"
                       >
+                        <Edit2 className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
-                      <div className="flex gap-1">
-                        <Button size="icon" onClick={() => onStockIn(product)}>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStockIn(product);
+                          }}
+                          className="bg-green-600/90 hover:bg-green-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                        >
                           <Plus className="w-4 h-4" />
                         </Button>
                         <Button
                           size="icon"
                           variant="destructive"
-                          onClick={() => onDelete(product.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(product.id);
+                          }}
+                          className="bg-red-600/90 hover:bg-red-500 shadow-md hover:shadow-lg transition-all duration-200"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

@@ -1,4 +1,10 @@
 import { AppState, User, Product, Supplier, Sale, StockMovement, AppSettings } from './types';
+import { useQuery } from '@tanstack/react-query';
+import { use, useEffect, useState } from 'react';
+import { apiRequest } from './queryClient';
+
+ 
+  
 
 const STORAGE_KEY = 'erp_system_state';
 const DEFAULT_SETTINGS: AppSettings = {
@@ -153,11 +159,30 @@ const DEFAULT_SUPPLIERS: Supplier[] = [
   },
 ];
 
+const defaultSuppliers = async () => {
+  let DEFAULT_SUPPLIERS = null;
+  // GET request with query parameters
+  try {
+    const response = await apiRequest('GET', '/suppliers/all', {
+      limit: 20,
+      status: 'active'
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data || [];
+    }
+  } catch (error) {
+    console.warn('Failed to fetch default suppliers from API:', error);
+  }
+  return [];
+}
+
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
   currentUser: null,
   products: DEFAULT_PRODUCTS,
-  suppliers: DEFAULT_SUPPLIERS,
+  suppliers: DEFAULT_SUPPLIERS, // Use static defaults initially
   sales: [],
   stockMovements: [],
   settings: DEFAULT_SETTINGS,
@@ -168,6 +193,8 @@ class StorageService {
     if (typeof window === 'undefined') {
       return DEFAULT_STATE;
     }
+
+   
 
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
@@ -313,6 +340,20 @@ class StorageService {
     const state = this.getState();
     state.suppliers = state.suppliers.filter((s) => s.id !== id);
     this.saveState(state);
+  }
+
+  // Load suppliers from API and set as defaults
+  async loadSuppliersFromAPI(): Promise<void> {
+    try {
+      const suppliers = await defaultSuppliers();
+      if (suppliers && suppliers.length > 0) {
+        const state = this.getState();
+        state.suppliers = suppliers;
+        this.saveState(state);
+      }
+    } catch (error) {
+      console.warn('Failed to load suppliers from API:', error);
+    }
   }
 
   // Sales

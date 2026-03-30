@@ -49,10 +49,6 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
-  const { data: supplierData } = useQuery<Supplier[]>({
-    queryKey: ["suppliers/all", user?.token],
-  });
-
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -68,15 +64,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setStockMovements(storage.getStockMovements());
       setIsInitialized(true);
 
-      if (supplierData) {
-        setSuppliers(supplierData);
-      } else {
-        setSuppliers(storage.getSuppliers());
-      }
+      setSuppliers(storage.getSuppliers() || []);
     };
 
     loadData();
   }, []);
+
+  // Load suppliers from API and set as defaults when user is available
+  useEffect(() => {
+    if (user?.token && isInitialized) {
+      storage
+        .loadSuppliersFromAPI()
+        .then(() => {
+          // Refresh suppliers in state after loading from API
+          setSuppliers(storage.getSuppliers());
+        })
+        .catch((error) => {
+          console.warn("Failed to load suppliers from API:", error);
+        });
+    }
+  }, [user?.token, isInitialized]);
 
   const refresh = useCallback(() => {
     setProducts(storage.getProducts());

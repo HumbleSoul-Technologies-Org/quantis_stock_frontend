@@ -76,7 +76,7 @@ function SuppliersPageContent() {
       />
 
       <SupplierTable
-        suppliers={suppliers}
+        suppliers={suppliers || []}
         onEdit={handleEditSupplier}
         onDelete={deleteSupplier}
         searchTerm={searchTerm}
