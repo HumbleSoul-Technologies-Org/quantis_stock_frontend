@@ -10,10 +10,8 @@ function OverviewCardsContent() {
   const { products, sales } = useData();
   const { formatCurrency } = useSettings();
 
-  const totalInventoryValue = products.reduce(
-    (sum, p) => sum + p.currentStock * p.unitPrice,
-    0,
-  );
+  const totalInventoryValue =
+    products?.reduce((sum, p) => sum + p.currentStock * p.unitPrice, 0) || 0;
   const totalSales = sales
     .filter((s) => s.status === "completed")
     .reduce((sum, s) => sum + s.totalAmount, 0);

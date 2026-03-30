@@ -48,7 +48,7 @@ export function ProductTable({
   }
 
   const getSupplierName = (supplierId: string) => {
-    return suppliers.find((s) => s.id === supplierId)?.name || "Unknown";
+    return suppliers.find((s) => s._id === supplierId)?.name || "Unknown";
   };
 
   return (
@@ -67,9 +67,10 @@ export function ProductTable({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((product) => {
               const lowStock = product.currentStock <= product.reorderLevel;
-              const backgroundImage = product.imageUrl
-                ? `url(${product.imageUrl})`
-                : "url(https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg)";
+              const backgroundImage =
+                product.image?.url || product.imageUrl
+                  ? `url(${product.image?.url || product.imageUrl})`
+                  : "url(https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg)";
 
               return (
                 <div
@@ -80,22 +81,24 @@ export function ProductTable({
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     backgroundRepeat: "no-repeat",
-                    backgroundColor: product.imageUrl
-                      ? "transparent"
-                      : "#1f2937",
+                    backgroundColor:
+                      product.image?.url || product.imageUrl
+                        ? "transparent"
+                        : "#1f2937",
                   }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/70 group-hover:via-black/10 transition-all duration-300" />
-                  {!product.imageUrl && (
-                    <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white/80">
-                      <div className="text-center">
-                        <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white/10 flex items-center justify-center">
-                          <AlertCircle className="w-6 h-6" />
+                  {!product.image?.url ||
+                    (product.imageUrl === "" && (
+                      <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white/80">
+                        <div className="text-center">
+                          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white/10 flex items-center justify-center">
+                            <AlertCircle className="w-6 h-6" />
+                          </div>
+                          No image available
                         </div>
-                        No image available
                       </div>
-                    </div>
-                  )}
+                    ))}
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
                     <div className="flex justify-between items-start gap-2">
                       <div className="rounded-full bg-black/70 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white border border-white/20">

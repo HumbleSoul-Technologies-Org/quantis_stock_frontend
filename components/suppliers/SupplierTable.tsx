@@ -1,13 +1,28 @@
 "use client";
 
-import { Supplier } from "@/lib/types";
+import { useState } from "react";
+import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit2, Trash2, Mail, Phone } from "lucide-react";
+import { MoreVertical, Edit2, Trash2, Mail, Phone, Eye } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface SupplierTableProps {
   suppliers: Supplier[];
+  products: Product[];
   onEdit: (supplier: Supplier) => void;
   onDelete: (id: string) => void;
   searchTerm?: string;
@@ -15,29 +30,50 @@ interface SupplierTableProps {
 
 export function SupplierTable({
   suppliers,
+  products,
   onEdit,
   onDelete,
   searchTerm = "",
 }: SupplierTableProps) {
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null,
+  );
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   let filtered = suppliers || [];
 
   if (searchTerm) {
+    const normalized = searchTerm.toLowerCase();
     filtered =
-      filtered.filter(
-        (s: any) =>
-          s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s?.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s?.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.products.toLowerCase().includes(searchTerm.toLowerCase()),
-      ) || [];
+      filtered.filter((s: any) => {
+        const productNames = Array.isArray(s.products)
+          ? s.products.join(" ").toLowerCase()
+          : "";
+
+        return (
+          s.name.toLowerCase().includes(normalized) ||
+          s.email.toLowerCase().includes(normalized) ||
+          s?.city?.toLowerCase().includes(normalized) ||
+          s?.country?.toLowerCase().includes(normalized) ||
+          s.phone.toLowerCase().includes(normalized) ||
+          productNames.includes(normalized)
+        );
+      }) || [];
   }
 
   const { user } = useAuth();
 
+  const getAssignedProductNames = (supplier: Supplier) => {
+    const supplierProds =
+      supplier.products?.map(
+        (prodId: any) =>
+          products.find((p) => p._id === prodId?._id) || "Unknown",
+      ) || [];
+    return supplierProds;
+  };
+
   return (
-    <Card className="border-green-200 dark:border-teal-700 border-2 mt-6 bg-white dark:bg-slate-800">
+    <Card className="border-green-200 h-screen dark:border-teal-700 border-2 mt-6 bg-white dark:bg-slate-800">
       <CardHeader>
         <CardTitle className="dark:text-teal-100">
           Suppliers ({filtered.length})
@@ -64,6 +100,9 @@ export function SupplierTable({
                   </th>
                   <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
                     Location
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
+                    Products ({products.length})
                   </th>
                   <th className="text-left p-3 font-semibold text-gray-700 dark:text-slate-300">
                     Payment Terms
@@ -107,6 +146,38 @@ export function SupplierTable({
                       {supplier.city}, {supplier.country}
                     </td>
                     <td className="p-3 text-gray-600 dark:text-slate-400">
+                      {(() => {
+                        const assignedProducts =
+                          getAssignedProductNames(supplier);
+                        return assignedProducts.length > 0 ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="p-1">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              side="bottom"
+                              className="w-56 max-h-60 overflow-y-auto"
+                            >
+                              {assignedProducts.map(
+                                (prod: any, idx: number) => (
+                                  <DropdownMenuItem
+                                    key={`${supplier._id}-${idx}`}
+                                  >
+                                    {prod?.name || "Unknown Product"}(
+                                    {products.length} {prod?.unit})
+                                  </DropdownMenuItem>
+                                ),
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className="text-gray-400">No products</span>
+                        );
+                      })()}
+                    </td>
+                    <td className="p-3 text-gray-600 dark:text-slate-400">
                       {supplier.paymentTerms}
                     </td>
                     <td className="p-3 text-gray-600 dark:text-slate-400">
@@ -114,6 +185,17 @@ export function SupplierTable({
                     </td>
                     <td className="p-3 text-center">
                       <div className="flex justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSupplier(supplier);
+                            setDetailsOpen(true);
+                          }}
+                          className="text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -144,6 +226,66 @@ export function SupplierTable({
           </div>
         )}
       </CardContent>
+
+      <Dialog
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) setSelectedSupplier(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Supplier Details</DialogTitle>
+            <DialogDescription>
+              View full supplier information and assigned products.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedSupplier ? (
+            <div className="space-y-2">
+              <p>
+                <strong>Name:</strong> {selectedSupplier.name}
+              </p>
+              <p>
+                <strong>Email:</strong> {selectedSupplier.email}
+              </p>
+              <p>
+                <strong>Phone:</strong> {selectedSupplier.phone}
+              </p>
+              <p>
+                <strong>Location:</strong> {selectedSupplier.city},{" "}
+                {selectedSupplier.country}
+              </p>
+              <p>
+                <strong>Payment Terms:</strong> {selectedSupplier.paymentTerms}
+              </p>
+              <p>
+                <strong>Status:</strong> {selectedSupplier.status}
+              </p>
+              <p>
+                <strong>Products:</strong>
+              </p>
+              <ul className="list-disc list-inside">
+                {getAssignedProductNames(selectedSupplier).map((name, idx) => (
+                  <li
+                    key={`${selectedSupplier.id || selectedSupplier._id}-${idx}`}
+                  >
+                    {name}
+                  </li>
+                ))}
+              </ul>
+              {selectedSupplier.notes && (
+                <p>
+                  <strong>Notes:</strong> {selectedSupplier.notes}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p>No supplier selected.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

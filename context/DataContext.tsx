@@ -58,7 +58,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Initialize from storage on mount
   useEffect(() => {
     const loadData = () => {
-      setProducts(storage.getProducts());
+      if (storage.getProducts() && Array.isArray(storage.getProducts())) {
+        setProducts(storage.getProducts());
+      } else {
+        setProducts([]);
+      }
 
       setSales(storage.getSales());
       setStockMovements(storage.getStockMovements());
@@ -73,14 +77,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Load suppliers from API and set as defaults when user is available
   useEffect(() => {
     if (user?.token && isInitialized) {
+      // Load suppliers from API
       storage
-        .loadSuppliersFromAPI()
+        .loadSuppliersFromAPI(user.token)
         .then(() => {
-          // Refresh suppliers in state after loading from API
           setSuppliers(storage.getSuppliers());
         })
         .catch((error) => {
           console.warn("Failed to load suppliers from API:", error);
+        });
+
+      // Load products from API
+      storage
+        .loadProductsFromAPI(user.token)
+        .then(() => {
+          setProducts(storage.getProducts());
+        })
+        .catch((error) => {
+          console.warn("Failed to load products from API:", error);
         });
     }
   }, [user?.token, isInitialized]);

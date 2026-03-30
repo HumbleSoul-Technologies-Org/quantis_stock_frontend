@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Product,
-  Supplier,
-  UnitOfMeasure,
-  SupplierInfo,
-  TrackingConfig,
-  ReorderStrategy,
-  RetailSubType,
-} from "@/lib/types";
+import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -19,6 +11,10 @@ import {
   getFieldSchemaForCategory,
   FieldDefinition,
 } from "@/lib/business-config";
+
+import { useAuth } from "@/context/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
+import { on } from "events";
 
 interface ProductFormProps {
   product?: Product;
@@ -36,6 +32,7 @@ export function ProductForm({
   onCancel,
 }: ProductFormProps) {
   const { config: businessConfig, retailSubType } = useBusinessConfig();
+  const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<Product>>(
     product || {
       name: "",
@@ -260,43 +257,103 @@ export function ProductForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    const newProduct: Product = {
-      id: product?.id || Math.random().toString(36).substr(2, 9),
-      name: formData.name || "",
-      sku: formData.sku || "",
-      category: formData.category || "",
-      unitPrice: formData.unitPrice || 0,
-      costPrice: formData.costPrice || 0,
-      unit: formData.unit || "units",
-      supplierId: formData.supplierId || "",
-      reorderLevel: formData.reorderLevel || 10,
-      currentStock: formData.currentStock ?? product?.currentStock ?? 0,
-      createdAt: product?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      retailSubType: formData.retailSubType || retailSubType,
+    let res = null;
+    try {
+      // Ensure supplierId is always trimmed to a valid supplier ID
+      const selectedSupplierId =
+        suppliers.find((s) => s.name === formData.supplierId)?._id ||
+        formData.supplierId ||
+        "";
 
-      // Optional new fields (backward compatible)
-      status: (formData.status as "active" | "discontinued") || "active",
-      description: formData.description,
-      baseUoM: formData.baseUoM || formData.unit,
-      alternateUoMs: formData.alternateUoMs,
-      tracking: formData.tracking,
-      suppliers: formData.suppliers,
-      reorderStrategy: formData.reorderStrategy,
-      warehouseLocations: formData.warehouseLocations,
-      customAttributes: categoryFields,
-      discontinuedDate: formData.discontinuedDate,
-      discontinuationReason: formData.discontinuationReason,
-      imageUrl: formData.imageUrl,
-      imagePublicId: formData.imagePublicId,
-    };
+      const payLoad = {
+        name: formData.name || "",
+        sku: formData.sku || "",
+        category: formData.category || "",
+        unitPrice: formData.unitPrice || 0,
+        costPrice: formData.costPrice || 0,
+        unit: formData.unit || "units",
+        supplierId: selectedSupplierId,
+        reorderLevel: formData.reorderLevel || 10,
+        currentStock: formData.currentStock ?? product?.currentStock ?? 0,
 
-    onSubmit(newProduct);
+        retailSubType: formData.retailSubType || retailSubType,
+
+        // Optional new fields (backward compatible)
+        status: (formData.status as "active" | "discontinued") || "active",
+        description: formData.description,
+        baseUoM: formData.baseUoM || formData.unit,
+        alternateUoMs: formData.alternateUoMs,
+        tracking: formData.tracking,
+        suppliers: formData.suppliers,
+        reorderStrategy: formData.reorderStrategy,
+        warehouseLocations: formData.warehouseLocations,
+        customAttributes: categoryFields,
+        discontinuedDate: formData.discontinuedDate,
+        discontinuationReason: formData.discontinuationReason,
+        image: { url: formData.imageUrl, public_id: formData.imagePublicId },
+      };
+
+      if ((product && product.id) || product?._id) {
+        res = await apiRequest(
+          "PUT",
+          `/products/${product.id || product._id}/update`,
+          payLoad,
+          user?.token || "",
+        );
+      } else {
+        res = await apiRequest(
+          "POST",
+          `/products/new`,
+          payLoad,
+          user?.token || "",
+        );
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const newProduct: Product = {
+          id: data.product._id,
+          name: formData.name || "",
+          sku: formData.sku || "",
+          category: formData.category || "",
+          unitPrice: formData.unitPrice || 0,
+          costPrice: formData.costPrice || 0,
+          unit: formData.unit || "units",
+          supplierId: selectedSupplierId || "",
+          reorderLevel: formData.reorderLevel || 10,
+          currentStock: formData.currentStock ?? product?.currentStock ?? 0,
+          createdAt: data.product.createdAt,
+          updatedAt: data.product.updatedAt,
+          retailSubType: formData.retailSubType || retailSubType,
+
+          // Optional new fields (backward compatible)
+          status: (formData.status as "active" | "discontinued") || "active",
+          description: formData.description,
+          baseUoM: formData.baseUoM || formData.unit,
+          alternateUoMs: formData.alternateUoMs,
+          tracking: formData.tracking,
+          suppliers: formData.suppliers,
+          reorderStrategy: formData.reorderStrategy,
+          warehouseLocations: formData.warehouseLocations,
+          customAttributes: categoryFields,
+          discontinuedDate: formData.discontinuedDate,
+          discontinuationReason: formData.discontinuationReason,
+          imageUrl: formData.imageUrl,
+          imagePublicId: formData.imagePublicId,
+        };
+
+        onSubmit(newProduct);
+      }
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
   };
 
   return (

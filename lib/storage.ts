@@ -104,69 +104,15 @@ const DEFAULT_PRODUCTS: Product[] = [
   },
 ];
 
-const DEFAULT_SUPPLIERS: Supplier[] = [
-  {
-    id: '1',
-    name: 'Tech World Supplies',
-    email: 'orders@techworld.com',
-    phone: '+1-800-123-4567',
-    address: {
-      street: '123 Tech Avenue',
-      city: 'San Francisco',
-      country: 'USA',
-    },
-    city: 'San Francisco',
-    country: 'USA',
-    contact: {
-      primaryContact: 'John Doe',
-      primaryPhone: '+1-800-123-4567',
-      secondaryContact: 'Jane Smith',
-      secondaryPhone: '+1-800-765-4321',
-    },
-    paymentTerms: 'Net 30',
-    payment: { bankDetails: 'Bank of Demo, AC: 12345678', taxId: 'TAX-001' },
-    products: ['LAP-001', 'MOU-001', 'KEY-001'],
-    status: 'active',
-    rating: 4,
-    website: 'https://techworld.com',
-    notes: 'Preferred supplier for electronics',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Global Electronics Ltd',
-    email: 'sales@globalelec.com',
-    phone: '+44-20-7946-0958',
-    address: {
-      street: '456 Electronics Street',
-      city: 'London',
-      country: 'UK',
-    },
-    city: 'London',
-    country: 'UK',
-    contact: {
-      primaryContact: 'Alice Brown',
-      primaryPhone: '+44-20-7946-0958',
-    },
-    paymentTerms: 'Net 45',
-    payment: { bankDetails: 'Global Bank, AC: GB123456', taxId: 'TAX-UK-02' },
-    products: ['CAB-001'],
-    status: 'active',
-    rating: 5,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const defaultSuppliers = async () => {
-  let DEFAULT_SUPPLIERS = null;
+ 
+const apiSuppliers = async (token?: string) => {
+  
   // GET request with query parameters
   try {
     const response = await apiRequest('GET', '/suppliers/all', {
       limit: 20,
       status: 'active'
-    });
+    }, token);
 
     if (response.ok) {
       const data = await response.json();
@@ -177,12 +123,34 @@ const defaultSuppliers = async () => {
   }
   return [];
 }
+const apiProducts = async (token?: string) => {
+  
+  // GET request with query parameters
+  try {
+    const response = await apiRequest('GET', '/products/all', {
+      limit: 20,
+      status: 'active'
+    }, token);
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      return data || [];
+    }
+  } catch (error) {
+    console.warn('Failed to fetch default suppliers from API:', error);
+  }
+  return [];
+}
+
+const Default_products = apiProducts();
+const Default_suppliers = apiSuppliers();
 
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
   currentUser: null,
-  products: DEFAULT_PRODUCTS,
-  suppliers: DEFAULT_SUPPLIERS, // Use static defaults initially
+  products: [], // Start with empty array, load from API later
+  suppliers: [], // Start with empty array, load from API later
   sales: [],
   stockMovements: [],
   settings: DEFAULT_SETTINGS,
@@ -343,9 +311,9 @@ class StorageService {
   }
 
   // Load suppliers from API and set as defaults
-  async loadSuppliersFromAPI(): Promise<void> {
+  async loadSuppliersFromAPI(token?: string): Promise<void> {
     try {
-      const suppliers = await defaultSuppliers();
+      const suppliers = await apiSuppliers(token);
       if (suppliers && suppliers.length > 0) {
         const state = this.getState();
         state.suppliers = suppliers;
@@ -356,6 +324,32 @@ class StorageService {
     }
   }
 
+  // Load products from API and set as defaults
+  async loadProductsFromAPI(token?: string): Promise<void> {
+    try {
+      const products = await apiProducts(token);
+      if (products && products.length > 0) {
+        const state = this.getState();
+        state.products = products;
+        this.saveState(state);
+      }
+    } catch (error) {
+      console.warn('Failed to load products from API:', error);
+    }
+  }
+  // Load products from API and set as defaults
+  async loadProductsFromAPI(): Promise<void> {
+    try {
+      const products = await apiProducts();
+      if (products && products.length > 0) {
+        const state = this.getState();
+        state.products = products;
+        this.saveState(state);
+      }
+    } catch (error) {
+      console.warn('Failed to load products from API:', error);
+    }
+  }
   // Sales
   getSales(): Sale[] {
     return this.getState().sales;

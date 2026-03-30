@@ -30,8 +30,8 @@ function ProductsPageContent() {
       addProduct(product);
       notifyNewProduct(product.name);
     }
-    // setShowDialog(false);
-    // setEditingProduct(undefined);
+    setShowDialog(false);
+    setEditingProduct(undefined);
   };
 
   const handleEditProduct = (product: Product) => {

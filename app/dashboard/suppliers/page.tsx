@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 
 function SuppliersPageContent() {
-  const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useData();
+  const { suppliers, products, addSupplier, updateSupplier, deleteSupplier } =
+    useData();
   const [showDialog, setShowDialog] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,6 +78,7 @@ function SuppliersPageContent() {
 
       <SupplierTable
         suppliers={suppliers || []}
+        products={products || []}
         onEdit={handleEditSupplier}
         onDelete={deleteSupplier}
         searchTerm={searchTerm}

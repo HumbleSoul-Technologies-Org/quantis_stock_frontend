@@ -56,6 +56,7 @@ export interface ReorderStrategy {
 export interface Product {
   // Core Fields (Required - existing)
   id: string;
+  _id?: string; // For backward compatibility with older product objects
   name: string;
   sku: string;
   category: string;
@@ -98,7 +99,11 @@ export interface Product {
   
   // Cloudinary image data
   imageUrl?: string;
-  imagePublicId?: string;
+  imagePublicId?: string
+  image?: {
+    url: string;
+    publicId: string;
+  }
 }
 
 // Inventory Types
@@ -318,8 +323,8 @@ export interface SalesReport {
 export interface AppState {
   users: User[];
   currentUser: User | null;
-  products: Product[];
-  suppliers: Supplier[] | any
+  products: Product[] | any;
+  suppliers: Supplier[] | any;
   sales: Sale[];
   stockMovements: StockMovement[];
   settings: AppSettings;
