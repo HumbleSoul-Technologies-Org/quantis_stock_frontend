@@ -155,7 +155,7 @@ export function ProductInventoryCard({
         </div>
 
         {/* Action Button */}
-        {user && (user.role === "admin" || user.role === "manager") && (
+        {/* {user && (user.role === "admin" || user.role === "manager") && (
           <button
             onClick={() => onStockIn(product)}
             className="w-full mt-4 px-3 py-2 bg-green-600 hover:bg-green-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
@@ -163,7 +163,7 @@ export function ProductInventoryCard({
             <TrendingUp className="w-4 h-4" />
             Stock In
           </button>
-        )}
+        )} */}
       </CardContent>
     </Card>
   );

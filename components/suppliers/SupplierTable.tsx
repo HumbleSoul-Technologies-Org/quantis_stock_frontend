@@ -4,7 +4,15 @@ import { useState } from "react";
 import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreVertical, Edit2, Trash2, Mail, Phone, Eye } from "lucide-react";
+import {
+  MoreVertical,
+  Edit2,
+  Trash2,
+  Mail,
+  Phone,
+  Eye,
+  Printer,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   DropdownMenu,
@@ -236,10 +244,14 @@ export function SupplierTable({
       >
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Supplier Details</DialogTitle>
-            <DialogDescription>
-              View full supplier information and assigned products.
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Supplier Details</DialogTitle>
+                <DialogDescription>
+                  View full supplier information and assigned products.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedSupplier ? (
@@ -263,23 +275,73 @@ export function SupplierTable({
               <p>
                 <strong>Status:</strong> {selectedSupplier.status}
               </p>
+
+              {/* Contact Information Section */}
+              {(selectedSupplier.contact?.primaryContact ||
+                selectedSupplier.contact?.secondaryContact) && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-teal-100 mb-2">
+                    Contact Persons
+                  </h4>
+                  <div className="space-y-2 pl-4">
+                    {selectedSupplier.contact?.primaryContact && (
+                      <div>
+                        <p className="font-medium">
+                          {selectedSupplier.contact.primaryContact}
+                        </p>
+                        {selectedSupplier.contact.primaryPhone && (
+                          <p className="text-sm text-gray-600 dark:text-slate-400">
+                            Phone: {selectedSupplier.contact.primaryPhone}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {selectedSupplier.contact?.secondaryContact && (
+                      <div>
+                        <p className="font-medium">
+                          {selectedSupplier.contact.secondaryContact}
+                        </p>
+                        {selectedSupplier.contact.secondaryPhone && (
+                          <p className="text-sm text-gray-600 dark:text-slate-400">
+                            Phone: {selectedSupplier.contact.secondaryPhone}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <p>
                 <strong>Products:</strong>
               </p>
               <ul className="list-disc list-inside">
-                {getAssignedProductNames(selectedSupplier).map((name, idx) => (
-                  <li
-                    key={`${selectedSupplier.id || selectedSupplier._id}-${idx}`}
-                  >
-                    {name}
-                  </li>
-                ))}
+                {getAssignedProductNames(selectedSupplier).map(
+                  (prod: any, idx) => (
+                    <li
+                      key={`${selectedSupplier.id || selectedSupplier._id}-${idx}`}
+                    >
+                      {prod.name || "Unknown Product"} ({products.length}{" "}
+                      {prod.unit})
+                    </li>
+                  ),
+                )}
               </ul>
               {selectedSupplier.notes && (
                 <p>
                   <strong>Notes:</strong> {selectedSupplier.notes}
                 </p>
               )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="flex w-full cursor-pointer items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Button>
             </div>
           ) : (
             <p>No supplier selected.</p>

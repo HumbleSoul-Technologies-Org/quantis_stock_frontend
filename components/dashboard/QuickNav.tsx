@@ -18,25 +18,25 @@ import { useAuth } from "@/context/AuthContext";
 const navItems = [
   {
     href: "/dashboard/products",
-    label: "Products",
+    label: "+ Add Product",
     icon: Package,
     roles: ["admin", "manager"],
   },
   {
     href: "/dashboard/inventory",
-    label: "Inventory",
+    label: "+ Stock In",
     icon: Truck,
     roles: ["admin", "manager"],
   },
   {
     href: "/dashboard/sales",
-    label: "Sales",
+    label: "+ Add Sale",
     icon: ShoppingCart,
     roles: ["admin", "manager", "sales"],
   },
   {
     href: "/dashboard/suppliers",
-    label: "Suppliers",
+    label: "+ Add Supplier",
     icon: Users,
     roles: ["admin", "manager"],
   },

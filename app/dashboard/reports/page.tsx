@@ -120,17 +120,17 @@ function ReportsPageContent() {
         >
           Sales Report
         </Button>
-        <Button
-          onClick={() => setSelectedReport("summary")}
-          variant={selectedReport === "summary" ? "default" : "outline"}
-          className={
-            selectedReport === "summary"
-              ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
-              : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
-          }
-        >
-          Summary
-        </Button>
+        {/* <Button
+              onClick={() => setSelectedReport("summary")}
+              variant={selectedReport === "summary" ? "default" : "outline"}
+              className={
+                selectedReport === "summary"
+                  ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+                  : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+              }
+            >
+              Summary
+            </Button> */}
         <Button
           onClick={exportCSV}
           variant="outline"

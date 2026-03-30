@@ -123,6 +123,28 @@ const apiSuppliers = async (token?: string) => {
   }
   return [];
 }
+
+
+const apiInventory = async (token?: string) => {
+  
+  // GET request with query parameters
+  try {
+    const response = await apiRequest('GET', '/inventory/movements', {
+      limit: 100,
+      status: 'active'
+    }, token);
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Return the movements array or empty array
+      return (data && data.movements) || data || [];
+    }
+  } catch (error) {
+    console.warn('Failed to fetch inventory movements from API:', error);
+  }
+  return [];
+}
 const apiProducts = async (token?: string) => {
   
   // GET request with query parameters
@@ -143,8 +165,7 @@ const apiProducts = async (token?: string) => {
   return [];
 }
 
-const Default_products = apiProducts();
-const Default_suppliers = apiSuppliers();
+ 
 
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
@@ -271,7 +292,7 @@ class StorageService {
 
   updateProduct(id: string, product: Partial<Product>): void {
     const state = this.getState();
-    const index = state.products.findIndex((p) => p.id === id);
+    const index = state.products.findIndex((p:any) => p.id === id);
     if (index !== -1) {
       state.products[index] = { ...state.products[index], ...product, updatedAt: new Date().toISOString() };
       this.saveState(state);
@@ -280,7 +301,7 @@ class StorageService {
 
   deleteProduct(id: string): void {
     const state = this.getState();
-    state.products = state.products.filter((p) => p.id !== id);
+    state.products = state.products.filter((p:any) => p.id !== id);
     this.saveState(state);
   }
 
@@ -297,7 +318,7 @@ class StorageService {
 
   updateSupplier(id: string, supplier: Partial<Supplier>): void {
     const state = this.getState();
-    const index = state.suppliers.findIndex((s) => s.id === id);
+    const index = state.suppliers.findIndex((s:any) => s.id === id);
     if (index !== -1) {
       state.suppliers[index] = { ...state.suppliers[index], ...supplier, updatedAt: new Date().toISOString() };
       this.saveState(state);
@@ -306,7 +327,7 @@ class StorageService {
 
   deleteSupplier(id: string): void {
     const state = this.getState();
-    state.suppliers = state.suppliers.filter((s) => s.id !== id);
+    state.suppliers = state.suppliers.filter((s:any) => s.id !== id);
     this.saveState(state);
   }
 
@@ -324,19 +345,7 @@ class StorageService {
     }
   }
 
-  // Load products from API and set as defaults
-  async loadProductsFromAPI(token?: string): Promise<void> {
-    try {
-      const products = await apiProducts(token);
-      if (products && products.length > 0) {
-        const state = this.getState();
-        state.products = products;
-        this.saveState(state);
-      }
-    } catch (error) {
-      console.warn('Failed to load products from API:', error);
-    }
-  }
+  
   // Load products from API and set as defaults
   async loadProductsFromAPI(): Promise<void> {
     try {
@@ -350,6 +359,20 @@ class StorageService {
       console.warn('Failed to load products from API:', error);
     }
   }
+
+  // Load inventory movements from API and set as defaults
+  async loadInventoryFromAPI(token?: string): Promise<void> {
+    try {
+      const movements = await apiInventory(token);
+      if (movements && movements.length > 0) {
+        const state = this.getState();
+        state.stockMovements = movements;
+        this.saveState(state);
+      }
+    } catch (error) {
+      console.warn('Failed to load inventory movements from API:', error);
+    }
+  }
   // Sales
   getSales(): Sale[] {
     return this.getState().sales;
@@ -361,7 +384,7 @@ class StorageService {
 
     // Deduct from stock
     sale.items.forEach((item) => {
-      const product = state.products.find((p) => p.id === item.productId);
+      const product = state.products.find((p:any) => p.id === item.productId);
       if (product) {
         product.currentStock -= item.quantity;
 
@@ -408,7 +431,7 @@ class StorageService {
     state.stockMovements.push(movement);
 
     // Update product stock
-    const product = state.products.find((p) => p.id === movement.productId);
+    const product = state.products.find((p:any) => p.id === movement.productId);
     if (product) {
       if (movement.type === 'in') {
         product.currentStock += movement.quantity;

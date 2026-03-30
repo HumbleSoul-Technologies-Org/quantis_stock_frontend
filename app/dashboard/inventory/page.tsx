@@ -31,6 +31,8 @@ function InventoryPageContent() {
     useNotificationActions();
   const [showDialog, setShowDialog] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedMovement, setSelectedMovement] =
+    useState<StockMovement | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
@@ -81,7 +83,7 @@ function InventoryPageContent() {
     addStockMovement(movement);
 
     // Get product name
-    const product = products.find((p) => p.id === movement.productId);
+    const product = products.find((p) => p._id === movement.productId);
     const productName = product?.name || "Unknown Product";
 
     // Notify based on movement type and stock level
@@ -97,7 +99,7 @@ function InventoryPageContent() {
       );
 
       // Check if product is now at reorder level or out of stock
-      const updatedProduct = products.find((p) => p.id === movement.productId);
+      const updatedProduct = products.find((p) => p._id === movement.productId);
       if (updatedProduct) {
         if (updatedProduct.currentStock === 0) {
           notifyStockOut(productName);
@@ -109,7 +111,13 @@ function InventoryPageContent() {
   };
 
   const handleStockIn = (product: any) => {
-    setSelectedProductId(product.id);
+    setSelectedMovement(null);
+    setSelectedProductId(product._id);
+    setShowDialog(true);
+  };
+
+  const handleEditMovement = (movement: StockMovement) => {
+    setSelectedMovement(movement);
     setShowDialog(true);
   };
 
@@ -159,13 +167,13 @@ function InventoryPageContent() {
             Track and manage stock levels in real-time
           </p>
         </div>
-        {/* <Button
+        <Button
           onClick={() => setShowDialog(true)}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           Stock In
-        </Button> */}
+        </Button>
       </div>
 
       {/* Stats */}
@@ -250,13 +258,25 @@ function InventoryPageContent() {
 
       {/* Stock Dialog */}
       {user && (
-        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <Dialog
+          open={showDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedMovement(null);
+              setSelectedProductId("");
+            }
+            setShowDialog(open);
+          }}
+        >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Stock In Product</DialogTitle>
+              <DialogTitle>
+                {selectedMovement ? "Edit Stock Movement" : "Stock In Product"}
+              </DialogTitle>
               <DialogDescription>
-                Record incoming stock for your products with reference numbers
-                and movement details.
+                {selectedMovement
+                  ? "Update the stock movement record details."
+                  : "Record incoming stock for your products with reference numbers and movement details."}
               </DialogDescription>
             </DialogHeader>
             <StockMovementForm
@@ -264,13 +284,17 @@ function InventoryPageContent() {
               onSubmit={(movement) => {
                 handleAddMovement(movement);
                 setShowDialog(false);
+                setSelectedMovement(null);
+                setSelectedProductId("");
               }}
               onCancel={() => {
                 setShowDialog(false);
+                setSelectedMovement(null);
                 setSelectedProductId("");
               }}
               currentUserId={user.id}
               preselectedProductId={selectedProductId}
+              initialMovement={selectedMovement || undefined}
             />
           </DialogContent>
         </Dialog>
@@ -421,6 +445,7 @@ function InventoryPageContent() {
         <StockHistoryTable
           movements={filteredStockInHistory}
           products={products}
+          onEdit={handleEditMovement}
         />
       </div>
     </div>

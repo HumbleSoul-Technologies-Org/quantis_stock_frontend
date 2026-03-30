@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { StockMovement, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/context/AuthContext";
 
 interface StockMovementFormProps {
   products: Product[];
@@ -12,6 +13,7 @@ interface StockMovementFormProps {
   onCancel: () => void;
   currentUserId: string;
   preselectedProductId?: string;
+  initialMovement?: StockMovement;
 }
 
 // Get and increment the reference counter for a type
@@ -51,27 +53,35 @@ export function StockMovementForm({
   onCancel,
   currentUserId,
   preselectedProductId,
+  initialMovement,
 }: StockMovementFormProps) {
+  const isEditMode = !!initialMovement;
+
   const [formData, setFormData] = useState({
-    productId: preselectedProductId || "",
-    type: "in" as "in" | "out" | "adjustment",
-    quantity: "",
-    reason: "",
-    reference: "",
+    productId: initialMovement?.productId || preselectedProductId || "",
+    type: (initialMovement?.type || "in") as "in" | "out" | "adjustment",
+    quantity: initialMovement?.quantity ? String(initialMovement.quantity) : "",
+    reason: initialMovement?.reason || "",
+    reference: initialMovement?.reference || "",
   });
 
-  const [copied, setCopied] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (isEditMode) {
+      // In edit mode, don't generate new reference
+      return;
+    }
+
     if (preselectedProductId) {
       setFormData((prev) => ({ ...prev, productId: preselectedProductId }));
     }
-    // Generate reference number on mount and when type changes
+    // Generate reference number on mount and when type changes (only in create mode)
     setFormData((prev) => ({
       ...prev,
       reference: generateReference(prev.type),
     }));
-  }, [preselectedProductId]);
+  }, [preselectedProductId, isEditMode]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -93,30 +103,65 @@ export function StockMovementForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      if (!validateForm()) return;
 
-    if (!validateForm()) return;
+      const payload = {
+        productId: formData.productId,
+        type: formData.type,
+        quantity: parseInt(formData.quantity),
+        reason: formData.reason,
+        reference: formData.reference,
+        createdBy: currentUserId,
+      };
 
-    const movement: StockMovement = {
-      id: Math.random().toString(36).substr(2, 9),
-      productId: formData.productId,
-      type: formData.type,
-      quantity: parseInt(formData.quantity),
-      reason: formData.reason,
-      reference: formData.reference,
-      createdBy: currentUserId,
-      createdAt: new Date().toISOString(),
-    };
+      let res;
+      let endpoint = "/inventory/movement/new";
+      let method = "POST";
 
-    onSubmit(movement);
-    setFormData({
-      productId: "",
-      type: "in",
-      quantity: "",
-      reason: "",
-      reference: "",
-    });
+      if (isEditMode && initialMovement?.id) {
+        endpoint = `/inventory/movement/${initialMovement.id}/update`;
+        method = "PUT";
+      }
+
+      res = await apiRequest(method, endpoint, payload, user?.token);
+
+      if (res.ok) {
+        const data: any = await res.json();
+        const movementData = isEditMode ? data.movement : data.movement;
+        const movement: StockMovement = {
+          id: movementData._id || initialMovement?.id,
+          productId: formData.productId,
+          type: formData.type,
+          quantity: parseInt(formData.quantity),
+          reason: formData.reason,
+          reference: formData.reference,
+          createdBy: currentUserId,
+          createdAt:
+            movementData.createdAt ||
+            initialMovement?.createdAt ||
+            new Date().toISOString(),
+        };
+        onSubmit(movement);
+
+        // Only reset form in create mode
+        if (!isEditMode) {
+          setFormData({
+            productId: "",
+            type: "in",
+            quantity: "",
+            reason: "",
+            reference: "",
+          });
+        }
+      }
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
   };
 
   return (
@@ -158,9 +203,10 @@ export function StockMovementForm({
               setFormData({
                 ...formData,
                 type: newType,
-                reference: generateReference(newType),
+                reference: isEditMode
+                  ? formData.reference
+                  : generateReference(newType),
               });
-              setCopied(false);
             }}
             className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
           >
@@ -221,50 +267,37 @@ export function StockMovementForm({
             <Input
               type="text"
               value={formData.reference}
-              readOnly
-              placeholder="Auto-generated"
-              className="border-green-200 bg-green-50 cursor-not-allowed"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(formData.reference);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+              onChange={(e) => {
+                if (isEditMode) {
+                  setFormData({ ...formData, reference: e.target.value });
+                }
               }}
-              className="px-3 gap-1.5 whitespace-nowrap"
-              title="Copy reference number"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-green-600" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </>
-              )}
-            </Button>
+              readOnly={!isEditMode}
+              placeholder="Auto-generated"
+              className={
+                isEditMode
+                  ? "border-green-200"
+                  : "border-green-200 bg-green-50 cursor-not-allowed"
+              }
+            />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Format:{" "}
-            {formData.type === "in"
-              ? "SI"
-              : formData.type === "out"
-                ? "SO"
-                : "ADJ"}
-            -{new Date().getFullYear()}-00000 (Auto-incremented)
-          </p>
+          {!isEditMode && (
+            <p className="text-xs text-gray-500 mt-1">
+              Format:{" "}
+              {formData.type === "in"
+                ? "SI"
+                : formData.type === "out"
+                  ? "SO"
+                  : "ADJ"}
+              -{new Date().getFullYear()}-00000 (Auto-incremented)
+            </p>
+          )}
         </div>
       </div>
 
       <div className="flex gap-2 pt-4">
         <Button type="submit" className="bg-green-600 hover:bg-green-700">
-          Record Movement
+          {isEditMode ? "Update Movement" : "Record Movement"}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel

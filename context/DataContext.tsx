@@ -96,6 +96,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .catch((error) => {
           console.warn("Failed to load products from API:", error);
         });
+
+      // Load inventory movements from API
+      storage
+        .loadInventoryFromAPI(user.token)
+        .then(() => {
+          setStockMovements(storage.getStockMovements());
+        })
+        .catch((error) => {
+          console.warn("Failed to load inventory movements from API:", error);
+        });
     }
   }, [user?.token, isInitialized]);
 
