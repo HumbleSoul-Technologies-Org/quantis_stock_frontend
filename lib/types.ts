@@ -283,7 +283,7 @@ export interface AppSettings {
 }
 
 // Notification Types
-export type NotificationType = 'low_stock' | 'stock_out' | 'new_sale' | 'new_product' | 'data_sync' | 'no_internet' | 'credentials_change' | 'info' | 'success' | 'error' | 'warning';
+export type NotificationType = 'low_stock' | 'stock_out' | 'new_sale' | 'new_product' | 'data_sync' | 'no_internet' | 'credentials_change' | 'admin_credentials_updated' | 'resource_created' | 'resource_updated' | 'resource_deleted' | 'user_profile_created' | 'user_profile_updated' | 'user_profile_deleted' | 'info' | 'success' | 'error' | 'warning';
 export type NotificationPriority = 'high' | 'medium' | 'low';
 
 export interface Notification {

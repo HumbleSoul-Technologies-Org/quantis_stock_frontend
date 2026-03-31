@@ -7,6 +7,7 @@ import { ClientOnly } from "@/components/client-only";
 import { BusinessSetupForm } from "@/components/onboarding/BusinessSetupForm";
 import { BusinessSetup } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
+import Link from "next/link";
 
 function OnboardingContent() {
   const router = useRouter();
@@ -53,6 +54,24 @@ function OnboardingContent() {
     }
   };
 
+  const restartRegistration = async () => {
+    try {
+      await apiRequest(
+        "POST",
+        `/users/${user?.id}/restart-registration`,
+        {},
+        user?.token,
+      );
+      // Clear local auth state and redirect to registration page
+      localStorage.clear();
+      router.push("/auth/register");
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
@@ -65,6 +84,12 @@ function OnboardingContent() {
             Let's set up your business to get started
           </p>
         </div>
+
+        <span onClick={restartRegistration} className="block text-center mb-6">
+          <span className="text-blue-600 cursor-pointer hover:text-blue-800 underline">
+            Restart the Registration Process if issues persist
+          </span>
+        </span>
 
         {/* Error Message */}
         {error && (

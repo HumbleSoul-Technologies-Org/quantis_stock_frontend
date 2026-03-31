@@ -36,7 +36,7 @@ export function RegisterForm() {
     general?: string;
   }>({});
 
-  const { loginWithApiData } = useAuth();
+  const { loginWithApiData, user } = useAuth();
   const router = useRouter();
 
   // Clear errors when user starts typing
@@ -88,18 +88,6 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
-      // Check if user already exists
-      const existingUsers = storage.getUsers();
-      const userExists = existingUsers.some(
-        (user) => user.username === username.trim(),
-      );
-
-      if (userExists) {
-        setErrors({ username: "Username already exists" });
-        setIsLoading(false);
-        return;
-      }
-
       // Create new admin user
       const payload = {
         username: username.trim(),
@@ -129,6 +117,7 @@ export function RegisterForm() {
         token: data.token,
       };
 
+      // Only initialize local storage after successful API response
       storage.createUser(newUser);
       setSuccess("Account created successfully! Redirecting...");
 
@@ -145,6 +134,24 @@ export function RegisterForm() {
       setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const restartRegistration = async () => {
+    try {
+      await apiRequest(
+        "POST",
+        `/users/${user?.id}/restart-registration`,
+        {},
+        user?.token,
+      );
+      // Clear local auth state and redirect to registration page
+      localStorage.clear();
+      router.push("/auth/register");
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
     }
   };
 
@@ -323,6 +330,14 @@ export function RegisterForm() {
                 </a>
               </p>
             </div>
+            <span
+              onClick={restartRegistration}
+              className="block text-center mb-6"
+            >
+              <span className="text-blue-600 text-sm mt-5 cursor-pointer hover:text-blue-800 underline">
+                click here to Restart the Registration Process if issues persist
+              </span>
+            </span>
           </CardContent>
         </Card>
       </div>

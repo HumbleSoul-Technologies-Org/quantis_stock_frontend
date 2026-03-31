@@ -117,13 +117,18 @@ class StorageService {
       return DEFAULT_STATE;
     }
 
-   
-
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      const initialState = DEFAULT_STATE;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
-      return initialState;
+      // Return empty state instead of initializing - only initialize after successful registration
+      return {
+        users: [],
+        currentUser: null,
+        products: [],
+        suppliers: [],
+        sales: [],
+        stockMovements: [],
+        settings: DEFAULT_SETTINGS,
+      };
     }
 
     return JSON.parse(stored);
@@ -184,8 +189,19 @@ class StorageService {
 
   createUser(user: User): void {
     const state = this.getState();
-    state.users.push(user);
-    this.saveState(state);
+
+    // If this is the first user, initialize the full state
+    if (state.users.length === 0) {
+      const initialState = {
+        ...DEFAULT_STATE,
+        users: [user],
+        currentUser: user,
+      };
+      this.saveState(initialState);
+    } else {
+      state.users.push(user);
+      this.saveState(state);
+    }
   }
 
   getUsers(): User[] {

@@ -11,8 +11,8 @@ import {
 import { Product, Supplier, Sale, StockMovement } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "./AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "./AuthContext";
 
 // API functions for polling
 const apiSuppliers = async (token?: string) => {
@@ -145,20 +145,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize from storage on mount
+  // Initialize from storage on mount - only if storage has been initialized
   useEffect(() => {
     const loadData = () => {
-      if (storage.getProducts() && Array.isArray(storage.getProducts())) {
-        setProducts(storage.getProducts());
-      } else {
-        setProducts([]);
+      // Check if local storage has been initialized (has erp_system_state key)
+      const hasStorage =
+        typeof window !== "undefined" &&
+        localStorage.getItem("erp_system_state") !== null;
+
+      if (hasStorage) {
+        if (storage.getProducts() && Array.isArray(storage.getProducts())) {
+          setProducts(storage.getProducts());
+        } else {
+          setProducts([]);
+        }
+
+        setSales(storage.getSales());
+        setStockMovements(storage.getStockMovements());
+        setSuppliers(storage.getSuppliers() || []);
       }
 
-      setSales(storage.getSales());
-      setStockMovements(storage.getStockMovements());
       setIsInitialized(true);
-
-      setSuppliers(storage.getSuppliers() || []);
     };
 
     loadData();

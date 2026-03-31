@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useResourceNotifications } from "@/hooks/useResourceNotifications";
 import { useSettings } from "@/context/SettingsContext";
+import { toast } from "sonner";
 import {
   AlertCircle,
   CheckCircle,
@@ -213,7 +214,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       var success = null;
 
       if (success) {
-        notifyAdminCredentialsUpdated();
+        toast.success("Admin credentials updated successfully");
         setMessage({
           type: "success",
           text: "Credentials updated successfully!",
@@ -263,7 +264,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         );
         if (!res.ok) {
           const text = await res.text();
-          userError(`Failed to update user: ${text}`);
+          toast.error(`Failed to update user: ${text}`);
           setMessage({
             type: "error",
             text: `Failed to update user: ${text}`,
@@ -328,7 +329,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         let data = null;
         if (!res.ok) {
           const text = await res.text();
-          userError(`Failed to create user: ${text}`);
+          toast.error(`Failed to create user: ${text}`);
           setMessage({
             type: "error",
             text: `Failed to create user: ${text}`,
@@ -383,7 +384,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setShowCreateUserForm(false);
       setTimeout(() => setMessage(null), 5000);
     } catch (error) {
-      userError("Failed to save user. Please try again.");
+      toast.error("Failed to save user. Please try again.");
       setMessage({
         type: "error",
         text: "Failed to save user",
@@ -402,7 +403,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       if (!res.ok) {
         const text = await res.text();
-        userError(`Failed to delete user: ${text}`);
+        toast.error(`Failed to delete user: ${text}`);
         setMessage({
           type: "error",
           text: `Failed to delete user: ${text}`,
@@ -428,7 +429,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      userError("Failed to delete user. Please try again.");
+      toast.error("Failed to delete user. Please try again.");
       console.log("====================================");
       console.log(error);
       console.log("====================================");
@@ -463,7 +464,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       if (!res.ok) {
         const text = await res.text();
-        userError(`Failed to update user ban status: ${text}`);
+        toast.error(`Failed to update user ban status: ${text}`);
         return;
       }
 
@@ -493,7 +494,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      userError("Failed to update user ban status. Please try again.");
+      toast.error("Failed to update user ban status. Please try again.");
       console.log("====================================");
       console.log(error);
       console.log("====================================");
@@ -536,7 +537,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       if (!res.ok) {
         const text = await res.text();
-        userError(`Failed to reset password: ${text}`);
+        toast.error(`Failed to reset password: ${text}`);
         setMessage({
           type: "error",
           text: `Failed to reset password: ${text}`,
@@ -555,7 +556,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setResetPasswordForm({ newPassword: "", confirmPassword: "" });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      userError("Failed to reset password. Please try again.");
+      toast.error("Failed to reset password. Please try again.");
       setMessage({
         type: "error",
         text: "Failed to reset password",
