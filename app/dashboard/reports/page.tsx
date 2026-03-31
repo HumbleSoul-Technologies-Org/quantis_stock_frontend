@@ -39,16 +39,32 @@ function ReportsPageContent() {
   const avgOrderValue =
     completedSales.length > 0 ? totalRevenue / completedSales.length : 0;
 
-  // Top Products
+  // Top Products (based on sales and stock movements)
   const topProducts = products
     .map((p) => {
+      // Calculate volume from completed sales
       const salesVolume = completedSales.reduce((sum, s) => {
-        const saleItem = s.items.find((item) => item.productId === p.id);
+        const saleItem = s.items.find(
+          (item) => item.productId === p.id || item.productId === p._id,
+        );
         return sum + (saleItem?.quantity || 0);
       }, 0);
-      return { ...p, salesVolume };
+
+      // Calculate volume from stock movements (out movements indicate usage/sales)
+      const stockMovementVolume = stockMovements
+        .filter(
+          (m) =>
+            (m.productId === p.id || m.productId === p._id) && m.type === "out",
+        )
+        .reduce((sum, m) => sum + m.quantity, 0);
+
+      // Total volume = sales + stock movements
+      const totalVolume = salesVolume + stockMovementVolume;
+
+      return { ...p, salesVolume, stockMovementVolume, totalVolume };
     })
-    .sort((a, b) => b.salesVolume - a.salesVolume)
+    .filter((p) => p.totalVolume > 0) // Only show products with some activity
+    .sort((a, b) => b.totalVolume - a.totalVolume)
     .slice(0, 5);
 
   // Stock Movements Summary
@@ -58,14 +74,26 @@ function ReportsPageContent() {
   const exportCSV = () => {
     let csv = "";
     if (selectedReport === "inventory") {
-      csv = "Product Name,SKU,Category,Stock,Unit,Reorder Level,Stock Value\n";
+      csv =
+        "ID,_ID,Name,SKU,Category,Unit Price,Cost Price,Unit,Supplier ID,Reorder Level,Current Stock,Created At,Updated At,Description,Status,Retail SubType,Base UoM,Tracking Config,Reorder Strategy\n";
       products.forEach((p) => {
-        csv += `"${p.name}","${p.sku}","${p.category}",${p.currentStock},"${p.unit}",${p.reorderLevel},"${formatCurrency(p.currentStock * p.unitPrice)}"\n`;
+        csv += `"${p.id || ""}","${p._id || ""}","${p.name}","${p.sku}","${p.category}",${p.unitPrice},${p.costPrice},"${p.unit}","${p.supplierId}",${p.reorderLevel},${p.currentStock},"${p.createdAt}","${p.updatedAt}","${p.description || ""}","${p.status || "active"}","${p.retailSubType || ""}","${p.baseUoM || ""}","${JSON.stringify(p.tracking || {}).replace(/"/g, '""')}","${JSON.stringify(p.reorderStrategy || {}).replace(/"/g, '""')}"\n`;
       });
     } else if (selectedReport === "sales") {
-      csv = "Sale Number,Date,Items Count,Total Amount,Status\n";
+      csv =
+        "ID,_ID,Sale Number,Date,Customer Name,Payment Type,Transaction ID,Total Amount,Status,Notes,Created By,Created At,Items (JSON)\n";
       sales.forEach((s) => {
-        csv += `"${s.saleNumber}","${s.date}",${s.items.length},"${formatCurrency(s.totalAmount)}","${s.status}"\n`;
+        csv += `"${s.id || ""}","${s._id || ""}","${s.saleNumber}","${s.date}","${s.customerName || ""}","${s.paymentType || ""}","${s.txnId || ""}",${s.totalAmount},"${s.status}","${s.notes}","${s.createdBy}","${s.createdAt}","${JSON.stringify(s.items).replace(/"/g, '""')}"\n`;
+      });
+    } else if (selectedReport === "stock_movements") {
+      csv =
+        "ID,Product ID,Type,Quantity,Reason,Reference,Created By,Created At\n";
+      stockMovements.forEach((m) => {
+        const createdBy =
+          typeof m.createdBy === "object"
+            ? m.createdBy?.username || m.createdBy?.id || ""
+            : m.createdBy || "";
+        csv += `"${m.id}","${m.productId}","${m.type}",${m.quantity},"${m.reason}","${m.reference}","${createdBy}","${m.createdAt}"\n`;
       });
     }
 
@@ -119,6 +147,17 @@ function ReportsPageContent() {
           }
         >
           Sales Report
+        </Button>
+        <Button
+          onClick={() => setSelectedReport("stock_movements")}
+          variant={selectedReport === "stock_movements" ? "default" : "outline"}
+          className={
+            selectedReport === "stock_movements"
+              ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+              : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+          }
+        >
+          Stock Movements Report
         </Button>
         {/* <Button
               onClick={() => setSelectedReport("summary")}
@@ -260,11 +299,11 @@ function ReportsPageContent() {
 
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-                Top 5 Best Selling Products
+                Top 5 Most Active Products
               </h3>
               {topProducts.length === 0 ? (
                 <p className="text-gray-600 dark:text-slate-400 text-sm">
-                  No sales data yet
+                  No product activity yet
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -286,9 +325,14 @@ function ReportsPageContent() {
                           </p>
                         </div>
                       </div>
-                      <p className="font-bold text-gray-900 dark:text-teal-100">
-                        {p.salesVolume} units sold
-                      </p>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900 dark:text-teal-100">
+                          {p.totalVolume} total units
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-slate-400">
+                          {p.salesVolume} sold + {p.stockMovementVolume} moved
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -388,7 +432,7 @@ function ReportsPageContent() {
                             {s.saleNumber}
                           </td>
                           <td className="p-3 text-gray-600 dark:text-slate-400">
-                            {s.date}
+                            {new Date(s.date).toLocaleDateString()}{" "}
                           </td>
                           <td className="p-3 text-center text-gray-600 dark:text-slate-400">
                             {s.items.length}
@@ -398,6 +442,124 @@ function ReportsPageContent() {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedReport === "stock_movements" && (
+        <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
+          <CardHeader>
+            <CardTitle className="dark:text-teal-100">
+              Stock Movements Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-900/20 dark:border-blue-700">
+                <p className="text-sm text-blue-600 font-medium dark:text-blue-300">
+                  Total Movements
+                </p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+                  {stockMovements.length}
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200 dark:bg-green-900/20 dark:border-green-700">
+                <p className="text-sm text-green-600 font-medium dark:text-green-300">
+                  Stock In
+                </p>
+                <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
+                  {inMovements}
+                </p>
+              </div>
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200 dark:bg-red-900/20 dark:border-red-700">
+                <p className="text-sm text-red-600 font-medium dark:text-red-300">
+                  Stock Out
+                </p>
+                <p className="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
+                  {outMovements}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+                Recent Stock Movements
+              </h3>
+              {stockMovements.length === 0 ? (
+                <p className="text-gray-600 dark:text-slate-400 text-sm">
+                  No stock movements yet
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-teal-700 bg-gray-50 dark:bg-slate-700">
+                        <th className="text-left p-3 font-semibold text-gray-700 dark:text-teal-300">
+                          Product
+                        </th>
+                        <th className="text-center p-3 font-semibold text-gray-700 dark:text-teal-300">
+                          Type
+                        </th>
+                        <th className="text-right p-3 font-semibold text-gray-700 dark:text-teal-300">
+                          Quantity
+                        </th>
+                        <th className="text-left p-3 font-semibold text-gray-700 dark:text-teal-300">
+                          Reason
+                        </th>
+                        <th className="text-left p-3 font-semibold text-gray-700 dark:text-teal-300">
+                          Reference
+                        </th>
+                        <th className="text-left p-3 font-semibold text-gray-700 dark:text-teal-300">
+                          Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stockMovements.slice(0, 10).map((m) => {
+                        const product = products.find(
+                          (p) => p.id === m.productId || p._id === m.productId,
+                        );
+                        return (
+                          <tr
+                            key={m.id}
+                            className="border-b border-gray-200 dark:border-teal-700 hover:bg-gray-50 dark:hover:bg-slate-700"
+                          >
+                            <td className="p-3 font-medium text-gray-900 dark:text-slate-100">
+                              {product?.name || "Unknown Product"}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  m.type === "in"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                    : m.type === "out"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                }`}
+                              >
+                                {m.type.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-medium text-gray-900 dark:text-slate-100">
+                              {m.quantity}
+                            </td>
+                            <td className="p-3 text-gray-600 dark:text-slate-400">
+                              {m.reason}
+                            </td>
+                            <td className="p-3 text-gray-600 dark:text-slate-400">
+                              {m.reference}
+                            </td>
+                            <td className="p-3 text-gray-600 dark:text-slate-400">
+                              {new Date(m.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

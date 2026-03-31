@@ -48,7 +48,10 @@ export function ProductTable({
   }
 
   const getSupplierName = (supplierId: string) => {
-    return suppliers.find((s) => s._id === supplierId)?.name || "Unknown";
+    return (
+      suppliers.find((s) => s._id === supplierId || s.id === supplierId)
+        ?.name || "Unknown"
+    );
   };
 
   return (
@@ -74,7 +77,7 @@ export function ProductTable({
 
               return (
                 <div
-                  key={product.id}
+                  key={product.id || product._id} // Handle both id and _id for backward compatibility
                   className="group relative h-96 overflow-hidden rounded-2xl border border-green-200 dark:border-teal-700 shadow-lg bg-slate-50 dark:bg-slate-800 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-green-500/10 dark:hover:shadow-teal-500/10 cursor-pointer"
                   style={{
                     backgroundImage,

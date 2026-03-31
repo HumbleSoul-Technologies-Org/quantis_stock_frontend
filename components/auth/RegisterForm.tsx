@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, X, ExternalLink } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -20,14 +20,19 @@ export function RegisterForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptLegal, setAcceptLegal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [viewingLegal, setViewingLegal] = useState<"privacy" | "terms" | null>(
+    null,
+  );
 
   // Field-level errors
   const [errors, setErrors] = useState<{
     username?: string;
     password?: string;
     confirmPassword?: string;
+    legal?: string;
     general?: string;
   }>({});
 
@@ -59,6 +64,11 @@ export function RegisterForm() {
       newErrors.confirmPassword = "Confirm password is required";
     } else if (password !== confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!acceptLegal) {
+      newErrors.legal =
+        "You must accept the Privacy Policy and Terms & Conditions to continue";
     }
 
     setErrors(newErrors);
@@ -245,6 +255,52 @@ export function RegisterForm() {
                 )}
               </div>
 
+              {/* Legal Error */}
+              {errors.legal && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{errors.legal}</span>
+                </div>
+              )}
+
+              {/* Legal Agreement Checkbox */}
+              <div className="flex items-start gap-3 p-3 border-2 border-gray-200 rounded-lg hover:border-blue-300 transition">
+                <input
+                  type="checkbox"
+                  id="legal"
+                  checked={acceptLegal}
+                  onChange={(e) => {
+                    setAcceptLegal(e.target.checked);
+                    if (errors.legal) clearFieldError("legal");
+                  }}
+                  disabled={isLoading}
+                  className="w-4 h-4 mt-1 accent-blue-600 cursor-pointer"
+                />
+                <label
+                  htmlFor="legal"
+                  className="flex-1 text-xs font-medium text-gray-700 cursor-pointer"
+                >
+                  I accept the{" "}
+                  <button
+                    type="button"
+                    onClick={() => setViewingLegal("privacy")}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    Privacy Policy
+                    <ExternalLink className="w-3 h-3" />
+                  </button>{" "}
+                  and{" "}
+                  <button
+                    type="button"
+                    onClick={() => setViewingLegal("terms")}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    Terms & Conditions
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </label>
+              </div>
+
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -268,6 +324,65 @@ export function RegisterForm() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Legal Document Modal */}
+      {viewingLegal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-4xl h-screen mt-5 mb-5 overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-teal-100">
+                {viewingLegal === "privacy"
+                  ? "Privacy Policy"
+                  : "Terms & Conditions"}
+              </h2>
+              <button
+                onClick={() => setViewingLegal(null)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
+              >
+                <X className="w-6 h-6 text-gray-600 dark:text-slate-400" />
+              </button>
+            </div>
+
+            {/* Modal Content - IFrame */}
+            <iframe
+              src={
+                viewingLegal === "privacy"
+                  ? "/legal/privacy-policy"
+                  : "/legal/terms-conditions"
+              }
+              className="flex-1 w-full"
+              title={
+                viewingLegal === "privacy"
+                  ? "Privacy Policy"
+                  : "Terms & Conditions"
+              }
+            />
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 dark:border-slate-700 p-4 bg-gray-50 dark:bg-slate-800 flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setViewingLegal(null)}
+                className="dark:border-slate-600 dark:text-slate-300"
+              >
+                Back to Registration
+              </Button>
+              <Button
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  setAcceptLegal(true);
+                  setViewingLegal(null);
+                }}
+              >
+                Accept & Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

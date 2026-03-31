@@ -324,10 +324,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.warn("Failed to save sale to API:", error);
       }
-      // Refresh will reload both products (with decremented stock) and sales
-      refresh();
+      // API polling (5-second interval) will automatically sync new sale and updated product stock
     },
-    [refresh, user?.token],
+    [user?.token],
   );
 
   const updateSale = useCallback(
@@ -347,14 +346,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   // Stock Movements
-  const addStockMovement = useCallback(
-    (movement: StockMovement) => {
-      storage.addStockMovement(movement);
-      // Refresh will reload products and stock movements
-      refresh();
-    },
-    [refresh],
-  );
+  const addStockMovement = useCallback((movement: StockMovement) => {
+    storage.addStockMovement(movement);
+    // API polling (5-second interval) will automatically sync new movement and updated product stock
+  }, []);
 
   // Utilities
   const getProductById = useCallback(

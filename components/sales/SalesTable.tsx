@@ -166,7 +166,7 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
               >
                 <div
                   className="p-3 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer flex items-center justify-between"
-                  onClick={() => toggleExpand(sale._id || sale.id)}
+                  onClick={() => toggleExpand(sale.id)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                   </div>
                 </div>
 
-                {expandedSales.has(sale.id || sale._id) && (
+                {expandedSales.has(sale.id) && (
                   <div className="border-t border-gray-200 bg-gray-50 p-3 space-y-3">
                     {/* Sale Details */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
