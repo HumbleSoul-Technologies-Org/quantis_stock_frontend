@@ -18,7 +18,8 @@ function SalesPageContent() {
   const { products, sales, addSale, deleteSale } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
-  const { notifyNewSale, notifySuccess } = useNotificationActions();
+  const { notifyResourceCreated, notifyResourceDeleted, notifySuccess } =
+    useNotificationActions();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -28,7 +29,18 @@ function SalesPageContent() {
 
   const handleAddSale = async (sale: any) => {
     await addSale(sale);
-    notifyNewSale(sale.saleNumber, formatCurrency(sale.totalAmount));
+    notifyResourceCreated("Sale", sale.saleNumber);
+    notifySuccess(
+      "Sale Completed",
+      `${sale.saleNumber} recorded for ${formatCurrency(sale.totalAmount)}`,
+    );
+  };
+
+  const handleDeleteSale = (id: string) => {
+    const sale = sales.find((s) => s.id === id || s._id === id);
+    if (!sale) return;
+    deleteSale(id);
+    notifyResourceDeleted("Sale", sale.saleNumber);
   };
 
   const userSales =
@@ -297,7 +309,7 @@ function SalesPageContent() {
       <SalesTable
         sales={filteredSales}
         products={products}
-        onDelete={deleteSale}
+        onDelete={handleDeleteSale}
       />
     </div>
   );

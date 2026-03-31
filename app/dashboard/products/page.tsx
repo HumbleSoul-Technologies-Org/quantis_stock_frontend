@@ -14,7 +14,12 @@ import { Plus } from "lucide-react";
 function ProductsPageContent() {
   const { products, suppliers, addProduct, updateProduct, deleteProduct } =
     useData();
-  const { notifyNewProduct, notifySuccess } = useNotificationActions();
+  const {
+    notifyResourceCreated,
+    notifyResourceUpdated,
+    notifyResourceDeleted,
+    notifySuccess,
+  } = useNotificationActions();
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,13 +30,21 @@ function ProductsPageContent() {
   const handleAddProduct = (product: Product) => {
     if (editingProduct) {
       updateProduct(editingProduct?.id, product);
-      notifySuccess("Product Updated", `${product.name} has been updated.`);
+      notifyResourceUpdated("Product", product.name);
     } else {
       addProduct(product);
-      notifyNewProduct(product.name);
+      notifyResourceCreated("Product", product.name);
     }
     setShowDialog(false);
     setEditingProduct(undefined);
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    const product = products.find((p) => p.id === id || p._id === id);
+    if (!product) return;
+
+    deleteProduct(id);
+    notifyResourceDeleted("Product", product.name);
   };
 
   const handleEditProduct = (product: Product) => {
@@ -103,7 +116,7 @@ function ProductsPageContent() {
         products={products}
         suppliers={suppliers}
         onEdit={handleEditProduct}
-        onDelete={deleteProduct}
+        onDelete={handleDeleteProduct}
         onStockIn={handleStockIn}
         searchTerm={searchTerm}
         categoryFilter={categoryFilter}

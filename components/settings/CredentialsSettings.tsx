@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
+import { useResourceNotifications } from "@/hooks/useResourceNotifications";
 import { useSettings } from "@/context/SettingsContext";
 import {
   AlertCircle,
@@ -45,6 +46,15 @@ interface CredentialsSettingsProps {
 export function CredentialsSettings({ role }: CredentialsSettingsProps) {
   const { user, updateCredentials } = useAuth();
   const { settings, updateSettings } = useSettings();
+  const {
+    userCreated,
+    userUpdated,
+    userDeleted,
+    userBanned,
+    userUnbanned,
+    userError,
+    notifySuccess,
+  } = useResourceNotifications();
 
   // Get team users from centralized settings
   // const teamUsers = settings?.credentials?.teamUsers || [];
@@ -203,6 +213,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       var success = null;
 
       if (success) {
+        notifyAdminCredentialsUpdated();
         setMessage({
           type: "success",
           text: "Credentials updated successfully!",
@@ -252,6 +263,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         );
         if (!res.ok) {
           const text = await res.text();
+          userError(`Failed to update user: ${text}`);
           setMessage({
             type: "error",
             text: `Failed to update user: ${text}`,
@@ -298,6 +310,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           localStorage.setItem("erp_system_state", JSON.stringify(state));
         }
 
+        userUpdated(createUserForm.name);
         setMessage({
           type: "success",
           text: `User "${createUserForm.name}" updated successfully!`,
@@ -315,6 +328,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         let data = null;
         if (!res.ok) {
           const text = await res.text();
+          userError(`Failed to create user: ${text}`);
           setMessage({
             type: "error",
             text: `Failed to create user: ${text}`,
@@ -350,6 +364,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           },
         });
 
+        userCreated(createUserForm.name);
         setMessage({
           type: "success",
           text: `User "${createUserForm.name}" created successfully! They can now log in with email: ${createUserForm.email}`,
@@ -368,6 +383,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setShowCreateUserForm(false);
       setTimeout(() => setMessage(null), 5000);
     } catch (error) {
+      userError("Failed to save user. Please try again.");
       setMessage({
         type: "error",
         text: "Failed to save user",
@@ -377,12 +393,23 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await apiRequest(
+      const res = await apiRequest(
         "DELETE",
         `/users/${userId}/delete`,
         undefined,
         user?.token,
       );
+
+      if (!res.ok) {
+        const text = await res.text();
+        userError(`Failed to delete user: ${text}`);
+        setMessage({
+          type: "error",
+          text: `Failed to delete user: ${text}`,
+        });
+        return;
+      }
+
       const updatedUsers = teamUsers.filter((u) => u.id !== userId);
 
       // Update through centralized settings
@@ -393,6 +420,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         },
       });
 
+      userDeleted(teamUsers.find((u) => u.id === userId)?.name || "Unknown");
       setMessage({
         type: "success",
         text: "User deleted successfully",
@@ -400,6 +428,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
+      userError("Failed to delete user. Please try again.");
       console.log("====================================");
       console.log(error);
       console.log("====================================");
@@ -411,7 +440,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setCreateUserForm({
         name: user.username || user.name,
         email: user.email,
-        password: "", // Password cannot be edited directly; use reset password
+        password: "",
         confirmPassword: "",
         role:
           user.role === "manager"
@@ -425,12 +454,24 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
   const handleBanUser = async (userId: string) => {
     try {
-      await apiRequest(
+      const res = await apiRequest(
         "POST",
         `/users/${userId}/toggle-ban`,
         undefined,
         user?.token,
       );
+
+      if (!res.ok) {
+        const text = await res.text();
+        userError(`Failed to update user ban status: ${text}`);
+        return;
+      }
+
+      const currentUser = teamUsers.find((u) => u.id === userId);
+      const wasCurrentlyBanned = currentUser?.isBanned || false;
+      const willBeBanned = !wasCurrentlyBanned;
+      const action = willBeBanned ? "banned" : "unbanned";
+
       const updatedUsers = teamUsers.map((u) =>
         u.id === userId ? { ...u, isBanned: !u.isBanned } : u,
       );
@@ -440,12 +481,19 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           teamUsers: updatedUsers,
         },
       });
-      const userData = teamUsers.find((u) => u.id === userId);
+
+      if (willBeBanned) {
+        userBanned(currentUser?.name || "User");
+      } else {
+        userUnbanned(currentUser?.name || "User");
+      }
       setMessage({
         type: "success",
-        text: `${userData?.name} has been ${userData?.isBanned ? "unbanned" : "banned"} successfully!`,
+        text: `${currentUser?.name} has been ${action} successfully!`,
       });
+      setTimeout(() => setMessage(null), 3000);
     } catch (error) {
+      userError("Failed to update user ban status. Please try again.");
       console.log("====================================");
       console.log(error);
       console.log("====================================");
@@ -476,7 +524,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
 
       setResetPasswordErrors(newErrors);
 
-      await apiRequest(
+      const res = await apiRequest(
         "POST",
         `/users/${user?.id}/reset-password`,
         {
@@ -485,6 +533,16 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         },
         user?.token,
       );
+
+      if (!res.ok) {
+        const text = await res.text();
+        userError(`Failed to reset password: ${text}`);
+        setMessage({
+          type: "error",
+          text: `Failed to reset password: ${text}`,
+        });
+        return;
+      }
 
       const userResetting = teamUsers.find((u) => u.id === resetPasswordUserId);
       setMessage({
@@ -497,6 +555,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setResetPasswordForm({ newPassword: "", confirmPassword: "" });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
+      userError("Failed to reset password. Please try again.");
       setMessage({
         type: "error",
         text: "Failed to reset password",
@@ -1156,4 +1215,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       )}
     </div>
   );
+}
+function notifySuccess(arg0: string, arg1: string) {
+  throw new Error("Function not implemented.");
 }

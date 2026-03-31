@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/AuthContext";
+import { AlertCircle } from "lucide-react";
 
 interface StockMovementFormProps {
   products: Product[];
@@ -84,6 +85,7 @@ export function StockMovementForm({
   }, [preselectedProductId, isEditMode]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const movementReasons = {
     in: ["Purchase Order", "Return", "Correction", "Stock Transfer"],
@@ -105,6 +107,9 @@ export function StockMovementForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
+
     try {
       if (!validateForm()) return;
 
@@ -156,16 +161,29 @@ export function StockMovementForm({
             reference: "",
           });
         }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setErrors({
+          general: errorData.message || "Failed to record movement",
+        });
       }
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Error recording movement:", error);
+      setErrors({ general: "An unexpected error occurred. Please try again." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.general && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errors.general}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -299,8 +317,18 @@ export function StockMovementForm({
       </div>
 
       <div className="flex gap-2 pt-4">
-        <Button type="submit" className="bg-green-600 hover:bg-green-700">
-          {isEditMode ? "Update Movement" : "Record Movement"}
+        <Button
+          type="submit"
+          className="bg-green-600 hover:bg-green-700"
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+            ? isEditMode
+              ? "Updating..."
+              : "Recording..."
+            : isEditMode
+              ? "Update Movement"
+              : "Record Movement"}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel

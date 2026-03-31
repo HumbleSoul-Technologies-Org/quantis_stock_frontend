@@ -52,7 +52,15 @@ export function NotificationSidebar({
       case "no_internet":
         return <Wifi className="w-5 h-5 text-gray-600" />;
       case "credentials_change":
+      case "admin_credentials_updated":
         return <Key className="w-5 h-5 text-orange-600" />;
+      case "resource_created":
+      case "resource_updated":
+      case "resource_deleted":
+      case "user_profile_created":
+      case "user_profile_updated":
+      case "user_profile_deleted":
+        return <CheckCircle className="w-5 h-5 text-teal-600" />;
       case "success":
         return <CheckCircle className="w-5 h-5 text-green-600" />;
       case "error":
@@ -77,7 +85,19 @@ export function NotificationSidebar({
       case "no_internet":
         return "bg-gray-50 border-gray-200";
       case "credentials_change":
+      case "admin_credentials_updated":
         return "bg-orange-50 border-orange-200";
+      case "resource_created":
+      case "resource_updated":
+      case "resource_deleted":
+      case "user_profile_created":
+      case "user_profile_updated":
+      case "user_profile_deleted":
+        return "bg-emerald-50 border-emerald-200";
+      case "success":
+        return "bg-green-50 border-green-200";
+      case "error":
+        return "bg-red-50 border-red-200";
       default:
         return "bg-blue-50 border-blue-200";
     }

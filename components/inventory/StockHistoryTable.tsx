@@ -29,6 +29,54 @@ export function StockHistoryTable({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
+  const outProductIds = new Set(
+    movements.filter((m) => m.type === "out").map((m) => m.productId),
+  );
+
+  const stockOutSynthMovements = products
+    .filter((product) => product.currentStock <= 0)
+    .filter((product) => {
+      if (selectedProductId) {
+        const idMatch = product.id === selectedProductId;
+        const oidMatch = (product as any)._id === selectedProductId;
+        if (!idMatch && !oidMatch) return false;
+      }
+
+      const hasOutById = outProductIds.has(product.id);
+      const hasOutByOid = (product as any)._id
+        ? outProductIds.has((product as any)._id)
+        : false;
+
+      return !hasOutById && !hasOutByOid;
+    })
+    .map((product) => {
+      const lastMovement = movements
+        .filter(
+          (m) =>
+            m.productId === product.id || m.productId === (product as any)._id,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )[0];
+
+      return {
+        id: `stockout-${product.id}`,
+        productId: product.id,
+        type: "out" as const,
+        quantity: 0,
+        reason: "Stock Out",
+        reference: "",
+        createdBy: "System",
+        createdAt: lastMovement?.createdAt || new Date().toISOString(),
+        synthetic: true,
+      };
+    });
+
+  const combined = [...stockOutSynthMovements, ...sorted].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
   const getProductName = (productId: string) => {
     return (
       products.find((p) => p.id === productId || (p as any)._id === productId)
@@ -58,9 +106,9 @@ export function StockHistoryTable({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
-        {sorted.length === 0 ? (
+        {combined.length === 0 ? (
           <p className="text-gray-500 dark:text-slate-400 text-center py-6 sm:py-8 text-sm">
-            No stock movements
+            No stock movements or stock-outs detected
           </p>
         ) : (
           <div className="overflow-x-auto -mx-3 sm:mx-0">
@@ -94,9 +142,9 @@ export function StockHistoryTable({
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((movement, index) => (
+                {combined.map((movement, index) => (
                   <tr
-                    key={index}
+                    key={movement.id || index}
                     className="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700"
                   >
                     <td className="p-2 sm:p-3 font-medium text-gray-900 dark:text-teal-100 truncate">
@@ -130,7 +178,11 @@ export function StockHistoryTable({
                         : movement.createdBy || "Unknown User"}
                     </td>
                     <td className="p-2 sm:p-3 text-center">
-                      <div className="inline-flex gap-2 justify-center">
+                      <p className="text-muted-foreground text-xs">
+                        Comming soon...
+                      </p>
+
+                      {/* <div className="inline-flex  gap-2 justify-center">
                         <button
                           disabled={true}
                           type="button"
@@ -149,7 +201,7 @@ export function StockHistoryTable({
                           <Trash2 className="w-3.5 h-3.5" />
                           Delete
                         </button>
-                      </div>
+                      </div> */}
                     </td>
                   </tr>
                 ))}

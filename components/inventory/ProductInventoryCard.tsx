@@ -24,7 +24,9 @@ export function ProductInventoryCard({
   const { user } = useAuth();
 
   const lastMovement = movements
-    .filter((m) => m.productId === product.id)
+    .filter(
+      (m) => m.productId === product.id || m.productId === (product as any)._id,
+    )
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -34,14 +36,20 @@ export function ProductInventoryCard({
     ? format(new Date(lastMovement.createdAt), "MMM dd, yyyy")
     : "Never";
 
-  // ✅ Better stock percentage based on reorder level
-  const maxStock = product.reorderLevel * 2;
-  const stockPercentage = Math.min(
-    (product.currentStock / maxStock) * 100,
-    100,
+  // ✅ Better stock percentage (with safe fallback when reorderLevel is missing/zero)
+  const safeReorderLevel = Math.max(0, product.reorderLevel || 0);
+  const maxStock =
+    safeReorderLevel > 0
+      ? safeReorderLevel * 3
+      : Math.max(1, product.currentStock, 1);
+  const rawPercentage =
+    maxStock > 0 ? (product.currentStock / maxStock) * 100 : 0;
+  const stockPercentage = Math.max(
+    0,
+    Math.min(Number.isNaN(rawPercentage) ? 0 : rawPercentage, 100),
   );
 
-  const isLowStock = product.currentStock <= product.reorderLevel;
+  const isLowStock = product.currentStock <= safeReorderLevel;
 
   // ✅ Pie chart now behaves like a progress ring
   const pieData = [

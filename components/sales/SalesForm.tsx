@@ -41,6 +41,7 @@ export function SalesForm({
   );
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addItem = () => {
     if (!selectedProductId || !quantity) {
@@ -93,6 +94,9 @@ export function SalesForm({
       return;
     }
 
+    setIsSubmitting(true);
+    setErrors({});
+
     try {
       const saleNumber = `S-${Date.now()}`;
       const payLoad = {
@@ -139,11 +143,21 @@ export function SalesForm({
       console.log("====================================");
       console.log(error);
       console.log("====================================");
+      setErrors({ general: "Failed to complete sale. Please try again." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.general && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <X className="w-4 h-4 shrink-0" />
+          <span>{errors.general}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
@@ -334,11 +348,11 @@ export function SalesForm({
 
       <div className="flex gap-2 pt-4">
         <Button
-          disabled={user?.role === "accountant"}
+          disabled={user?.role === "accountant" || isSubmitting}
           type="submit"
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
-          Complete Sale
+          {isSubmitting ? "Processing Sale..." : "Complete Sale"}
         </Button>
         <Button
           disabled={user?.role === "accountant"}

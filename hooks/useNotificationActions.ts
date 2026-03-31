@@ -61,6 +61,68 @@ export function useNotificationActions() {
         'high'
       ),
 
+    notifyAdminCredentialsUpdated: () =>
+      addNotification(
+        'admin_credentials_updated',
+        'Admin Credentials Updated',
+        'Administrator login credentials were successfully updated.',
+        'high'
+      ),
+
+    notifyResourceCreated: (resource: string, name?: string) =>
+      addNotification(
+        'resource_created',
+        `${resource} Created`,
+        name
+          ? `${resource} "${name}" has been successfully created.`
+          : `${resource} has been successfully created.`,
+        'medium'
+      ),
+
+    notifyResourceUpdated: (resource: string, name?: string) =>
+      addNotification(
+        'resource_updated',
+        `${resource} Updated`,
+        name
+          ? `${resource} "${name}" has been successfully updated.`
+          : `${resource} has been successfully updated.`,
+        'medium'
+      ),
+
+    notifyResourceDeleted: (resource: string, name?: string) =>
+      addNotification(
+        'resource_deleted',
+        `${resource} Deleted`,
+        name
+          ? `${resource} "${name}" has been successfully deleted.`
+          : `${resource} has been successfully deleted.`,
+        'medium'
+      ),
+
+    notifyUserProfileCreated: (username: string) =>
+      addNotification(
+        'user_profile_created',
+        'User Profile Created',
+        `User profile for ${username} has been successfully created.`,
+        'medium'
+      ),
+
+    notifyUserProfileUpdated: (username: string) =>
+      addNotification(
+        'user_profile_updated',
+        'User Profile Updated',
+        `User profile for ${username} has been successfully updated.`,
+        'medium'
+      ),
+
+    notifyUserProfileDeleted: (username: string) =>
+      addNotification(
+        'user_profile_deleted',
+        'User Profile Deleted',
+        `User profile for ${username} has been deleted.`,
+        'medium'
+      ),
+
     notifySuccess: (title: string, message: string) =>
       addNotification('success', title, message, 'medium'),
 

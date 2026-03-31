@@ -16,6 +16,7 @@ export function ContactForm() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
     { value: "bug-report", label: "Bug Report" },
@@ -42,25 +43,37 @@ export function ContactForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
 
-    if (!validateForm()) return;
+    try {
+      if (!validateForm()) return;
 
-    // Simulate sending to developer
-    console.log("Support request:", formData);
+      // Simulate sending to developer
+      console.log("Support request:", formData);
 
-    setSubmitted(true);
-    setTimeout(() => {
-      setFormData({
-        name: "",
-        email: "",
-        category: "general",
-        subject: "",
-        message: "",
-      });
-      setSubmitted(false);
-    }, 4000);
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      setSubmitted(true);
+      setTimeout(() => {
+        setFormData({
+          name: "",
+          email: "",
+          category: "general",
+          subject: "",
+          message: "",
+        });
+        setSubmitted(false);
+      }, 4000);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setErrors({ general: "Failed to send message. Please try again." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,6 +101,13 @@ export function ContactForm() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.general && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errors.general}</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
@@ -194,9 +214,10 @@ export function ContactForm() {
             <Button
               type="submit"
               className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full"
+              disabled={isSubmitting}
             >
               <Send className="w-4 h-4" />
-              Send Message
+              {isSubmitting ? "Sending..." : "Send Message"}
             </Button>
           </form>
         )}

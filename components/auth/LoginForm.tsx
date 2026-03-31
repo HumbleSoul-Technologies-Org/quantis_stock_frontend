@@ -38,7 +38,6 @@ export function LoginForm() {
 
       if (!res.ok) {
         setError(data.message || "Login failed");
-        setIsLoading(false);
         return;
       }
 
@@ -57,9 +56,9 @@ export function LoginForm() {
       router.push("/dashboard");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Login failed");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (

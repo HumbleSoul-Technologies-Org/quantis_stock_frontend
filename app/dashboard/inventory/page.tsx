@@ -27,8 +27,15 @@ function InventoryPageContent() {
   const { products, stockMovements, addStockMovement } = useData();
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const { notifyLowStock, notifyStockOut, notifySuccess, notifyDataSync } =
-    useNotificationActions();
+  const {
+    notifyLowStock,
+    notifyStockOut,
+    notifyResourceCreated,
+
+    notifyResourceUpdated,
+    notifyResourceDeleted,
+    notifyDataSync,
+  } = useNotificationActions();
   const [showDialog, setShowDialog] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedMovement, setSelectedMovement] =
@@ -82,13 +89,16 @@ function InventoryPageContent() {
   const handleAddMovement = (movement: any) => {
     addStockMovement(movement);
 
-    // Get product name
     const product = products.find(
       (p) => p._id === movement.productId || p.id === movement.productId,
     );
     const productName = product?.name || "Unknown Product";
 
-    // Notify based on movement type and stock level
+    notifyResourceCreated(
+      "Inventory movement",
+      `${movement.type} for ${productName}`,
+    );
+
     if (movement.type === "in") {
       notifySuccess(
         "Stock In",
@@ -100,7 +110,6 @@ function InventoryPageContent() {
         `${movement.quantity} units of ${productName} stocked out.`,
       );
 
-      // Check if product is now at reorder level or out of stock
       const updatedProduct = products.find((p) => p._id === movement.productId);
       if (updatedProduct) {
         if (updatedProduct.currentStock === 0) {
@@ -123,13 +132,17 @@ function InventoryPageContent() {
     setShowDialog(true);
   };
 
-  // Filter stock in movements for history section
-  const stockInMovements = stockMovements.filter(
-    (m: StockMovement) => m.type === "in",
-  );
+  // Sort stock movement history so recent events appear first
+  const sortedMovements = useMemo(() => {
+    return [...stockMovements].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [stockMovements]);
 
+  // Filter movement history (currently showing all types, include stock out and adjustments)
   const filteredStockInHistory = useMemo(() => {
-    return stockInMovements.filter((movement: StockMovement) => {
+    return sortedMovements.filter((movement: StockMovement) => {
       const matchesProduct =
         !historyProductFilter || movement.productId === historyProductFilter;
 
@@ -148,7 +161,7 @@ function InventoryPageContent() {
 
       return matchesProduct && matchesDateRange;
     });
-  }, [stockInMovements, historyProductFilter, historyDateFrom, historyDateTo]);
+  }, [sortedMovements, historyProductFilter, historyDateFrom, historyDateTo]);
 
   // Calculate stock in summary stats
   const totalUnitsStockedIn = filteredStockInHistory.reduce(
@@ -463,4 +476,7 @@ export default function InventoryPage() {
       <InventoryPageContent />
     </ClientOnly>
   );
+}
+function notifySuccess(arg0: string, arg1: string) {
+  throw new Error("Function not implemented.");
 }

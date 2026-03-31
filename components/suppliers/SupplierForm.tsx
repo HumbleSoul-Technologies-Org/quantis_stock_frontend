@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertCircle } from "lucide-react";
 import { uploadFile } from "@/lib/cloudinary";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
@@ -58,6 +59,7 @@ export function SupplierForm({
   );
   const [isDocumentUploading, setIsDocumentUploading] =
     useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { user } = useAuth();
@@ -111,9 +113,12 @@ export function SupplierForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      if (!validateForm()) return;
+    if (!validateForm()) return;
 
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
       const payLoad: Supplier = {
         name: formData.name || "",
         email: formData.email || "",
@@ -239,13 +244,21 @@ export function SupplierForm({
       console.log("====================================");
       console.log(error);
       console.log("====================================");
+      setErrors({ general: "Failed to save supplier. Please try again." });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // onSubmit(newSupplier);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.general && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errors.general}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">

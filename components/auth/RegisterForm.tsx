@@ -105,6 +105,8 @@ export function RegisterForm() {
         username: username.trim(),
         password: password,
         role: "admin",
+        tAndC: acceptLegal,
+        privacyPolicy: acceptLegal,
       };
 
       const res = await apiRequest("POST", "/users/register", payload);

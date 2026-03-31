@@ -46,6 +46,8 @@ export function ProductForm({
       currentStock: 0,
       status: "active",
       retailSubType: retailSubType,
+      imageUrl: "",
+      imagePublicId: "",
     },
   );
 
@@ -54,6 +56,7 @@ export function ProductForm({
   );
   const [uploadedImage, setUploadedImage] = useState<string>("");
   const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
@@ -117,6 +120,17 @@ export function ProductForm({
       });
     }
   }, [formData.category]);
+
+  // Ensure image data is preserved when editing existing product
+  useEffect(() => {
+    if (product && !uploadedImage) {
+      setFormData((prev) => ({
+        ...prev,
+        imageUrl: product.imageUrl || prev.imageUrl,
+        imagePublicId: product.imagePublicId || prev.imagePublicId,
+      }));
+    }
+  }, [product?.id]);
 
   // Generic field renderer for any field type
   const renderField = (fieldDef: FieldDefinition) => {
@@ -262,6 +276,9 @@ export function ProductForm({
 
     if (!validateForm()) return;
 
+    setIsSubmitting(true);
+    setErrors({});
+
     let res = null;
     try {
       // Ensure supplierId is always trimmed to a valid supplier ID
@@ -295,7 +312,11 @@ export function ProductForm({
         customAttributes: categoryFields,
         discontinuedDate: formData.discontinuedDate,
         discontinuationReason: formData.discontinuationReason,
-        image: { url: formData.imageUrl, public_id: formData.imagePublicId },
+        // Preserve existing image if no new image was uploaded
+        image: {
+          url: formData.imageUrl || product?.imageUrl || "",
+          public_id: formData.imagePublicId || product?.imagePublicId || "",
+        },
       };
 
       if ((product && product.id) || product?._id) {
@@ -343,8 +364,16 @@ export function ProductForm({
           customAttributes: categoryFields,
           discontinuedDate: formData.discontinuedDate,
           discontinuationReason: formData.discontinuationReason,
-          imageUrl: formData.imageUrl,
-          imagePublicId: formData.imagePublicId,
+          imageUrl:
+            formData.imageUrl ||
+            data.product.image?.url ||
+            product?.imageUrl ||
+            "",
+          imagePublicId:
+            formData.imagePublicId ||
+            data.product.image?.public_id ||
+            product?.imagePublicId ||
+            "",
         };
 
         onSubmit(newProduct);
@@ -353,11 +382,21 @@ export function ProductForm({
       console.log("====================================");
       console.log(error);
       console.log("====================================");
+      setErrors({ general: "Failed to save product. Please try again." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.general && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <ChevronDown className="w-4 h-4 shrink-0" />
+          <span>{errors.general}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
@@ -604,9 +643,14 @@ export function ProductForm({
       <div className="flex gap-2 pt-4">
         <Button
           type="submit"
+          disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
-          {product ? "Update Product" : "Add Product"}
+          {isSubmitting
+            ? "Saving Product..."
+            : product
+              ? "Update Product"
+              : "Add Product"}
         </Button>
         <Button
           type="button"
