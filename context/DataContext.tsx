@@ -164,36 +164,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadData();
   }, []);
 
-  // Poll suppliers from API every 5 seconds
+  // Poll suppliers from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: suppliersData } = useQuery({
     queryKey: ["suppliers", "all", user?.token],
     queryFn: () => apiSuppliers(user?.token),
     enabled: !!user?.token && isInitialized,
-    refetchInterval: 5000, // Poll every 5 seconds
+    staleTime: 60000, // 60 seconds before data is considered stale
+    refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
 
-  // Poll products from API every 5 seconds
+  // Poll products from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: productsData } = useQuery({
     queryKey: ["products", "all", user?.token],
     queryFn: () => apiProducts(user?.token),
     enabled: !!user?.token && isInitialized,
-    refetchInterval: 5000, // Poll every 5 seconds
+    staleTime: 60000, // 60 seconds before data is considered stale
+    refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
 
-  // Poll inventory movements from API every 5 seconds
+  // Poll inventory movements from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: inventoryData } = useQuery({
     queryKey: ["inventory", "movements", user?.token],
     queryFn: () => apiInventory(user?.token),
     enabled: !!user?.token && isInitialized,
-    refetchInterval: 5000, // Poll every 5 seconds
+    staleTime: 60000, // 60 seconds before data is considered stale
+    refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
 
-  // Poll sales from API every 5 seconds
+  // Poll sales from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: salesData } = useQuery({
     queryKey: ["sales", "all", user?.token],
     queryFn: () => apiSales(user?.token),
     enabled: !!user?.token && isInitialized,
-    refetchInterval: 5000, // Poll every 5 seconds
+    staleTime: 60000, // 60 seconds before data is considered stale
+    refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
 
   // Update state when API data changes

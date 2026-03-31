@@ -1,7 +1,4 @@
 import { AppState, User, Product, Supplier, Sale, StockMovement, AppSettings } from './types';
-import { useQuery } from '@tanstack/react-query';
-import { use, useEffect, useState } from 'react';
-import { apiRequest } from './queryClient';
 
  
   
@@ -103,63 +100,6 @@ const DEFAULT_PRODUCTS: Product[] = [
     updatedAt: new Date().toISOString(),
   },
 ];
-
- 
-const apiSuppliers = async (token?: string) => {
-  
-  // GET request with query parameters
-  try {
-    const response = await apiRequest('GET', '/suppliers/all', {
-      limit: 20,
-      status: 'active'
-    }, token);
-
-    if (response.ok) {
-      const data = await response.json();
-      return data || [];
-    }
-  } catch (error) {
-    console.warn('Failed to fetch default suppliers from API:', error);
-  }
-  return [];
-}
-
-
-const apiInventory = async (token?: string) => {
-  
-  // GET request with query parameters
-  try {
-    const response = await apiRequest('GET', '/inventory/movements', token);
-
-    if (response.ok) {
-      const data = await response.json();
-      
-      // Return the movements array or empty array
-      return (data && data.movements) || data || [];
-    }
-  } catch (error) {
-    console.warn('Failed to fetch inventory movements from API:', error);
-  }
-  return [];
-}
-const apiProducts = async (token?: string) => {
-  
-  // GET request with query parameters
-  try {
-    const response = await apiRequest('GET', '/products/all', token);
-
-    if (response.ok) {
-      const data = await response.json();
-      
-      return data || [];
-    }
-  } catch (error) {
-    console.warn('Failed to fetch default suppliers from API:', error);
-  }
-  return [];
-}
-
- 
 
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
@@ -325,48 +265,6 @@ class StorageService {
     this.saveState(state);
   }
 
-  // Load suppliers from API and set as defaults
-  async loadSuppliersFromAPI(token?: string): Promise<void> {
-    try {
-      const suppliers = await apiSuppliers(token);
-      if (suppliers && suppliers.length > 0) {
-        const state = this.getState();
-        state.suppliers = suppliers;
-        this.saveState(state);
-      }
-    } catch (error) {
-      console.warn('Failed to load suppliers from API:', error);
-    }
-  }
-
-  
-  // Load products from API and set as defaults
-  async loadProductsFromAPI(): Promise<void> {
-    try {
-      const products = await apiProducts();
-      if (products && products.length > 0) {
-        const state = this.getState();
-        state.products = products;
-        this.saveState(state);
-      }
-    } catch (error) {
-      console.warn('Failed to load products from API:', error);
-    }
-  }
-
-  // Load inventory movements from API and set as defaults
-  async loadInventoryFromAPI(token?: string): Promise<void> {
-    try {
-      const movements = await apiInventory(token);
-      if (movements && movements.length > 0) {
-        const state = this.getState();
-        state.stockMovements = movements;
-        this.saveState(state);
-      }
-    } catch (error) {
-      console.warn('Failed to load inventory movements from API:', error);
-    }
-  }
   // Sales
   getSales(): Sale[] {
     return this.getState().sales;
