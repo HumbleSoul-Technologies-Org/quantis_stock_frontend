@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Plus, Trash2 } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { v4 as uuidv4 } from "uuid";
+import { apiRequest } from "@/lib/queryClient";
+import { set } from "date-fns";
 
 interface SalesFormProps {
   products: Product[];
@@ -45,7 +48,9 @@ export function SalesForm({
       return;
     }
 
-    const product = products.find((p) => p.id === selectedProductId);
+    const product = products.find(
+      (p) => p.id === selectedProductId || p._id === selectedProductId,
+    );
     if (!product) return;
 
     if (parseInt(quantity) > product.currentStock) {
@@ -72,7 +77,7 @@ export function SalesForm({
 
   const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
@@ -88,23 +93,53 @@ export function SalesForm({
       return;
     }
 
-    const saleNumber = `S-${Date.now()}`;
-    const sale: Sale = {
-      id: Math.random().toString(36).substr(2, 9),
-      saleNumber,
-      date: saleDate,
-      items,
-      totalAmount,
-      status: "completed",
-      notes,
-      createdBy: currentUserId,
-      createdAt: new Date().toISOString(),
-      customerName,
-      paymentType,
-      txnId: paymentType !== "cash" ? txnId : undefined,
-    };
+    try {
+      const saleNumber = `S-${Date.now()}`;
+      const payLoad = {
+        saleNumber,
+        date: saleDate,
+        items,
+        totalAmount,
+        status: "completed",
+        notes,
+        createdBy: currentUserId,
+        customerName,
+        paymentType,
+        txnId: uuidv4(),
+      };
 
-    onSubmit(sale);
+      const res = await apiRequest("POST", "/sales/new", payLoad, user?.token);
+
+      if (res.ok) {
+        const data = await res.json();
+        const sale: Sale = {
+          id: data._id,
+          saleNumber,
+          date: saleDate,
+          items,
+          totalAmount,
+          status: "completed",
+          notes,
+          createdBy: currentUserId,
+          createdAt: data.sale.createdAt,
+          customerName,
+          paymentType,
+          txnId: data.sale.txnId,
+        };
+        onSubmit(sale);
+        setItems([]);
+        setCustomerName("");
+        setPaymentType("cash");
+        setTxnId("");
+        setSaleDate(new Date().toISOString().split("T")[0]);
+        setNotes("");
+        setErrors({});
+      }
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
   };
 
   return (
@@ -188,6 +223,9 @@ export function SalesForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
           Add Products
         </label>
+        <p className="text-sm text-muted-foreground">
+          (Click the "+ Add" button to include the product in the sale)
+        </p>
         <div className="flex gap-2">
           <select
             disabled={user?.role === "accountant"}
@@ -199,7 +237,7 @@ export function SalesForm({
             {products
               .filter((p) => p.currentStock > 0)
               .map((p) => (
-                <option key={p.id} value={p.id}>
+                <option key={p._id || p.id} value={p._id || p.id}>
                   {p.name} ({p.currentStock} available)
                 </option>
               ))}
@@ -240,7 +278,9 @@ export function SalesForm({
           </CardHeader>
           <CardContent className="space-y-2">
             {items.map((item, index) => {
-              const product = products.find((p) => p.id === item.productId);
+              const product = products.find(
+                (p) => p.id === item.productId || p._id === item.productId,
+              );
               return (
                 <div
                   key={index}
@@ -304,7 +344,16 @@ export function SalesForm({
           disabled={user?.role === "accountant"}
           type="button"
           variant="outline"
-          onClick={onCancel}
+          onClick={() => {
+            setItems([]);
+            setCustomerName("");
+            setPaymentType("cash");
+            setTxnId("");
+            setSaleDate(new Date().toISOString().split("T")[0]);
+            setNotes("");
+            setErrors({});
+            onCancel();
+          }}
           className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           Cancel

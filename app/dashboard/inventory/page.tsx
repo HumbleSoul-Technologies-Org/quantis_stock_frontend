@@ -312,7 +312,7 @@ function InventoryPageContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map((product) => (
                 <ProductInventoryCard
-                  key={product.id}
+                  key={product.id || product._id}
                   product={product}
                   movements={stockMovements}
                   onStockIn={handleStockIn}
@@ -392,7 +392,10 @@ function InventoryPageContent() {
               >
                 <option value="">All Products</option>
                 {products.map((product) => (
-                  <option key={product.id} value={product.id}>
+                  <option
+                    key={product.id || product._id}
+                    value={product.id || product._id}
+                  >
                     {product.name} ({product.sku})
                   </option>
                 ))}

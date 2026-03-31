@@ -125,7 +125,9 @@ export function StockHistoryTable({
                       {format(new Date(movement.createdAt), "MMM d yyyy")}
                     </td>
                     <td className="p-2 sm:p-3 text-gray-600 dark:text-slate-400 text-xs hidden md:table-cell">
-                      {movement.createdBy?.username || "Unknown User"}
+                      {typeof movement.createdBy === "object"
+                        ? movement.createdBy?.username || "Unknown User"
+                        : movement.createdBy || "Unknown User"}
                     </td>
                     <td className="p-2 sm:p-3 text-center">
                       <div className="inline-flex gap-2 justify-center">

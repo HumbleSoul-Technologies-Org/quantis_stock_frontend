@@ -31,7 +31,7 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
   };
 
   const getProductName = (productId: string) => {
-    return products.find((p) => p.id === productId)?.name || "Unknown Product";
+    return products.find((p) => p._id === productId)?.name || "Unknown Product";
   };
 
   const getTotalQuantity = (sale: Sale) => {
@@ -146,7 +146,7 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
   );
 
   return (
-    <Card className="border-green-200 dark:border-teal-700 border-2 mt-6 bg-white dark:bg-slate-800">
+    <Card className="border-green-200 h-full dark:border-teal-700 border-2 mt-6 bg-white dark:bg-slate-800">
       <CardHeader>
         <CardTitle className="dark:text-teal-100">
           Sales ({sorted.length})
@@ -161,26 +161,25 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
           <div className="space-y-2">
             {sorted.map((sale) => (
               <div
-                key={sale.id}
+                key={sale.id || sale._id} // Handle both id and _id for backward compatibility
                 className="border border-gray-200 dark:border-slate-700 dark:bg-slate-700 rounded-lg"
               >
                 <div
                   className="p-3 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer flex items-center justify-between"
-                  onClick={() => toggleExpand(sale.id)}
+                  onClick={() => toggleExpand(sale._id || sale.id)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      {expandedSales.has(sale.id) ? (
+                      {expandedSales.has(sale._id || sale.id) ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
                         <ChevronDown className="w-4 h-4" />
                       )}
                       <p className="font-medium text-gray-900 dark:text-teal-100">
-                        {sale.saleNumber}
+                        Sale ID: <b>{sale.saleNumber}</b>
+                        <br />
+                        {sale.txnId && `transaction-ID: ${sale.txnId}`}
                       </p>
-                      <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-medium capitalize">
-                        {sale.status}
-                      </span>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-slate-400 ml-6">
                       Customer:{" "}
@@ -189,6 +188,12 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                       </strong>{" "}
                       | Items: {sale.items.length} | Qty:{" "}
                       {getTotalQuantity(sale)}
+                    </p>
+                    <p className="ml-6">
+                      Status:{" "}
+                      <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-medium capitalize">
+                        {sale.status}
+                      </span>
                     </p>
                   </div>
                   <div className="text-right">
@@ -201,7 +206,7 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                   </div>
                 </div>
 
-                {expandedSales.has(sale.id) && (
+                {expandedSales.has(sale.id || sale._id) && (
                   <div className="border-t border-gray-200 bg-gray-50 p-3 space-y-3">
                     {/* Sale Details */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -216,7 +221,6 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                           <p className="font-medium text-gray-700">Payment</p>
                           <p className="text-gray-600 capitalize">
                             {sale.paymentType}
-                            {sale.txnId && ` (${sale.txnId})`}
                           </p>
                         </div>
                       )}

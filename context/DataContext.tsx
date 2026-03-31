@@ -12,6 +12,96 @@ import { Product, Supplier, Sale, StockMovement } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
+import { apiRequest } from "@/lib/queryClient";
+
+// API functions for polling
+const apiSuppliers = async (token?: string) => {
+  try {
+    const response = await apiRequest(
+      "GET",
+      "/suppliers/all",
+      {
+        limit: 20,
+        status: "active",
+      },
+      token,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data || [];
+    }
+  } catch (error) {
+    console.warn("Failed to fetch suppliers from API:", error);
+  }
+  return null;
+};
+
+const apiProducts = async (token?: string) => {
+  try {
+    const response = await apiRequest(
+      "GET",
+      "/products/all",
+      {
+        limit: 20,
+        status: "active",
+      },
+      token,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data || [];
+    }
+  } catch (error) {
+    console.warn("Failed to fetch products from API:", error);
+  }
+  return null;
+};
+
+const apiInventory = async (token?: string) => {
+  try {
+    const response = await apiRequest(
+      "GET",
+      "/inventory/movements",
+      {
+        limit: 100,
+        status: "active",
+      },
+      token,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return (data && data.movements) || data || [];
+    }
+  } catch (error) {
+    console.warn("Failed to fetch inventory movements from API:", error);
+  }
+  return null;
+};
+
+const apiSales = async (token?: string) => {
+  try {
+    const response = await apiRequest(
+      "GET",
+      "/sales/all",
+      {
+        limit: 100,
+        status: "active",
+      },
+      token,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data || [];
+    }
+  } catch (error) {
+    console.warn("Failed to fetch sales from API:", error);
+  }
+  return null;
+};
 
 interface DataContextType {
   // Products
@@ -28,7 +118,7 @@ interface DataContextType {
 
   // Sales
   sales: Sale[];
-  addSale: (sale: Sale) => void;
+  addSale: (sale: Sale) => Promise<void>;
   updateSale: (id: string, sale: Partial<Sale>) => void;
   deleteSale: (id: string) => void;
 
@@ -74,40 +164,78 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadData();
   }, []);
 
-  // Load suppliers from API and set as defaults when user is available
+  // Poll suppliers from API every 5 seconds
+  const { data: suppliersData } = useQuery({
+    queryKey: ["suppliers", "all", user?.token],
+    queryFn: () => apiSuppliers(user?.token),
+    enabled: !!user?.token && isInitialized,
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  // Poll products from API every 5 seconds
+  const { data: productsData } = useQuery({
+    queryKey: ["products", "all", user?.token],
+    queryFn: () => apiProducts(user?.token),
+    enabled: !!user?.token && isInitialized,
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  // Poll inventory movements from API every 5 seconds
+  const { data: inventoryData } = useQuery({
+    queryKey: ["inventory", "movements", user?.token],
+    queryFn: () => apiInventory(user?.token),
+    enabled: !!user?.token && isInitialized,
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  // Poll sales from API every 5 seconds
+  const { data: salesData } = useQuery({
+    queryKey: ["sales", "all", user?.token],
+    queryFn: () => apiSales(user?.token),
+    enabled: !!user?.token && isInitialized,
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  // Update state when API data changes
   useEffect(() => {
-    if (user?.token && isInitialized) {
-      // Load suppliers from API
-      storage
-        .loadSuppliersFromAPI(user.token)
-        .then(() => {
-          setSuppliers(storage.getSuppliers());
-        })
-        .catch((error) => {
-          console.warn("Failed to load suppliers from API:", error);
-        });
-
-      // Load products from API
-      storage
-        .loadProductsFromAPI(user.token)
-        .then(() => {
-          setProducts(storage.getProducts());
-        })
-        .catch((error) => {
-          console.warn("Failed to load products from API:", error);
-        });
-
-      // Load inventory movements from API
-      storage
-        .loadInventoryFromAPI(user.token)
-        .then(() => {
-          setStockMovements(storage.getStockMovements());
-        })
-        .catch((error) => {
-          console.warn("Failed to load inventory movements from API:", error);
-        });
+    if (suppliersData) {
+      setSuppliers(suppliersData);
+      // Also save to storage for persistence
+      const state = storage.getState();
+      state.suppliers = suppliersData;
+      storage.saveState(state);
     }
-  }, [user?.token, isInitialized]);
+  }, [suppliersData]);
+
+  useEffect(() => {
+    if (productsData) {
+      setProducts(productsData);
+      // Also save to storage for persistence
+      const state = storage.getState();
+      state.products = productsData;
+      storage.saveState(state);
+    }
+  }, [productsData]);
+
+  useEffect(() => {
+    if (inventoryData) {
+      setStockMovements(inventoryData);
+      // Also save to storage for persistence
+      const state = storage.getState();
+      state.stockMovements = inventoryData;
+      storage.saveState(state);
+    }
+  }, [inventoryData]);
+
+  useEffect(() => {
+    if (salesData) {
+      setSales(salesData);
+      // Also save to storage for persistence
+      const state = storage.getState();
+      state.sales = salesData;
+      storage.saveState(state);
+    }
+  }, [salesData]);
 
   const refresh = useCallback(() => {
     setProducts(storage.getProducts());
@@ -188,12 +316,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Sales
   const addSale = useCallback(
-    (sale: Sale) => {
+    async (sale: Sale) => {
       storage.addSale(sale);
+      // Send to API
+      try {
+        await apiRequest("POST", "/sales/create", sale, user?.token);
+      } catch (error) {
+        console.warn("Failed to save sale to API:", error);
+      }
       // Refresh will reload both products (with decremented stock) and sales
       refresh();
     },
-    [refresh],
+    [refresh, user?.token],
   );
 
   const updateSale = useCallback(

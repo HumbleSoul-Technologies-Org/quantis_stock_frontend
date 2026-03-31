@@ -129,10 +129,7 @@ const apiInventory = async (token?: string) => {
   
   // GET request with query parameters
   try {
-    const response = await apiRequest('GET', '/inventory/movements', {
-      limit: 100,
-      status: 'active'
-    }, token);
+    const response = await apiRequest('GET', '/inventory/movements', token);
 
     if (response.ok) {
       const data = await response.json();
@@ -149,10 +146,7 @@ const apiProducts = async (token?: string) => {
   
   // GET request with query parameters
   try {
-    const response = await apiRequest('GET', '/products/all', {
-      limit: 20,
-      status: 'active'
-    }, token);
+    const response = await apiRequest('GET', '/products/all', token);
 
     if (response.ok) {
       const data = await response.json();
@@ -178,7 +172,7 @@ const DEFAULT_STATE: AppState = {
 };
 
 class StorageService {
-  private getState(): AppState {
+  getState(): AppState {
     if (typeof window === 'undefined') {
       return DEFAULT_STATE;
     }
@@ -195,7 +189,7 @@ class StorageService {
     return JSON.parse(stored);
   }
 
-  private saveState(state: AppState): void {
+  saveState(state: AppState): void {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }

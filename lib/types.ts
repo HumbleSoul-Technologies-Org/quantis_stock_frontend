@@ -114,7 +114,7 @@ export interface StockMovement {
   quantity: number;
   reason: string;
   reference: string; // Purchase order, Sales order, etc
-  createdBy: string;
+  createdBy: string | User;
   createdAt: string;
 }
 
@@ -126,6 +126,7 @@ export interface InventoryHistory {
 // Sales Types
 export interface Sale {
   id: string;
+  _id?: string; // For backward compatibility with older sale objects
   saleNumber: string;
   date: string;
   items: SaleItem[];

@@ -58,11 +58,11 @@ function RecentActivityContent() {
           </p>
         ) : (
           <div className="space-y-3 sm:space-y-4">
-            {activities.map((activity) => {
+            {activities.map((activity, index) => {
               const Icon = activity.icon;
               return (
                 <div
-                  key={activity.id}
+                  key={index}
                   className="flex items-start gap-2 sm:gap-3 pb-3 sm:pb-4 border-b border-gray-200 dark:border-slate-700 last:border-b-0"
                 >
                   <div className="bg-green-100 dark:bg-teal-900 p-1.5 sm:p-2 rounded-lg mt-0.5 sm:mt-1 flex-shrink-0">

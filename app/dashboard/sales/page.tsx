@@ -26,8 +26,8 @@ function SalesPageContent() {
   const [filterProductName, setFilterProductName] = useState("");
   const [filterCustomerName, setFilterCustomerName] = useState("");
 
-  const handleAddSale = (sale: any) => {
-    addSale(sale);
+  const handleAddSale = async (sale: any) => {
+    await addSale(sale);
     notifyNewSale(sale.saleNumber, formatCurrency(sale.totalAmount));
   };
 

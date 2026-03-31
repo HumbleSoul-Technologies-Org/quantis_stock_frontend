@@ -427,9 +427,6 @@ export function getFieldSchemaForCategory(categoryName: string): CategoryFieldSc
 
     // Accessories
     'Accessories': 'accessories',
-    'Accessories (Cables, Chargers, Cases)': 'accessories',
-    'Accessories (Bags, Belts, Jewelry)': 'accessories',
-    'Accessories (Tools, Brushes)': 'accessories',
 
     // Hardware
     'Hardware': 'hardware',
