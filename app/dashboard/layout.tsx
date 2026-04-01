@@ -6,6 +6,8 @@ import { Breadcrumb } from "@/components/shared/Breadcrumb";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { SyncModal } from "@/components/SyncModal";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +16,7 @@ export default function DashboardLayout({
 }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { showSyncModal, setShowSyncModal } = useOfflineSync();
 
   useEffect(() => {
     if (!isLoading) {
@@ -50,6 +53,10 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
+      <SyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+      />
     </div>
   );
 }

@@ -4,15 +4,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
 import { Button } from "@/components/ui/button";
-import { LogOut, Moon, Sun, Bell } from "lucide-react";
+import { LogOut, Moon, Sun, Bell, Wifi, WifiOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NotificationSidebar } from "@/components/notifications/NotificationSidebar";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 export function TopNav() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { getUnreadCount } = useNotifications();
+  const { isOnline, pendingActions } = useOfflineSync();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -74,6 +76,19 @@ export function TopNav() {
             </h2>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Connection Indicator */}
+            <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-teal-400">
+              {isOnline ? (
+                <Wifi className="w-4 h-4 text-green-600" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-600" />
+              )}
+              <span className="hidden sm:inline">
+                {isOnline ? "Online" : "Offline"}
+                {pendingActions.length > 0 &&
+                  ` (${pendingActions.length} pending)`}
+              </span>
+            </div>
             <Button
               variant="ghost"
               size="sm"

@@ -13,6 +13,7 @@ import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "./AuthContext";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 // API functions for polling
 const apiSuppliers = async (token?: string) => {
@@ -138,6 +139,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { isOnline, enqueueAction } = useOfflineSync();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -329,15 +331,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addSale = useCallback(
     async (sale: Sale) => {
       storage.addSale(sale);
-      // Send to API
-      try {
-        await apiRequest("POST", "/sales/create", sale, user?.token);
-      } catch (error) {
-        console.warn("Failed to save sale to API:", error);
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest("POST", "/sales/create", sale, user.token);
+        } catch (error) {
+          console.warn("Failed to save sale to API:", error);
+          // Enqueue for later sync
+          enqueueAction({
+            endpoint: "/sales/create",
+            method: "POST",
+            payload: sale,
+            type: "addSale",
+          });
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: "/sales/create",
+          method: "POST",
+          payload: sale,
+          type: "addSale",
+        });
       }
       // API polling (5-second interval) will automatically sync new sale and updated product stock
     },
-    [user?.token],
+    [user?.token, isOnline, enqueueAction],
   );
 
   const updateSale = useCallback(
