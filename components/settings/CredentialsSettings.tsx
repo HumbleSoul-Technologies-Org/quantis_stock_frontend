@@ -389,6 +389,10 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
         type: "error",
         text: "Failed to save user",
       });
+
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
     }
   };
 
