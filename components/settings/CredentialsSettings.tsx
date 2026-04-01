@@ -45,8 +45,48 @@ interface CredentialsSettingsProps {
 }
 
 export function CredentialsSettings({ role }: CredentialsSettingsProps) {
-  const { user, updateCredentials } = useAuth();
+  const { user, isLoading, updateCredentials } = useAuth();
   const { settings, updateSettings } = useSettings();
+
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    refetch: refetchUsers,
+  } = useQuery<any[]>({
+    queryKey: ["users", user?.token],
+    enabled: !!user?.token,
+  });
+
+  if (isLoading || usersLoading) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
+          <CardHeader>
+            <CardTitle className="h-6 w-40 bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="h-4 w-full bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+            <div className="h-4 w-3/4 bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+            <div className="h-4 w-1/2 bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+            <div className="h-12 w-full bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+          </CardContent>
+        </Card>
+
+        {role === "admin" && (
+          <Card className="border-blue-200 border-2 dark:bg-slate-800 dark:border-blue-700">
+            <CardHeader>
+              <CardTitle className="h-6 w-32 bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="h-4 w-full bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+              <div className="h-4 w-full bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+              <div className="h-4 w-1/2 bg-gray-300 dark:bg-slate-600 rounded animate-pulse" />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
   const {
     userCreated,
     userUpdated,
@@ -99,11 +139,6 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
 
   const isAdminOnly = role === "admin";
-
-  const { data: usersData, refetch: refetchUsers } = useQuery<any[]>({
-    queryKey: ["users", user?.token],
-    enabled: !!user?.token,
-  });
 
   useEffect(() => {
     if (usersData) {
