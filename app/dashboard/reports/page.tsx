@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, AlertCircle, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 function ReportsPageContent() {
   const { products, sales, stockMovements } = useData();
   const { formatCurrency } = useSettings();
   const [selectedReport, setSelectedReport] = useState("inventory");
+  const { user } = useAuth();
 
   const safeProducts = Array.isArray(products) ? products : [];
   const safeSales = Array.isArray(sales) ? sales : [];
@@ -185,97 +187,20 @@ function ReportsPageContent() {
             >
               Summary
             </Button> */}
-        <Button
-          onClick={exportCSV}
-          variant="outline"
-          className="ml-auto gap-2 dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </Button>
+        {user &&
+          (user.role === "admin" ||
+            user.role === "manager" ||
+            user.role === "accountant") && (
+            <Button
+              onClick={exportCSV}
+              variant="outline"
+              className="ml-auto gap-2 dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </Button>
+          )}
       </div>
-
-      {selectedReport === "summary" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                Total Products
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {totalProducts}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                Inventory Value
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {formatCurrency(totalInventoryValue)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                Avg Stock Level
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {averageStockLevel}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                Total Sales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {completedSales.length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                Total Revenue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {formatCurrency(totalRevenue)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                Avg Order Value
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {formatCurrency(avgOrderValue)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {selectedReport === "inventory" && (
         <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">

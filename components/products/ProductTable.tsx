@@ -4,12 +4,7 @@ import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, MoreVertical, Edit2, Plus, Trash2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 
 interface ProductTableProps {
@@ -34,6 +29,8 @@ export function ProductTable({
   const { formatCurrency } = useSettings();
 
   let filtered = products;
+
+  const { user } = useAuth();
 
   if (searchTerm) {
     filtered = filtered.filter(
@@ -158,43 +155,46 @@ export function ProductTable({
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(product);
-                        }}
-                        className="bg-white/90 text-slate-900 hover:bg-white font-medium shadow-md hover:shadow-lg transition-all duration-200 flex-1"
-                      >
-                        <Edit2 className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onStockIn(product);
-                          }}
-                          className="bg-green-600/90 hover:bg-green-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(product.id);
-                          }}
-                          className="bg-red-600/90 hover:bg-red-500 shadow-md hover:shadow-lg transition-all duration-200"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    {user &&
+                      (user.role === "admin" || user.role === "manager") && (
+                        <div className="flex justify-between items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(product);
+                            }}
+                            className="bg-white/90 text-slate-900 hover:bg-white font-medium shadow-md hover:shadow-lg transition-all duration-200 flex-1"
+                          >
+                            <Edit2 className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onStockIn(product);
+                              }}
+                              className="bg-green-600/90 hover:bg-green-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(product.id);
+                              }}
+                              className="bg-red-600/90 hover:bg-red-500 shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 </div>
               );

@@ -10,7 +10,7 @@ import { ProductTable } from "@/components/products/ProductTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
-
+import { useAuth } from "@/context/AuthContext";
 function ProductsPageContent() {
   const { products, suppliers, addProduct, updateProduct, deleteProduct } =
     useData();
@@ -28,6 +28,8 @@ function ProductsPageContent() {
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+
+  const { user } = useAuth();
 
   const categories = Array.from(
     new Set(safeProducts.map((p) => p?.category || "")),
@@ -74,13 +76,15 @@ function ProductsPageContent() {
             Manage your product inventory
           </p>
         </div>
-        <Button
-          onClick={() => setShowDialog(true)}
-          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Button>
+        {user && (user.role === "admin" || user.role === "manager") && (
+          <Button
+            onClick={() => setShowDialog(true)}
+            className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Add Product
+          </Button>
+        )}
       </div>
 
       <ProductDialog
