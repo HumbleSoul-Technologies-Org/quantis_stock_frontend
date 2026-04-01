@@ -60,11 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(userData);
 
-        const state = JSON.parse(
-          localStorage.getItem("erp_system_state") || "{}",
-        );
-        state.currentUser = userData;
-        localStorage.setItem("erp_system_state", JSON.stringify(state));
+        try {
+          const state = JSON.parse(
+            localStorage.getItem("erp_system_state") || "{}",
+          );
+          state.currentUser = userData;
+          localStorage.setItem("erp_system_state", JSON.stringify(state));
+        } catch (error) {
+          console.error("Failed to save user to localStorage:", error);
+          // Continue without localStorage - user is still logged in via state
+        }
 
         return true;
       }
@@ -93,9 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithApiData = (userData: User): void => {
     setUser(userData);
     // Also store in localStorage for persistence
-    const state = JSON.parse(localStorage.getItem("erp_system_state") || "{}");
-    state.currentUser = userData;
-    localStorage.setItem("erp_system_state", JSON.stringify(state));
+    try {
+      const state = JSON.parse(
+        localStorage.getItem("erp_system_state") || "{}",
+      );
+      state.currentUser = userData;
+      localStorage.setItem("erp_system_state", JSON.stringify(state));
+    } catch (error) {
+      console.error("Failed to save user to localStorage:", error);
+      // Continue without localStorage - user is still logged in via state
+    }
   };
   const logout = (): void => {
     storage.logout();

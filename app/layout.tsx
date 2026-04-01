@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
+import { BrowserCompatibilityCheck } from "@/components/BrowserCompatibilityCheck";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster />
+          <BrowserCompatibilityCheck />
         </Providers>
       </body>
     </html>

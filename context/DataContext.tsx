@@ -403,10 +403,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [stockMovements],
   );
 
-  if (!isInitialized) {
-    return <>{children}</>;
-  }
-
   return (
     <DataContext.Provider
       value={{

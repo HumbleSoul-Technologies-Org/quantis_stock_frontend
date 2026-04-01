@@ -28,8 +28,13 @@ function getNextReferenceNumber(type: "in" | "out" | "adjustment"): string {
   // Get current counter from localStorage
   let counter = 0;
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem(storageKey);
-    counter = stored ? parseInt(stored, 10) : 0;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      counter = stored ? parseInt(stored, 10) : 0;
+    } catch (error) {
+      console.error("Error reading from localStorage:", error);
+      counter = 0;
+    }
   }
 
   // Format as 5-digit number with leading zeros
@@ -37,7 +42,11 @@ function getNextReferenceNumber(type: "in" | "out" | "adjustment"): string {
 
   // Increment and save for next use
   if (typeof window !== "undefined") {
-    localStorage.setItem(storageKey, String(counter + 1));
+    try {
+      localStorage.setItem(storageKey, String(counter + 1));
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
   }
 
   return `${typePrefix}-${year}-${referenceNumber}`;

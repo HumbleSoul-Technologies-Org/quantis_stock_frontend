@@ -24,21 +24,83 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
   undefined,
 );
 
+const DEFAULT_SETTINGS: AppSettings = {
+  currency: {
+    symbol: "$",
+    code: "USD",
+    decimalPlaces: 2,
+  },
+  units: {
+    weight: "kg",
+    volume: "L",
+    count: "units",
+  },
+  notifications: {
+    emailAlerts: true,
+    smsAlerts: false,
+    lowStockAlerts: true,
+    saleNotifications: true,
+  },
+  general: {
+    companyName: "My Stock Manager",
+    contactEmail: "contact@company.com",
+    theme: "light",
+  },
+  credentials: {
+    teamUsers: [],
+    passwordPolicy: {
+      minLength: 8,
+      requireMixedCase: true,
+      requireNumbers: true,
+      requireSpecialChars: false,
+    },
+    sessionTimeout: 30,
+  },
+};
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const { user } = useAuth();
 
   // Initialize from storage on mount and sync currency from user's businessSetup
   useEffect(() => {
-    const storedSettings = storage.getSettings();
+    const storedSettings = storage.getSettings() || DEFAULT_SETTINGS;
 
-    // If user has businessSetup with currency, derive currency settings from it
+    const normalizedSettings: AppSettings = {
+      ...DEFAULT_SETTINGS,
+      ...storedSettings,
+      currency: {
+        ...DEFAULT_SETTINGS.currency,
+        ...(storedSettings.currency || {}),
+      },
+      units: {
+        ...DEFAULT_SETTINGS.units,
+        ...(storedSettings.units || {}),
+      },
+      notifications: {
+        ...DEFAULT_SETTINGS.notifications,
+        ...(storedSettings.notifications || {}),
+      },
+      general: {
+        ...DEFAULT_SETTINGS.general,
+        ...(storedSettings.general || {}),
+      },
+      credentials: {
+        ...DEFAULT_SETTINGS.credentials,
+        ...(storedSettings.credentials || {}),
+        passwordPolicy: {
+          ...DEFAULT_SETTINGS.credentials.passwordPolicy,
+          ...(storedSettings.credentials?.passwordPolicy || {}),
+        } as Required<AppSettings["credentials"]>["passwordPolicy"],
+      },
+    };
+
     if (user?.businessSetup?.currency) {
       const currencyObj = CURRENCIES.find(
         (c) => c.code === user.businessSetup!.currency,
       );
       if (currencyObj) {
-        storedSettings.currency = {
+        normalizedSettings.currency = {
           code: currencyObj.code,
           symbol: currencyObj.symbol,
           decimalPlaces: 2,
@@ -46,12 +108,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setSettings(storedSettings);
+    setSettings(normalizedSettings);
   }, [user?.businessSetup?.currency]);
 
   const updateSettings = (newSettings: Partial<AppSettings>): void => {
-    const updated = { ...settings, ...newSettings };
-    setSettings(updated as AppSettings);
+    const merged = {
+      ...settings,
+      ...newSettings,
+      currency: {
+        ...settings.currency,
+        ...(newSettings.currency || {}),
+      },
+      units: {
+        ...settings.units,
+        ...(newSettings.units || {}),
+      },
+      notifications: {
+        ...settings.notifications,
+        ...(newSettings.notifications || {}),
+      },
+      general: {
+        ...settings.general,
+        ...(newSettings.general || {}),
+      },
+      credentials: {
+        ...settings.credentials,
+        ...(newSettings.credentials || {}),
+        passwordPolicy: {
+          ...settings.credentials.passwordPolicy,
+          ...(newSettings.credentials?.passwordPolicy || {}),
+        } as Required<AppSettings["credentials"]>["passwordPolicy"],
+      },
+    };
+    setSettings(merged as AppSettings);
     storage.updateSettings(newSettings);
   };
 

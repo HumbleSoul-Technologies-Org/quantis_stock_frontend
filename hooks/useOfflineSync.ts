@@ -20,14 +20,23 @@ export function useOfflineSync() {
   // Load pending actions from localStorage
   const loadPendingActions = useCallback(() => {
     if (typeof window === 'undefined') return [];
-    const stored = localStorage.getItem(SYNC_QUEUE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    try {
+      const stored = localStorage.getItem(SYNC_QUEUE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading pending actions from localStorage:', error);
+      return [];
+    }
   }, []);
 
   // Save pending actions to localStorage
   const savePendingActions = useCallback((actions: SyncAction[]) => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(actions));
+    try {
+      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(actions));
+    } catch (error) {
+      console.error('Error saving pending actions to localStorage:', error);
+    }
   }, []);
 
   // Add action to queue

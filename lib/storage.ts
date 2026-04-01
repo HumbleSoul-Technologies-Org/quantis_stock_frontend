@@ -112,14 +112,46 @@ const DEFAULT_STATE: AppState = {
 };
 
 class StorageService {
+  // Check if localStorage is available and working
+  private isLocalStorageAvailable(): boolean {
+    try {
+      const test = '__localStorage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Get browser compatibility info
+  getBrowserCompatibility(): { localStorage: boolean; json: boolean; fetch: boolean } {
+    const compatibility = {
+      localStorage: this.isLocalStorageAvailable(),
+      json: typeof JSON !== 'undefined',
+      fetch: typeof fetch !== 'undefined',
+    };
+
+    if (!compatibility.localStorage) {
+      console.warn('Browser compatibility issue: localStorage is not available');
+    }
+    if (!compatibility.json) {
+      console.warn('Browser compatibility issue: JSON API is not available');
+    }
+    if (!compatibility.fetch) {
+      console.warn('Browser compatibility issue: fetch API is not available');
+    }
+
+    return compatibility;
+  }
+
   getState(): AppState {
     if (typeof window === 'undefined') {
       return DEFAULT_STATE;
     }
 
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      // Return empty state instead of initializing - only initialize after successful registration
+    if (!this.isLocalStorageAvailable()) {
+      console.warn('localStorage is not available. Using default state.');
       return {
         users: [],
         currentUser: null,
@@ -131,12 +163,67 @@ class StorageService {
       };
     }
 
-    return JSON.parse(stored);
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        // Return empty state instead of initializing - only initialize after successful registration
+        return {
+          users: [],
+          currentUser: null,
+          products: [],
+          suppliers: [],
+          sales: [],
+          stockMovements: [],
+          settings: DEFAULT_SETTINGS,
+        };
+      }
+
+      const parsed = JSON.parse(stored);
+      // Ensure settings always has defaults
+      return {
+        ...parsed,
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...parsed.settings,
+        },
+      };
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return {
+        users: [],
+        currentUser: null,
+        products: [],
+        suppliers: [],
+        sales: [],
+        stockMovements: [],
+        settings: DEFAULT_SETTINGS,
+      };
+    }
   }
 
   saveState(state: AppState): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (!this.isLocalStorageAvailable()) {
+      console.warn('localStorage is not available. Cannot save state.');
+      return;
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+      // Try to clear some space if quota exceeded
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded. Attempting to clear old data.');
+        try {
+          // Clear the entire storage and try again
+          localStorage.clear();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (retryError) {
+          console.error('Failed to save even after clearing localStorage:', retryError);
+        }
+      }
+    }
   }
 
   // Auth - DEPRECATED: Use API authentication instead
