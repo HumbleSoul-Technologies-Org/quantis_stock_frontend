@@ -86,9 +86,7 @@ export function CombinedGeneralSettings({
         setTimeout(() => setSaved(false), 3000);
       }
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to update business settings:", error);
     }
   };
 

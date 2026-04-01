@@ -4,7 +4,6 @@ const nextConfig = {
     ignoreBuildErrors: false, // Enable TypeScript checks in production
   },
   images: {
-    unoptimized: true, // Keep for static export compatibility
     remotePatterns: [
       {
         protocol: 'https',

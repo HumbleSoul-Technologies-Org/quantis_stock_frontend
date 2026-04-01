@@ -379,9 +379,7 @@ export function ProductForm({
         onSubmit(newProduct);
       }
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to save product:", error);
       setErrors({ general: "Failed to save product. Please try again." });
     } finally {
       setIsSubmitting(false);

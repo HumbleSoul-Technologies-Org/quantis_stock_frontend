@@ -66,9 +66,8 @@ function OnboardingContent() {
       localStorage.clear();
       router.push("/auth/register");
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Restart registration failed:", error);
+      setError("Unable to restart registration. Please try again later.");
     }
   };
 

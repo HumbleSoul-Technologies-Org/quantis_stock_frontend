@@ -430,9 +430,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       toast.error("Failed to delete user. Please try again.");
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to delete user:", error);
     }
   };
 
@@ -495,9 +493,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       toast.error("Failed to update user ban status. Please try again.");
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to update ban status:", error);
     }
   };
 

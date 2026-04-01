@@ -9,6 +9,7 @@ import {
 } from "react";
 import { User, BusinessSetup } from "@/lib/types";
 import { storage } from "@/lib/storage";
+import { apiRequest } from "@/lib/queryClient";
 
 interface AuthContextType {
   user: User | null;
@@ -42,15 +43,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
   ): Promise<boolean> => {
     try {
-      // For now, fall back to storage login for backward compatibility
-      // TODO: Replace with API call when backend is ready
+      const res = await apiRequest("POST", "/users/login", {
+        username,
+        password,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.user && data.token) {
+        const userData: User = {
+          id: data.user.id,
+          username: data.user.username,
+          role: data.user.role,
+          businessSetup: data.user.businessSetup,
+          token: data.token,
+        };
+
+        setUser(userData);
+
+        const state = JSON.parse(
+          localStorage.getItem("erp_system_state") || "{}",
+        );
+        state.currentUser = userData;
+        localStorage.setItem("erp_system_state", JSON.stringify(state));
+
+        return true;
+      }
+
+      // Fallback to localStorage-based auth for offline/demo compatibility
       const loggedInUser = storage.login(username, password);
       if (loggedInUser) {
         setUser(loggedInUser);
         return true;
       }
+
       return false;
     } catch (error) {
+      // API may be unavailable; keep localStorage fallback
+      const loggedInUser = storage.login(username, password);
+      if (loggedInUser) {
+        setUser(loggedInUser);
+        return true;
+      }
+
       console.error("Login error:", error);
       return false;
     }

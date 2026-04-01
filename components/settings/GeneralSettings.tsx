@@ -30,9 +30,7 @@ export function GeneralSettings({ settings, onUpdate }: GeneralSettingsProps) {
       // setSaved(true);
       // setTimeout(() => setSaved(false), 3000);
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to save general settings:", error);
     }
   };
 

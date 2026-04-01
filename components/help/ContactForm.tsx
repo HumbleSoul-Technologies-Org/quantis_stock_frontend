@@ -51,9 +51,6 @@ export function ContactForm() {
     try {
       if (!validateForm()) return;
 
-      // Simulate sending to developer
-      console.log("Support request:", formData);
-
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 2000));
 

@@ -140,9 +140,7 @@ export function SalesForm({
         setErrors({});
       }
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to complete sale:", error);
       setErrors({ general: "Failed to complete sale. Please try again." });
     } finally {
       setIsSubmitting(false);

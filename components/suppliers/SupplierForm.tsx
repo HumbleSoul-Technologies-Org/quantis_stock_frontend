@@ -241,9 +241,7 @@ export function SupplierForm({
         onSubmit(newSupplier);
       }
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Failed to save supplier:", error);
       setErrors({ general: "Failed to save supplier. Please try again." });
     } finally {
       setIsSubmitting(false);
