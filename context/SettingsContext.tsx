@@ -70,14 +70,42 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return settings?.currency?.decimalPlaces || 2;
   };
 
-  if (!settings) {
-    return <>{children}</>;
-  }
-
   return (
     <SettingsContext.Provider
       value={{
-        settings,
+        settings: settings || {
+          currency: {
+            symbol: "$",
+            code: "USD",
+            decimalPlaces: 2,
+          },
+          units: {
+            weight: "kg",
+            volume: "L",
+            count: "units",
+          },
+          notifications: {
+            emailAlerts: true,
+            smsAlerts: false,
+            lowStockAlerts: true,
+            saleNotifications: true,
+          },
+          general: {
+            companyName: "My Stock Manager",
+            contactEmail: "contact@company.com",
+            theme: "light",
+          },
+          credentials: {
+            teamUsers: [],
+            passwordPolicy: {
+              minLength: 8,
+              requireMixedCase: true,
+              requireNumbers: true,
+              requireSpecialChars: false,
+            },
+            sessionTimeout: 30,
+          },
+        },
         updateSettings,
         formatCurrency,
         getCurrencySymbol,
