@@ -20,12 +20,18 @@ function ProductsPageContent() {
     notifyResourceDeleted,
     notifySuccess,
   } = useNotificationActions();
+
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];
+
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
-  const categories = Array.from(new Set(products.map((p) => p.category)));
+  const categories = Array.from(
+    new Set(safeProducts.map((p) => p?.category || "")),
+  ).filter(Boolean);
 
   const handleAddProduct = (product: Product) => {
     if (editingProduct) {
@@ -40,7 +46,7 @@ function ProductsPageContent() {
   };
 
   const handleDeleteProduct = (id: string) => {
-    const product = products.find((p) => p.id === id || p._id === id);
+    const product = safeProducts.find((p) => p.id === id || p._id === id);
     if (!product) return;
 
     deleteProduct(id);
@@ -54,7 +60,7 @@ function ProductsPageContent() {
 
   const handleStockIn = (product: Product) => {
     // Redirect to inventory page - will implement stock in dialog there
-    window.location.href = `/dashboard/inventory?productId=${product.id}`;
+    window.location.href = `/dashboard/inventory?productId=${product.id || product._id}`;
   };
 
   return (
@@ -80,7 +86,7 @@ function ProductsPageContent() {
       <ProductDialog
         isOpen={showDialog}
         product={editingProduct}
-        suppliers={suppliers}
+        suppliers={safeSuppliers}
         categories={categories}
         onSubmit={handleAddProduct}
         onOpenChange={(open) => {

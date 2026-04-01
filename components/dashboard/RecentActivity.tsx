@@ -9,35 +9,46 @@ import { format } from "date-fns";
 function RecentActivityContent() {
   const { sales, stockMovements } = useData();
 
-  const recentSales = sales
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
+  const safeSales = Array.isArray(sales) ? sales : [];
+  const safeMovements = Array.isArray(stockMovements) ? stockMovements : [];
+
+  const recentSales = [...safeSales]
+    .filter((sale) => sale?.createdAt)
+    .sort((a, b) => {
+      const aDate = new Date(a.createdAt).getTime();
+      const bDate = new Date(b.createdAt).getTime();
+      return Number.isFinite(bDate) && Number.isFinite(aDate)
+        ? bDate - aDate
+        : 0;
+    })
     .slice(0, 5);
 
-  const recentMovements = stockMovements
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
+  const recentMovements = [...safeMovements]
+    .filter((movement) => movement?.createdAt)
+    .sort((a, b) => {
+      const aDate = new Date(a.createdAt).getTime();
+      const bDate = new Date(b.createdAt).getTime();
+      return Number.isFinite(bDate) && Number.isFinite(aDate)
+        ? bDate - aDate
+        : 0;
+    })
     .slice(0, 5);
 
   const activities = [
     ...recentSales.map((sale) => ({
-      id: sale.id,
+      id: sale?.id ?? "sale-unknown",
       type: "sale",
-      title: `Sale #${sale.saleNumber}`,
-      description: `${sale.items.length} items`,
-      date: sale.createdAt,
+      title: `Sale #${sale?.saleNumber ?? "N/A"}`,
+      description: `${Array.isArray(sale?.items) ? sale.items.length : 0} items`,
+      date: sale?.createdAt ?? new Date().toISOString(),
       icon: ShoppingCart,
     })),
     ...recentMovements.map((movement) => ({
-      id: movement.id,
+      id: movement?.id ?? "movement-unknown",
       type: "movement",
-      title: `Stock ${movement.type === "in" ? "Received" : "Issued"}`,
-      description: `${movement.quantity} units - ${movement.reason}`,
-      date: movement.createdAt,
+      title: `Stock ${movement?.type === "in" ? "Received" : "Issued"}`,
+      description: `${Number.isFinite(movement?.quantity) ? movement.quantity : 0} units - ${movement?.reason ?? "No reason"}`,
+      date: movement?.createdAt ?? new Date().toISOString(),
       icon: Truck,
     })),
   ]
@@ -76,7 +87,12 @@ function RecentActivityContent() {
                       {activity.description}
                     </p>
                     <p className="text-gray-500 dark:text-slate-500 text-xs mt-1 sm:mt-2">
-                      {format(new Date(activity.date), "MMM d h:mm a")}
+                      {(() => {
+                        const dateValue = new Date(activity?.date);
+                        return Number.isFinite(dateValue.getTime())
+                          ? format(dateValue, "MMM d h:mm a")
+                          : "Invalid date";
+                      })()}
                     </p>
                   </div>
                 </div>

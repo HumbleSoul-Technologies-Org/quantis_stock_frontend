@@ -10,15 +10,36 @@ function OverviewCardsContent() {
   const { products, sales } = useData();
   const { formatCurrency } = useSettings();
 
-  const totalInventoryValue =
-    products?.reduce((sum, p) => sum + p.currentStock * p.unitPrice, 0) || 0;
-  const totalSales = sales
-    .filter((s) => s.status === "completed")
-    .reduce((sum, s) => sum + s.totalAmount, 0);
-  const lowStockItems = products.filter(
-    (p) => p.currentStock <= p.reorderLevel,
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeSales = Array.isArray(sales) ? sales : [];
+  const currencyFormatter =
+    typeof formatCurrency === "function"
+      ? formatCurrency
+      : (value: number) => `$${value.toFixed(2)}`;
+
+  const totalInventoryValue = safeProducts.reduce(
+    (sum, p) =>
+      sum +
+      (Number.isFinite(p?.currentStock) ? p.currentStock : 0) *
+        (Number.isFinite(p?.unitPrice) ? p.unitPrice : 0),
+    0,
   );
-  const totalProducts = products.length;
+
+  const totalSales = safeSales
+    .filter((s) => s?.status === "completed")
+    .reduce(
+      (sum, s) => sum + (Number.isFinite(s?.totalAmount) ? s.totalAmount : 0),
+      0,
+    );
+
+  const lowStockItems = safeProducts.filter(
+    (p) =>
+      Number.isFinite(p?.currentStock) &&
+      Number.isFinite(p?.reorderLevel) &&
+      p.currentStock <= p.reorderLevel,
+  );
+
+  const totalProducts = safeProducts.length;
 
   const cards = [
     {
@@ -31,7 +52,7 @@ function OverviewCardsContent() {
     },
     {
       title: "Total Sales",
-      value: formatCurrency(totalSales),
+      value: currencyFormatter(totalSales),
       icon: ShoppingCart,
       color: "bg-green-50",
       iconColor: "text-green-600",
@@ -39,7 +60,7 @@ function OverviewCardsContent() {
     },
     {
       title: "Inventory Value",
-      value: formatCurrency(totalInventoryValue),
+      value: currencyFormatter(totalInventoryValue),
       icon: TrendingUp,
       color: "bg-purple-50",
       iconColor: "text-purple-600",

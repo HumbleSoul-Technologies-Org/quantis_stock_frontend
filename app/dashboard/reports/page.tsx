@@ -13,34 +13,49 @@ function ReportsPageContent() {
   const { formatCurrency } = useSettings();
   const [selectedReport, setSelectedReport] = useState("inventory");
 
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeSales = Array.isArray(sales) ? sales : [];
+  const safeStockMovements = Array.isArray(stockMovements)
+    ? stockMovements
+    : [];
+
   // Inventory Summary
-  const totalProducts = products.length;
-  const lowStockItems = products.filter(
-    (p) => p.currentStock <= p.reorderLevel,
+  const totalProducts = safeProducts.length;
+  const lowStockItems = safeProducts.filter(
+    (p) =>
+      Number.isFinite(p?.currentStock) &&
+      Number.isFinite(p?.reorderLevel) &&
+      p.currentStock <= p.reorderLevel,
   );
-  const totalInventoryValue = products.reduce(
-    (sum, p) => sum + p.currentStock * p.unitPrice,
+  const totalInventoryValue = safeProducts.reduce(
+    (sum, p) =>
+      sum +
+      (Number.isFinite(p?.currentStock) ? p.currentStock : 0) *
+        (Number.isFinite(p?.unitPrice) ? p.unitPrice : 0),
     0,
   );
   const averageStockLevel =
-    products.length > 0
+    safeProducts.length > 0
       ? Math.round(
-          products.reduce((sum, p) => sum + p.currentStock, 0) /
-            products.length,
+          safeProducts.reduce(
+            (sum, p) =>
+              sum + (Number.isFinite(p?.currentStock) ? p.currentStock : 0),
+            0,
+          ) / safeProducts.length,
         )
       : 0;
 
   // Sales Summary
-  const completedSales = sales.filter((s) => s.status === "completed");
+  const completedSales = safeSales.filter((s) => s?.status === "completed");
   const totalRevenue = completedSales.reduce(
-    (sum, s) => sum + s.totalAmount,
+    (sum, s) => sum + (Number.isFinite(s?.totalAmount) ? s.totalAmount : 0),
     0,
   );
   const avgOrderValue =
     completedSales.length > 0 ? totalRevenue / completedSales.length : 0;
 
   // Top Products (based on sales and stock movements)
-  const topProducts = products
+  const topProducts = safeProducts
     .map((p) => {
       // Calculate volume from completed sales
       const salesVolume = completedSales.reduce((sum, s) => {

@@ -14,21 +14,42 @@ interface GeneralSettingsProps {
 }
 
 export function GeneralSettings({ settings, onUpdate }: GeneralSettingsProps) {
-  const [formData, setFormData] = useState(settings.general);
+  const safeGeneral = settings?.general || {
+    companyName: "",
+    contactEmail: "",
+    theme: "light",
+  };
+
+  const [formData, setFormData] = useState(safeGeneral);
   const [saved, setSaved] = useState(false);
   const { user } = useAuth();
 
   const handleSave = async () => {
     try {
+      if (!user) {
+        console.error("Cannot save settings: user is not authenticated");
+        return;
+      }
+
+      // safe default update support for partial settings
+      const updates = {
+        general: {
+          companyName: formData.companyName || "",
+          contactEmail: formData.contactEmail || "",
+          theme: formData.theme || "light",
+        },
+      };
+
+      // TODO: enable API call
       // await apiRequest(
       //   "PUT",
       //   `/users/${user?.id}/business-setup`,
-      //   formData,
+      //   updates.general,
       //   user?.token,
       // );
-      // onUpdate({ general: formData });
-      // setSaved(true);
-      // setTimeout(() => setSaved(false), 3000);
+      onUpdate(updates);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (error) {
       console.error("Failed to save general settings:", error);
     }

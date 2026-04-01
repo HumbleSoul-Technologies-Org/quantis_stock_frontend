@@ -31,11 +31,18 @@ function InventoryPageContent() {
     notifyLowStock,
     notifyStockOut,
     notifyResourceCreated,
-
     notifyResourceUpdated,
     notifyResourceDeleted,
     notifyDataSync,
+    notifySuccess,
+    notifyError,
   } = useNotificationActions();
+
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeStockMovements = Array.isArray(stockMovements)
+    ? stockMovements
+    : [];
+
   const [showDialog, setShowDialog] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedMovement, setSelectedMovement] =
@@ -57,29 +64,39 @@ function InventoryPageContent() {
     }
   }, [searchParams]);
 
-  const lowStockItems = products.filter(
-    (p: Product) => p.currentStock <= p.reorderLevel,
+  const lowStockItems = safeProducts.filter(
+    (p: Product) =>
+      Number.isFinite(p?.currentStock) &&
+      Number.isFinite(p?.reorderLevel) &&
+      p.currentStock <= p.reorderLevel,
   );
   const categories = Array.from(
-    new Set(products.map((p: Product) => p.category)),
-  );
+    new Set(safeProducts.map((p: Product) => p?.category || "")),
+  ).filter(Boolean);
 
   // Filter products based on search and filters
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return safeProducts.filter((product) => {
+      const name = (product?.name || "").toString().toLowerCase();
+      const sku = (product?.sku || "").toString().toLowerCase();
+      const category = (product?.category || "").toString().toLowerCase();
+      const query = searchTerm.toLowerCase();
+
       const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase());
+        name.includes(query) || sku.includes(query) || category.includes(query);
 
       const matchesCategory =
-        !categoryFilter || product.category === categoryFilter;
+        !categoryFilter || product?.category === categoryFilter;
 
       let matchesStockFilter = true;
       if (stockFilter === "low") {
-        matchesStockFilter = product.currentStock <= product.reorderLevel;
+        matchesStockFilter =
+          Number.isFinite(product?.currentStock) &&
+          Number.isFinite(product?.reorderLevel) &&
+          product.currentStock <= product.reorderLevel;
       } else if (stockFilter === "out") {
-        matchesStockFilter = product.currentStock === 0;
+        matchesStockFilter =
+          Number.isFinite(product?.currentStock) && product.currentStock === 0;
       }
 
       return matchesSearch && matchesCategory && matchesStockFilter;
@@ -89,8 +106,8 @@ function InventoryPageContent() {
   const handleAddMovement = (movement: any) => {
     addStockMovement(movement);
 
-    const product = products.find(
-      (p) => p._id === movement.productId || p.id === movement.productId,
+    const product = safeProducts.find(
+      (p) => p?._id === movement.productId || p?.id === movement.productId,
     );
     const productName = product?.name || "Unknown Product";
 
@@ -110,11 +127,17 @@ function InventoryPageContent() {
         `${movement.quantity} units of ${productName} stocked out.`,
       );
 
-      const updatedProduct = products.find((p) => p._id === movement.productId);
+      const updatedProduct = safeProducts.find(
+        (p) => p?._id === movement.productId,
+      );
       if (updatedProduct) {
         if (updatedProduct.currentStock === 0) {
           notifyStockOut(productName);
-        } else if (updatedProduct.currentStock <= updatedProduct.reorderLevel) {
+        } else if (
+          Number.isFinite(updatedProduct.currentStock) &&
+          Number.isFinite(updatedProduct.reorderLevel) &&
+          updatedProduct.currentStock <= updatedProduct.reorderLevel
+        ) {
           notifyLowStock(productName);
         }
       }
@@ -134,11 +157,15 @@ function InventoryPageContent() {
 
   // Sort stock movement history so recent events appear first
   const sortedMovements = useMemo(() => {
-    return [...stockMovements].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }, [stockMovements]);
+    return [...safeStockMovements]
+      .filter((m) => m?.createdAt)
+      .sort((a, b) => {
+        const aDate = new Date(a.createdAt).getTime();
+        const bDate = new Date(b.createdAt).getTime();
+        if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) return 0;
+        return bDate - aDate;
+      });
+  }, [safeStockMovements]);
 
   // Filter movement history (currently showing all types, include stock out and adjustments)
   const filteredStockInHistory = useMemo(() => {
@@ -148,14 +175,30 @@ function InventoryPageContent() {
 
       let matchesDateRange = true;
       if (historyDateFrom || historyDateTo) {
-        const movementDate = new Date(movement.createdAt).toDateString();
+        const movementDateValue = new Date(movement.createdAt);
+        const movementDate = Number.isFinite(movementDateValue.getTime())
+          ? movementDateValue.toDateString()
+          : null;
+
+        if (!movementDate) return false;
+
         if (historyDateFrom) {
-          const fromDate = new Date(historyDateFrom).toDateString();
-          matchesDateRange = matchesDateRange && movementDate >= fromDate;
+          const fromDateValue = new Date(historyDateFrom);
+          const fromDate = Number.isFinite(fromDateValue.getTime())
+            ? fromDateValue.toDateString()
+            : null;
+          if (fromDate) {
+            matchesDateRange = matchesDateRange && movementDate >= fromDate;
+          }
         }
         if (historyDateTo) {
-          const toDate = new Date(historyDateTo).toDateString();
-          matchesDateRange = matchesDateRange && movementDate <= toDate;
+          const toDateValue = new Date(historyDateTo);
+          const toDate = Number.isFinite(toDateValue.getTime())
+            ? toDateValue.toDateString()
+            : null;
+          if (toDate) {
+            matchesDateRange = matchesDateRange && movementDate <= toDate;
+          }
         }
       }
 
@@ -192,7 +235,7 @@ function InventoryPageContent() {
       </div>
 
       {/* Stats */}
-      <InventoryStats products={products} movements={stockMovements} />
+      <InventoryStats products={safeProducts} movements={safeStockMovements} />
 
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (
@@ -320,7 +363,8 @@ function InventoryPageContent() {
         {filteredProducts.length > 0 ? (
           <>
             <p className="text-sm text-gray-600">
-              Showing {filteredProducts.length} of {products.length} products
+              Showing {filteredProducts.length} of {safeProducts.length}{" "}
+              products
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map((product) => (
@@ -404,12 +448,15 @@ function InventoryPageContent() {
                 className="w-full px-3 py-2 border border-green-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 <option value="">All Products</option>
-                {products.map((product) => (
+                {safeProducts.map((product) => (
                   <option
-                    key={product.id || product._id}
-                    value={product.id || product._id}
+                    key={product?.id || product?._id || "unknown-product"}
+                    value={product?.id || product?._id || ""}
                   >
-                    {product.name} ({product.sku})
+                    {(product?.name || "Unnamed Product") +
+                      " (" +
+                      (product?.sku || "No SKU") +
+                      ")"}
                   </option>
                 ))}
               </select>
@@ -476,7 +523,4 @@ export default function InventoryPage() {
       <InventoryPageContent />
     </ClientOnly>
   );
-}
-function notifySuccess(arg0: string, arg1: string) {
-  throw new Error("Function not implemented.");
 }

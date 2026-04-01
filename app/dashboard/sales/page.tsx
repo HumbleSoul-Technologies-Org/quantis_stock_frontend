@@ -21,6 +21,9 @@ function SalesPageContent() {
   const { notifyResourceCreated, notifyResourceDeleted, notifySuccess } =
     useNotificationActions();
 
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeSales = Array.isArray(sales) ? sales : [];
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -37,29 +40,33 @@ function SalesPageContent() {
   };
 
   const handleDeleteSale = (id: string) => {
-    const sale = sales.find((s) => s.id === id || s._id === id);
+    const sale = safeSales.find((s) => s.id === id || s._id === id);
     if (!sale) return;
     deleteSale(id);
-    notifyResourceDeleted("Sale", sale.saleNumber);
+    notifyResourceDeleted("Sale", sale.saleNumber || "Unknown");
   };
 
   const userSales =
     user?.role === "sales"
-      ? sales.filter((s: any) => s.createdBy === user.id)
-      : sales;
+      ? safeSales.filter((s: any) => s?.createdBy === user.id)
+      : safeSales;
 
   // Calculate today's sales
   const todaysSales = useMemo(() => {
     const today = new Date().toDateString();
-    return userSales.filter(
-      (s: any) => new Date(s.date).toDateString() === today,
-    );
+    return userSales.filter((s: any) => {
+      const saleDate = new Date(s?.date);
+      return (
+        Number.isFinite(saleDate.getTime()) && saleDate.toDateString() === today
+      );
+    });
   }, [userSales]);
 
   // Calculate total sales for today
   const totalSalesToday = useMemo(() => {
     return todaysSales.reduce(
-      (sum: number, sale: any) => sum + sale.totalAmount,
+      (sum: number, sale: any) =>
+        sum + (Number.isFinite(sale?.totalAmount) ? sale.totalAmount : 0),
       0,
     );
   }, [todaysSales]);
@@ -67,46 +74,73 @@ function SalesPageContent() {
   // Get last sale time
   const lastSaleTime = useMemo(() => {
     if (todaysSales.length === 0) return null;
-    const lastSale = todaysSales.sort(
-      (a: any, b: any) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )[0];
-    return new Date(lastSale.createdAt);
+    const sorted = [...todaysSales]
+      .filter((s: any) => s?.createdAt)
+      .sort((a: any, b: any) => {
+        const aDate = new Date(a.createdAt).getTime();
+        const bDate = new Date(b.createdAt).getTime();
+        if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) return 0;
+        return bDate - aDate;
+      });
+    const lastSale = sorted[0];
+    const date = new Date(lastSale?.createdAt);
+    return Number.isFinite(date.getTime()) ? date : null;
   }, [todaysSales]);
 
   // Filter sales based on search and filters
   const filteredSales = useMemo(() => {
     return userSales.filter((sale: any) => {
       // Search by sale number or transaction ID
+      const saleNumber = (sale?.saleNumber || "").toString().toLowerCase();
+      const txnId = (sale?.txnId || "").toString().toLowerCase();
+      const searchLower = searchTerm.toLowerCase();
+
       const matchesSearch =
         !searchTerm ||
-        sale.saleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (sale.txnId &&
-          sale.txnId.toLowerCase().includes(searchTerm.toLowerCase()));
+        saleNumber.includes(searchLower) ||
+        txnId.includes(searchLower);
 
       // Filter by date range
       let matchesDate = true;
       if (filterDateFrom || filterDateTo) {
-        const saleDate = new Date(sale.date).toDateString();
-        if (filterDateFrom) {
-          const fromDate = new Date(filterDateFrom).toDateString();
-          matchesDate = matchesDate && saleDate >= fromDate;
-        }
-        if (filterDateTo) {
-          const toDate = new Date(filterDateTo).toDateString();
-          matchesDate = matchesDate && saleDate <= toDate;
+        const saleDateValue = new Date(sale?.date);
+        if (!Number.isFinite(saleDateValue.getTime())) {
+          matchesDate = false;
+        } else {
+          const saleDate = saleDateValue.toDateString();
+          if (filterDateFrom) {
+            const fromDateValue = new Date(filterDateFrom);
+            if (Number.isFinite(fromDateValue.getTime())) {
+              matchesDate =
+                matchesDate && saleDate >= fromDateValue.toDateString();
+            }
+          }
+          if (filterDateTo) {
+            const toDateValue = new Date(filterDateTo);
+            if (Number.isFinite(toDateValue.getTime())) {
+              matchesDate =
+                matchesDate && saleDate <= toDateValue.toDateString();
+            }
+          }
         }
       }
 
       // Filter by product name
       let matchesProduct = true;
       if (filterProductName) {
-        matchesProduct = sale.items.some((item: any) =>
-          products
-            .find((p: any) => p.id === item.productId)
-            ?.name.toLowerCase()
-            .includes(filterProductName.toLowerCase()),
-        );
+        const lowerFilter = filterProductName.toLowerCase();
+        matchesProduct = Array.isArray(sale?.items)
+          ? sale.items.some((item: any) => {
+              const prod = safeProducts.find(
+                (p: any) =>
+                  p?.id === item?.productId || p?._id === item?.productId,
+              );
+              return (
+                prod?.name?.toString().toLowerCase().includes(lowerFilter) ||
+                false
+              );
+            })
+          : false;
       }
 
       // Filter by customer name
@@ -308,7 +342,7 @@ function SalesPageContent() {
 
       <SalesTable
         sales={filteredSales}
-        products={products}
+        products={safeProducts}
         onDelete={handleDeleteSale}
       />
     </div>

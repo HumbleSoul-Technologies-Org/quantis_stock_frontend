@@ -19,14 +19,24 @@ export default function DashboardLayout({
   const { showSyncModal, setShowSyncModal } = useOfflineSync();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        router.push("/auth/login");
-      } else if (user && user.role === "admin" && !user.businessSetup) {
-        router.push("/onboarding");
-      } else {
-        router.push("/dashboard");
-      }
+    if (isLoading) return;
+
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    if (user.role === "admin" && !user.businessSetup) {
+      router.push("/onboarding");
+      return;
+    }
+
+    // Only redirect to dashboard if not already there to avoid redirect loops
+    if (
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/dashboard")
+    ) {
+      router.push("/dashboard");
     }
   }, [user, isLoading, router]);
 
