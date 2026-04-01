@@ -49,6 +49,16 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
   const { settings, updateSettings } = useSettings();
 
   const {
+    userCreated,
+    userUpdated,
+    userDeleted,
+    userBanned,
+    userUnbanned,
+    userError,
+    notifySuccess,
+  } = useResourceNotifications();
+
+  const {
     data: usersData,
     isLoading: usersLoading,
     refetch: refetchUsers,
@@ -87,15 +97,6 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
       </div>
     );
   }
-  const {
-    userCreated,
-    userUpdated,
-    userDeleted,
-    userBanned,
-    userUnbanned,
-    userError,
-    notifySuccess,
-  } = useResourceNotifications();
 
   // Get team users from centralized settings
   // const teamUsers = settings?.credentials?.teamUsers || [];
