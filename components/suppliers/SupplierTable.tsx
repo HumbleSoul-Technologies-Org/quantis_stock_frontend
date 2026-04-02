@@ -171,10 +171,10 @@ export function SupplierTable({
                               {assignedProducts.map(
                                 (prod: any, idx: number) => (
                                   <DropdownMenuItem
-                                    key={`${supplier._id}-${idx}`}
+                                    key={`${supplier._id || supplier.id}-${idx}`}
                                   >
                                     {prod?.name || "Unknown Product"}(
-                                    {products.length} {prod?.unit})
+                                    {prod?.currentStock} {prod?.unit})
                                   </DropdownMenuItem>
                                 ),
                               )}
@@ -321,7 +321,7 @@ export function SupplierTable({
                     <li
                       key={`${selectedSupplier.id || selectedSupplier._id}-${idx}`}
                     >
-                      {prod.name || "Unknown Product"} ({products.length}{" "}
+                      {prod.name || "Unknown Product"} ({prod.currentStock}{" "}
                       {prod.unit})
                     </li>
                   ),

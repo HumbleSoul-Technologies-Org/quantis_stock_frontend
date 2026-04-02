@@ -133,6 +133,9 @@ interface DataContextType {
   getSalesForUser: (userId: string) => Sale[];
   getProductStockHistory: (productId: string) => StockMovement[];
   refresh: () => void;
+  refetchData: () => Promise<void>;
+  refetchProducts: () => Promise<any>;
+  refetchInventory: () => Promise<any>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -174,7 +177,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Poll suppliers from API every 60 seconds (reduced from 5s to prevent server overload)
-  const { data: suppliersData } = useQuery({
+  const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
     queryKey: ["suppliers", "all", user?.token],
     queryFn: () => apiSuppliers(user?.token),
     enabled: !!user?.token && isInitialized,
@@ -183,7 +186,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   });
 
   // Poll products from API every 60 seconds (reduced from 5s to prevent server overload)
-  const { data: productsData } = useQuery({
+  const { data: productsData, refetch: refetchProducts } = useQuery({
     queryKey: ["products", "all", user?.token],
     queryFn: () => apiProducts(user?.token),
     enabled: !!user?.token && isInitialized,
@@ -192,7 +195,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   });
 
   // Poll inventory movements from API every 60 seconds (reduced from 5s to prevent server overload)
-  const { data: inventoryData } = useQuery({
+  const { data: inventoryData, refetch: refetchInventory } = useQuery({
     queryKey: ["inventory", "movements", user?.token],
     queryFn: () => apiInventory(user?.token),
     enabled: !!user?.token && isInitialized,
@@ -201,7 +204,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   });
 
   // Poll sales from API every 60 seconds (reduced from 5s to prevent server overload)
-  const { data: salesData } = useQuery({
+  const { data: salesData, refetch: refetchSales } = useQuery({
     queryKey: ["sales", "all", user?.token],
     queryFn: () => apiSales(user?.token),
     enabled: !!user?.token && isInitialized,
@@ -256,6 +259,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setSales(storage.getSales());
     setStockMovements(storage.getStockMovements());
   }, []);
+
+  // Refetch data from API immediately (for instant updates after creating records)
+  const refetchData = useCallback(async () => {
+    await Promise.all([
+      refetchProducts(),
+      refetchSuppliers(),
+      refetchInventory(),
+      refetchSales(),
+    ]);
+  }, [refetchProducts, refetchSuppliers, refetchInventory, refetchSales]);
 
   // Products
   const addProduct = useCallback(
@@ -335,6 +348,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (isOnline && user?.token) {
         try {
           await apiRequest("POST", "/sales/create", sale, user.token);
+          // Immediately refetch products and sales to reflect stock changes
+          refetchProducts();
+          refetchSales();
         } catch (error) {
           console.warn("Failed to save sale to API:", error);
           // Enqueue for later sync
@@ -354,9 +370,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type: "addSale",
         });
       }
-      // API polling (5-second interval) will automatically sync new sale and updated product stock
     },
-    [user?.token, isOnline, enqueueAction],
+    [user?.token, isOnline, enqueueAction, refetchProducts, refetchSales],
   );
 
   const updateSale = useCallback(
@@ -378,8 +393,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Stock Movements
   const addStockMovement = useCallback((movement: StockMovement) => {
     storage.addStockMovement(movement);
-    // API polling (5-second interval) will automatically sync new movement and updated product stock
-  }, []);
+    // Immediately refetch products and inventory to reflect stock changes
+    refetchProducts();
+    refetchInventory();
+  }, [refetchProducts, refetchInventory]);
 
   // Utilities
   const getProductById = useCallback(
@@ -425,6 +442,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         getSalesForUser,
         getProductStockHistory,
         refresh,
+        refetchData,
+        refetchProducts,
+        refetchInventory,
       }}
     >
       {children}

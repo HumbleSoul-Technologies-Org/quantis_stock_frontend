@@ -249,7 +249,7 @@ function ReportsPageContent() {
                 <div className="space-y-2">
                   {topProducts.map((p, idx) => (
                     <div
-                      key={p.id}
+                      key={p.id || p._id || idx}
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded border border-gray-200 dark:border-teal-700"
                     >
                       <div className="flex items-center gap-3">
