@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Sale, SaleItem, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Plus, Trash2 } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
 import { apiRequest } from "@/lib/queryClient";
 import { set } from "date-fns";
+import Select from "react-select";
 
 interface SalesFormProps {
   products: Product[];
@@ -29,6 +31,7 @@ export function SalesForm({
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
   const { user } = useAuth();
+  const { theme } = useContext(ThemeContext) || { theme: "light" };
 
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -42,6 +45,13 @@ export function SalesForm({
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const productOptions = products
+    .filter((p) => p.currentStock > 0)
+    .map((p) => ({
+      value: p._id || p.id,
+      label: `${p.name} (${p.currentStock} available)`,
+    }));
 
   const addItem = () => {
     if (!selectedProductId || !quantity) {
@@ -239,21 +249,68 @@ export function SalesForm({
           (Click the "+ Add" button to include the product in the sale)
         </p>
         <div className="flex gap-2">
-          <select
-            disabled={user?.role === "accountant"}
-            value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
-            className="flex-1 px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
-          >
-            <option value="">Select product</option>
-            {products
-              .filter((p) => p.currentStock > 0)
-              .map((p) => (
-                <option key={p._id || p.id} value={p._id || p.id}>
-                  {p.name} ({p.currentStock} available)
-                </option>
-              ))}
-          </select>
+          <Select
+            className="flex-1"
+            classNamePrefix="react-select"
+            value={productOptions.find(
+              (option) => option.value === selectedProductId,
+            )}
+            onChange={(selectedOption) =>
+              setSelectedProductId(selectedOption?.value || "")
+            }
+            options={productOptions}
+            placeholder="Select product"
+            isDisabled={user?.role === "accountant"}
+            styles={{
+              control: (provided, state) => ({
+                ...provided,
+                border: "1px solid rgb(34 197 94)",
+                borderRadius: "0.375rem",
+                fontSize: "0.875rem",
+                backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
+                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
+                minHeight: "2.5rem",
+                "&:hover": {
+                  borderColor: "rgb(34 197 94)",
+                },
+              }),
+              singleValue: (provided) => ({
+                ...provided,
+                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
+              }),
+              placeholder: (provided) => ({
+                ...provided,
+                color: "rgb(107 114 128)",
+              }),
+              menu: (provided) => ({
+                ...provided,
+                backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
+                border: "1px solid rgb(34 197 94)",
+                borderRadius: "0.375rem",
+              }),
+              option: (provided, state) => ({
+                ...provided,
+                backgroundColor: state.isSelected
+                  ? "rgb(34 197 94)"
+                  : state.isFocused
+                    ? theme === "dark"
+                      ? "rgb(71 85 105)"
+                      : "rgb(243 244 246)"
+                    : theme === "dark"
+                      ? "rgb(51 65 85)"
+                      : "white",
+                color: state.isSelected
+                  ? "white"
+                  : theme === "dark"
+                    ? "rgb(248 250 252)"
+                    : "inherit",
+                "&:hover": {
+                  backgroundColor:
+                    theme === "dark" ? "rgb(71 85 105)" : "rgb(243 244 246)",
+                },
+              }),
+            }}
+          />
           <Input
             disabled={user?.role === "accountant"}
             type="number"

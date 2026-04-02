@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { StockMovement, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
+import Select from "react-select";
+import { ThemeContext } from "@/components/theme-provider";
 
 interface StockMovementFormProps {
   products: Product[];
@@ -76,6 +78,12 @@ export function StockMovementForm({
   });
 
   const { user } = useAuth();
+  const { theme } = useContext(ThemeContext) || { theme: "light" };
+
+  const productOptions = products.map((p) => ({
+    value: p._id || p.id,
+    label: `${p.name} (Stock: ${p.currentStock})`,
+  }));
 
   useEffect(() => {
     if (isEditMode) {
@@ -198,25 +206,74 @@ export function StockMovementForm({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Product *
           </label>
-          <select
-            value={formData.productId}
-            onChange={(e) =>
-              setFormData({ ...formData, productId: e.target.value })
+          <Select
+            value={productOptions.find(
+              (option) => option.value === formData.productId,
+            )}
+            onChange={(selectedOption) =>
+              setFormData({
+                ...formData,
+                productId: selectedOption?.value || "",
+              })
             }
-            className={`w-full px-3 py-2 border rounded-md text-sm ${
-              errors.productId ? "border-red-500" : "border-green-200"
-            }`}
-          >
-            <option value="">Select product</option>
-            {products.map((p) => {
-              const productId = p._id || p.id;
-              return (
-                <option key={productId} value={productId}>
-                  {p.name} (Stock: {p.currentStock})
-                </option>
-              );
-            })}
-          </select>
+            options={productOptions}
+            placeholder="Select product"
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (provided, state) => ({
+                ...provided,
+                border: errors.productId
+                  ? "1px solid rgb(239 68 68)"
+                  : "1px solid rgb(34 197 94)",
+                borderRadius: "0.375rem",
+                fontSize: "0.875rem",
+                backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
+                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
+                minHeight: "2.5rem",
+                "&:hover": {
+                  borderColor: errors.productId
+                    ? "rgb(239 68 68)"
+                    : "rgb(34 197 94)",
+                },
+              }),
+              singleValue: (provided) => ({
+                ...provided,
+                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
+              }),
+              placeholder: (provided) => ({
+                ...provided,
+                color: "rgb(107 114 128)",
+              }),
+              menu: (provided) => ({
+                ...provided,
+                backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
+                border: "1px solid rgb(34 197 94)",
+                borderRadius: "0.375rem",
+              }),
+              option: (provided, state) => ({
+                ...provided,
+                backgroundColor: state.isSelected
+                  ? "rgb(34 197 94)"
+                  : state.isFocused
+                    ? theme === "dark"
+                      ? "rgb(71 85 105)"
+                      : "rgb(243 244 246)"
+                    : theme === "dark"
+                      ? "rgb(51 65 85)"
+                      : "white",
+                color: state.isSelected
+                  ? "white"
+                  : theme === "dark"
+                    ? "rgb(248 250 252)"
+                    : "inherit",
+                "&:hover": {
+                  backgroundColor:
+                    theme === "dark" ? "rgb(71 85 105)" : "rgb(243 244 246)",
+                },
+              }),
+            }}
+          />
           {errors.productId && (
             <p className="text-red-500 text-xs mt-1">{errors.productId}</p>
           )}
