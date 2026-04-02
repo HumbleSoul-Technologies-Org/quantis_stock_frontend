@@ -10,7 +10,16 @@ import { SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X, TrendingUp, Clock } from "lucide-react";
+import {
+  Search,
+  X,
+  TrendingUp,
+  Clock,
+  DollarSign,
+  BarChart3,
+  Calendar,
+  Filter,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 
@@ -179,167 +188,207 @@ function SalesPageContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="px-2 sm:px-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
-          Sales
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
+    <div className="space-y-8">
+      {/* Header Section with Gradient */}
+      <div className="bg-gradient-to-r from-blue-600 to-teal-600 dark:from-blue-800 dark:to-teal-800 rounded-xl p-8 text-white shadow-lg">
+        <div className="flex items-center gap-3 mb-2">
+          <DollarSign className="w-8 h-8" />
+          <h1 className="text-3xl sm:text-4xl font-bold">Sales Management</h1>
+        </div>
+        <p className="text-blue-100 text-lg">
           Create and manage sales transactions
         </p>
       </div>
-
-      {/* Hero Section: Stats on Left, Form on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Statistics */}
-        <div className="space-y-4">
-          {/* Total Sales Today */}
-          <Card className="border-green-200 dark:border-teal-700 border-2 bg-green-50 dark:bg-slate-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-teal-300">
-                <TrendingUp className="w-5 h-5" />
-                Today's Sales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-teal-100">
-                {formatCurrency(totalSalesToday)}
+      {/* Sales Form Card */}
+      <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
+          <div className="flex items-center gap-3">
+            <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-gray-900 dark:text-blue-100">
+              Record New Sale
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {user && (
+            <SalesForm
+              products={products}
+              onSubmit={handleAddSale}
+              onCancel={() => {}}
+              currentUserId={user.id}
+              currentUsername={user.username}
+            />
+          )}
+        </CardContent>
+      </Card>
+      {/* Stats Section: Daily Sales & Last Transaction */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Today's Sales Card */}
+        <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-200 dark:bg-blue-900/40 p-3 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
-                {todaysSales.length} transaction
-                {todaysSales.length !== 1 ? "s" : ""}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Last Sale Time */}
-          <Card className="border-blue-200 dark:border-blue-700 border-2 bg-blue-50 dark:bg-slate-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                <Clock className="w-5 h-5" />
-                Last Sale
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 dark:text-teal-100">
-                {lastSaleTime ? format(lastSaleTime, "h:mm a") : "No sales yet"}
+              <div>
+                <CardTitle className="text-gray-900 dark:text-blue-100">
+                  Today's Sales
+                </CardTitle>
               </div>
-              <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
-                {lastSaleTime ? format(lastSaleTime, "MMMM dd, yyyy") : "Today"}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Total Amount
+                </p>
+                <p className="text-4xl font-bold text-blue-700 dark:text-blue-300">
+                  {formatCurrency(totalSalesToday)}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-blue-200 dark:border-blue-700 pt-3">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  {todaysSales.length}
+                </span>{" "}
+                transaction{todaysSales.length !== 1 ? "s" : ""}
               </p>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Right: Sales Form */}
-        <div className="lg:col-span-2">
-          <Card className="border-green-200 dark:border-teal-700 border-2 dark:bg-slate-800">
-            <CardHeader>
-              <CardTitle className="dark:text-teal-100">
-                Record New Sale
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {user && (
-                <SalesForm
-                  products={products}
-                  onSubmit={handleAddSale}
-                  onCancel={() => {}}
-                  currentUserId={user.id}
-                  currentUsername={user.username}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Last Sale Card */}
+        <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-teal-200 dark:bg-teal-900/40 p-3 rounded-lg">
+                <Clock className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900 dark:text-teal-100">
+                  Last Transaction
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Time
+                </p>
+                <p className="text-3xl font-bold text-teal-700 dark:text-teal-300">
+                  {lastSaleTime ? format(lastSaleTime, "h:mm a") : "No sales"}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-teal-200 dark:border-teal-700 pt-3">
+                {lastSaleTime ? format(lastSaleTime, "MMM dd, yyyy") : "—"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Search and Filters Section */}
-      <div className="space-y-4">
-        {/* Search by Sale ID / Transaction ID */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Search by Sale ID or Transaction ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 border-green-200"
-          />
-        </div>
-
-        {/* Filter Controls */}
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
-          <h3 className="font-semibold text-gray-900 flex items-center justify-between">
-            <span>Advanced Filters</span>
+      {/* Search and Filter Section */}
+      <Card className="border-2 border-gray-200 dark:border-slate-700 shadow-md">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+              <CardTitle className="text-gray-900 dark:text-slate-100">
+                Search & Filter Sales
+              </CardTitle>
+            </div>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-gray-600 text-xs"
+                className="text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
-                <X className="w-4 h-4 mr-1" />
+                <X className="w-4 h-4 mr-2" />
                 Clear All
               </Button>
             )}
-          </h3>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          {/* Search by Sale ID / Transaction ID */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
+            <Input
+              placeholder="Search by Sale ID or Transaction ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
                 From Date
               </label>
               <Input
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="border-green-200 text-sm"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
                 To Date
               </label>
               <Input
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
-                className="border-green-200 text-sm"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Name
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                Product
               </label>
               <Input
                 placeholder="Search product..."
                 value={filterProductName}
                 onChange={(e) => setFilterProductName(e.target.value)}
-                className="border-green-200 text-sm"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Customer Name
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                Customer
               </label>
               <Input
                 placeholder="Search customer..."
                 value={filterCustomerName}
                 onChange={(e) => setFilterCustomerName(e.target.value)}
-                className="border-green-200 text-sm"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          <p className="text-xs text-gray-500">
-            {filteredSales.length} of {userSales.length} sales matching filters
-          </p>
-        </div>
-      </div>
+          {/* Filter Results Info */}
+          <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-3">
+            <p className="text-sm font-medium text-gray-700 dark:text-slate-300">
+              <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                {filteredSales.length}
+              </span>{" "}
+              of <span className="font-semibold">{userSales.length}</span> sales
+              matching filters
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Sales Table */}
       <SalesTable
         sales={filteredSales}
         products={safeProducts}

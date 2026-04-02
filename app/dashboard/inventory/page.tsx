@@ -20,7 +20,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, AlertTriangle, Search, TrendingUp } from "lucide-react";
+import {
+  Plus,
+  AlertTriangle,
+  Search,
+  TrendingUp,
+  Package,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function InventoryPageContent() {
@@ -214,105 +224,132 @@ function InventoryPageContent() {
   const totalStockInTransactions = filteredStockInHistory.length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 px-2 sm:px-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
-            Inventory Management
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
-            Track and manage stock levels in real-time
-          </p>
+    <div className="space-y-8">
+      {/* Header Section with Gradient */}
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800 rounded-xl p-8 text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Package className="w-8 h-8" />
+              <h1 className="text-3xl sm:text-4xl font-bold">
+                Inventory Management
+              </h1>
+            </div>
+            <p className="text-emerald-100 text-lg">
+              Track and manage stock levels in real-time
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowDialog(true)}
+            className="bg-white text-emerald-600 hover:bg-emerald-50 dark:hover:bg-gray-100 gap-2 w-full sm:w-auto font-semibold shadow-md hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            Stock In
+          </Button>
         </div>
-        <Button
-          onClick={() => setShowDialog(true)}
-          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Stock In
-        </Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats Section */}
       <InventoryStats products={safeProducts} movements={safeStockMovements} />
 
-      {/* Low Stock Alert */}
+      {/* Low Stock Alert - Redesigned */}
       {lowStockItems.length > 0 && (
-        <Card className="border-amber-200 dark:border-amber-700 border-2 bg-amber-50 dark:bg-amber-900/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-amber-900 dark:text-amber-400 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              Low Stock Alert
+        <Card className="border-2 border-amber-200 dark:border-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-amber-900/20 shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-amber-900 dark:text-amber-300 flex items-center gap-3">
+              <div className="bg-amber-200 dark:bg-amber-700 p-2 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-200" />
+              </div>
+              Low Stock Alert ({lowStockItems.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-amber-800 dark:text-amber-300 text-sm">
-              {lowStockItems.length} product(s) are running low on stock. Please
-              reorder soon.
+            <p className="text-amber-800 dark:text-amber-300 text-sm font-medium mb-4">
+              {lowStockItems.length} product(s) are running low on stock
             </p>
-            <div className="mt-3 space-y-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {lowStockItems.map((item) => (
-                <p
+                <div
                   key={item.id}
-                  className="text-sm text-amber-700 dark:text-amber-400"
+                  className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-amber-200 dark:border-amber-700"
                 >
-                  • {item.name}: {item.currentStock} {item.unit} (Reorder at:{" "}
-                  {item.reorderLevel})
-                </p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    Current:{" "}
+                    <span className="font-semibold">
+                      {item.currentStock} {item.unit}
+                    </span>{" "}
+                    | Reorder at:{" "}
+                    <span className="font-semibold">{item.reorderLevel}</span>
+                  </p>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Search and Filters */}
-      <div className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Search by product name, SKU, or category..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 border-green-200"
-          />
-        </div>
-
-        <div className="flex gap-3 flex-wrap">
-          <div className="flex-1 min-w-50">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
-            >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+      {/* Search and Filter Section */}
+      <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md">
+        <CardHeader className="bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <CardTitle className="text-gray-900 dark:text-teal-100">
+              Search & Filter
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
+            <Input
+              placeholder="Search by product name, SKU, or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+            />
           </div>
 
-          <div className="flex-1 min-w-50">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Stock Status
-            </label>
-            <select
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
-            >
-              <option value="all">All Items</option>
-              <option value="low">Low Stock</option>
-              <option value="out">Out of Stock</option>
-            </select>
+          {/* Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                Category
+              </label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                Stock Status
+              </label>
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value as any)}
+                className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="all">All Items</option>
+                <option value="low">Low Stock</option>
+                <option value="out">Out of Stock</option>
+              </select>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Stock Dialog */}
       {user && (
@@ -358,30 +395,40 @@ function InventoryPageContent() {
         </Dialog>
       )}
 
-      {/* Products Grid */}
+      {/* Products Section */}
       <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Package className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-teal-100">
+              Products
+            </h2>
+          </div>
+          <p className="text-sm font-medium text-gray-600 dark:text-slate-400">
+            {filteredProducts.length} of {safeProducts.length} products
+          </p>
+        </div>
+
         {filteredProducts.length > 0 ? (
-          <>
-            <p className="text-sm text-gray-600">
-              Showing {filteredProducts.length} of {safeProducts.length}{" "}
-              products
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProducts.map((product) => (
-                <ProductInventoryCard
-                  key={product.id || product._id}
-                  product={product}
-                  movements={stockMovements}
-                  onStockIn={handleStockIn}
-                />
-              ))}
-            </div>
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredProducts.map((product) => (
+              <ProductInventoryCard
+                key={product.id || product._id}
+                product={product}
+                movements={stockMovements}
+                onStockIn={handleStockIn}
+              />
+            ))}
+          </div>
         ) : (
-          <Card className="border-gray-200">
-            <CardContent className="pt-6">
-              <p className="text-center text-gray-500">
-                No products found matching your filters.
+          <Card className="border-2 border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+            <CardContent className="pt-12 pb-12 text-center">
+              <Package className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-3" />
+              <p className="text-gray-600 dark:text-slate-400 font-medium">
+                No products found matching your filters
+              </p>
+              <p className="text-sm text-gray-500 dark:text-slate-500 mt-1">
+                Try adjusting your search or filter criteria
               </p>
             </CardContent>
           </Card>
@@ -389,122 +436,147 @@ function InventoryPageContent() {
       </div>
 
       {/* Stock In History Section */}
-      <div className="space-y-4 pt-6 border-t border-gray-200">
-        <div className="flex justify-between items-center">
+      <div className="space-y-6 pt-8 border-t-2 border-gray-200 dark:border-slate-700">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-teal-600 to-emerald-600 p-3 rounded-lg">
+            <TrendingUp className="w-6 h-6 text-white" />
+          </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-green-600" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-teal-100">
               Stock In History
             </h2>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm text-gray-600 dark:text-slate-400">
               Track all incoming stock movements
             </p>
           </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="border-green-200 border-2 bg-green-50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 mb-1">
-                Total Units Stocked In
-              </p>
-              <p className="text-3xl font-bold text-green-700">
-                {totalUnitsStockedIn}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Based on current filters
-              </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">
+                    Total Units Stocked In
+                  </p>
+                  <p className="text-4xl font-bold text-teal-700 dark:text-teal-300">
+                    {totalUnitsStockedIn.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-3">
+                    Based on current filters
+                  </p>
+                </div>
+                <div className="bg-teal-100 dark:bg-teal-900/30 p-3 rounded-lg">
+                  <CheckCircle2 className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-blue-200 border-2 bg-blue-50">
+
+          <Card className="border-2 border-emerald-200 dark:border-emerald-700 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 mb-1">
-                Stock In Transactions
-              </p>
-              <p className="text-3xl font-bold text-blue-700">
-                {totalStockInTransactions}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Number of stock in records
-              </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">
+                    Stock In Transactions
+                  </p>
+                  <p className="text-4xl font-bold text-emerald-700 dark:text-emerald-300">
+                    {totalStockInTransactions.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-3">
+                    Number of records
+                  </p>
+                </div>
+                <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
-          <h3 className="font-semibold text-gray-900">
-            Filter Stock In History
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product
-              </label>
-              <select
-                value={historyProductFilter}
-                onChange={(e) => setHistoryProductFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-green-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+        <Card className="border-2 border-gray-200 dark:border-slate-700 shadow-md">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+              <CardTitle className="text-gray-900 dark:text-slate-100">
+                Filter History
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                  Product
+                </label>
+                <select
+                  value={historyProductFilter}
+                  onChange={(e) => setHistoryProductFilter(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">All Products</option>
+                  {safeProducts.map((product) => (
+                    <option
+                      key={product?.id || product?._id || "unknown-product"}
+                      value={product?.id || product?._id || ""}
+                    >
+                      {(product?.name || "Unnamed Product") +
+                        " (" +
+                        (product?.sku || "No SKU") +
+                        ")"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                  From Date
+                </label>
+                <Input
+                  type="date"
+                  value={historyDateFrom}
+                  onChange={(e) => setHistoryDateFrom(e.target.value)}
+                  className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                  To Date
+                </label>
+                <Input
+                  type="date"
+                  value={historyDateTo}
+                  onChange={(e) => setHistoryDateTo(e.target.value)}
+                  className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setHistoryProductFilter("");
+                  setHistoryDateFrom("");
+                  setHistoryDateTo("");
+                }}
+                className="border-2 border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
               >
-                <option value="">All Products</option>
-                {safeProducts.map((product) => (
-                  <option
-                    key={product?.id || product?._id || "unknown-product"}
-                    value={product?.id || product?._id || ""}
-                  >
-                    {(product?.name || "Unnamed Product") +
-                      " (" +
-                      (product?.sku || "No SKU") +
-                      ")"}
-                  </option>
-                ))}
-              </select>
+                Clear Filters
+              </Button>
+              <p className="text-xs font-medium text-gray-600 dark:text-slate-400">
+                {filteredStockInHistory.length} record(s) found
+              </p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                From Date
-              </label>
-              <Input
-                type="date"
-                value={historyDateFrom}
-                onChange={(e) => setHistoryDateFrom(e.target.value)}
-                className="border-green-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                To Date
-              </label>
-              <Input
-                type="date"
-                value={historyDateTo}
-                onChange={(e) => setHistoryDateTo(e.target.value)}
-                className="border-green-200"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setHistoryProductFilter("");
-                setHistoryDateFrom("");
-                setHistoryDateTo("");
-              }}
-              className="text-gray-700"
-            >
-              Clear Filters
-            </Button>
-            <p className="text-xs text-gray-500 self-center ml-auto">
-              {filteredStockInHistory.length} record(s) found
-            </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Stock History Table */}
         <StockHistoryTable

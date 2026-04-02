@@ -108,18 +108,6 @@ export function SalesForm({
 
     try {
       const saleNumber = `S-${Date.now()}`;
-      const payLoad = {
-        saleNumber,
-        date: saleDate,
-        items,
-        totalAmount,
-        status: "completed",
-        notes,
-        createdBy: currentUserId,
-        customerName,
-        paymentType,
-        txnId: uuidv4(),
-      };
 
       const sale: Sale = {
         id: "", // Will be set by the backend
@@ -133,7 +121,7 @@ export function SalesForm({
         createdAt: new Date().toISOString(),
         customerName,
         paymentType,
-        txnId: uuidv4(),
+        txnId, // Generate a random txnId if not provided
       };
 
       onSubmit(sale);
@@ -163,7 +151,7 @@ export function SalesForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
             Customer Name *
           </label>
           <Input
@@ -171,19 +159,23 @@ export function SalesForm({
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Enter customer name"
-            className={
+            className={`border-2 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
               errors.customerName
-                ? "border-red-500"
-                : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
-            }
+                ? "border-red-500 dark:border-red-500"
+                : "border-teal-200 dark:border-teal-700"
+            }`}
           />
           {errors.customerName && (
-            <p className="text-red-500 text-xs mt-1">{errors.customerName}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-red-500">
+                {errors.customerName}
+              </span>
+            </div>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
             Date of Sale *
           </label>
           <Input
@@ -191,19 +183,19 @@ export function SalesForm({
             type="date"
             value={saleDate}
             onChange={(e) => setSaleDate(e.target.value)}
-            className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+            className="border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
             Payment Type *
           </label>
           <select
             disabled={user?.role === "accountant"}
             value={paymentType}
             onChange={(e) => setPaymentType(e.target.value)}
-            className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
+            className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -215,7 +207,7 @@ export function SalesForm({
 
         {paymentType !== "cash" && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
               Transaction ID *
             </label>
             <Input
@@ -223,14 +215,16 @@ export function SalesForm({
               value={txnId}
               onChange={(e) => setTxnId(e.target.value)}
               placeholder="e.g., TXN-123456"
-              className={
+              className={`border-2 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
                 errors.txnId
-                  ? "border-red-500"
-                  : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
-              }
+                  ? "border-red-500 dark:border-red-500"
+                  : "border-teal-200 dark:border-teal-700"
+              }`}
             />
             {errors.txnId && (
-              <p className="text-red-500 text-xs mt-1">{errors.txnId}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-red-500">{errors.txnId}</span>
+              </div>
             )}
           </div>
         )}
@@ -259,49 +253,79 @@ export function SalesForm({
             styles={{
               control: (provided, state) => ({
                 ...provided,
-                border: "1px solid rgb(34 197 94)",
-                borderRadius: "0.375rem",
+                border: state.isFocused
+                  ? "2px solid rgb(20 184 166)"
+                  : `2px solid ${theme === "dark" ? "rgb(71 85 105)" : "rgb(165 243 252)"}`,
+                borderRadius: "0.5rem",
                 fontSize: "0.875rem",
-                backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
-                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
+                backgroundColor: theme === "dark" ? "rgb(30 41 59)" : "white",
+                color: theme === "dark" ? "rgb(226 232 240)" : "inherit",
                 minHeight: "2.5rem",
+                boxShadow: state.isFocused
+                  ? `0 0 0 3px ${theme === "dark" ? "rgba(20, 184, 166, 0.1)" : "rgba(20, 184, 166, 0.1)"}`
+                  : "none",
+                padding: "0",
+                cursor: user?.role === "accountant" ? "not-allowed" : "pointer",
+                opacity: user?.role === "accountant" ? 0.5 : 1,
                 "&:hover": {
-                  borderColor: "rgb(34 197 94)",
+                  borderColor: "rgb(20 184 166)",
                 },
+              }),
+              input: (provided) => ({
+                ...provided,
+                color: theme === "dark" ? "rgb(226 232 240)" : "inherit",
+                padding: "2px 8px",
               }),
               singleValue: (provided) => ({
                 ...provided,
-                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
+                color: theme === "dark" ? "rgb(226 232 240)" : "inherit",
               }),
               placeholder: (provided) => ({
                 ...provided,
-                color: "rgb(107 114 128)",
+                color:
+                  theme === "dark" ? "rgb(148 163 184)" : "rgb(107 114 128)",
               }),
               menu: (provided) => ({
                 ...provided,
-                backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
-                border: "1px solid rgb(34 197 94)",
-                borderRadius: "0.375rem",
+                backgroundColor: theme === "dark" ? "rgb(30 41 59)" : "white",
+                border: `2px solid ${theme === "dark" ? "rgb(71 85 105)" : "rgb(165 243 252)"}`,
+                borderRadius: "0.5rem",
+                marginTop: "0.5rem",
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
               }),
               option: (provided, state) => ({
                 ...provided,
                 backgroundColor: state.isSelected
-                  ? "rgb(34 197 94)"
+                  ? "rgb(20 184 166)"
                   : state.isFocused
                     ? theme === "dark"
                       ? "rgb(71 85 105)"
-                      : "rgb(243 244 246)"
+                      : "rgb(240 253 250)"
                     : theme === "dark"
-                      ? "rgb(51 65 85)"
+                      ? "rgb(30 41 59)"
                       : "white",
                 color: state.isSelected
                   ? "white"
                   : theme === "dark"
-                    ? "rgb(248 250 252)"
+                    ? "rgb(226 232 240)"
                     : "inherit",
+                padding: "10px 12px",
+                cursor: "pointer",
+                "&:active": {
+                  backgroundColor: "rgb(20 184 166)",
+                },
+              }),
+              indicatorSeparator: (provided) => ({
+                ...provided,
+                backgroundColor:
+                  theme === "dark" ? "rgb(71 85 105)" : "rgb(229 231 235)",
+              }),
+              dropdownIndicator: (provided) => ({
+                ...provided,
+                color:
+                  theme === "dark" ? "rgb(148 163 184)" : "rgb(107 114 128)",
                 "&:hover": {
-                  backgroundColor:
-                    theme === "dark" ? "rgb(71 85 105)" : "rgb(243 244 246)",
+                  color: "rgb(20 184 166)",
                 },
               }),
             }}
@@ -313,13 +337,13 @@ export function SalesForm({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="Qty"
-            className="w-20 border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+            className="w-20 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <Button
             disabled={user?.role === "accountant"}
             type="button"
             onClick={addItem}
-            className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-1"
+            className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Add
@@ -334,9 +358,9 @@ export function SalesForm({
       </div>
 
       {items.length > 0 && (
-        <Card className="bg-gray-50 dark:bg-slate-700 dark:border-teal-700">
+        <Card className="bg-gray-50 dark:bg-slate-800 border-teal-200 dark:border-teal-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm dark:text-teal-100">
+            <CardTitle className="text-sm text-gray-900 dark:text-teal-100">
               Sale Items ({items.length})
             </CardTitle>
           </CardHeader>
@@ -381,7 +405,7 @@ export function SalesForm({
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
           Notes (Optional)
         </label>
         <textarea
@@ -390,7 +414,7 @@ export function SalesForm({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add any sale notes..."
           rows={3}
-          className="w-full px-3 py-2 border border-green-200 dark:border-teal-700 rounded-md text-sm bg-white dark:bg-slate-700 dark:text-slate-50"
+          className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
@@ -400,7 +424,7 @@ export function SalesForm({
         <Button
           disabled={user?.role === "accountant" || isSubmitting}
           type="submit"
-          className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+          className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Processing Sale..." : "Complete Sale"}
         </Button>
@@ -418,7 +442,7 @@ export function SalesForm({
             setErrors({});
             onCancel();
           }}
-          className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+          className="dark:border-teal-700 dark:text-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Cancel
         </Button>

@@ -45,7 +45,7 @@ interface CredentialsSettingsProps {
 }
 
 export function CredentialsSettings({ role }: CredentialsSettingsProps) {
-  const { user, isLoading, updateCredentials } = useAuth();
+  const { user, isLoading, updateCredentials, business } = useAuth();
   const { settings, updateSettings } = useSettings();
 
   const {
@@ -59,7 +59,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
   } = useResourceNotifications();
 
   const { data: usersData, refetch: refetchUsers } = useQuery<any[]>({
-    queryKey: ["users", user?.token],
+    queryKey: ["users", business?._id || user?.businessId],
     enabled: !!user?.token,
   });
 
@@ -255,6 +255,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           username: createUserForm.name,
           email: createUserForm.email,
           role: createUserForm.role,
+          businessId: business?._id || user?.businessId,
           // businessSetup:   // Pass existing business setup to prevent it from being overwritten
         };
         const res = await apiRequest(
@@ -324,6 +325,7 @@ export function CredentialsSettings({ role }: CredentialsSettingsProps) {
           password: createUserForm.password,
           email: createUserForm.email,
           role: createUserForm.role,
+          businessId: business?._id || user?.businessId,
         };
 
         const res = await apiRequest("POST", "/users/register", payLoad);

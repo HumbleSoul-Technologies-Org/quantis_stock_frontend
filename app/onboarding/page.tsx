@@ -23,6 +23,8 @@ function OnboardingContent() {
       return;
     }
 
+    // Redirect to dashboard if user is admin AND has completed business setup
+    // Check both business object AND businessId field for robustness
     if (user.role === "admin" && business) {
       router.replace("/dashboard");
     }

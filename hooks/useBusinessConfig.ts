@@ -3,18 +3,21 @@ import { BusinessType, RetailSubType } from '@/lib/types';
 import { getBusinessConfig, getRetailSubtypeConfig } from '@/lib/business-config';
 
 export function useBusinessConfig() {
-  const { user } = useAuth();
+  const { user, business } = useAuth();
   
-  const businessType = (user?.businessSetup?.businessType || 'retail') as BusinessType;
-  const retailSubType = (user?.businessSetup?.retailSubType || 'general') as RetailSubType;
+  // Use business context data, falling back to user.business for backward compatibility
+  const businessData = business || user?.business;
+  
+  const businessType = (businessData?.businessType || 'retail') as BusinessType;
+  const retailSubType = (businessData?.retailSubType || 'general') as RetailSubType;
   const config = getRetailSubtypeConfig(retailSubType);
   
   return {
     businessType,
     retailSubType,
     config,
-    currency: user?.businessSetup?.currency || 'KES',
-    businessName: user?.businessSetup?.businessName || 'My Business',
-    lowStockThreshold: user?.businessSetup?.lowStockThreshold || 20,
+    currency: businessData?.currency || 'KES',
+    businessName: businessData?.businessName || 'My Business',
+    lowStockThreshold: businessData?.lowStockThreshold || 20,
   };
 }

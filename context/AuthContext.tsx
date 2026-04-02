@@ -15,7 +15,6 @@ interface AuthContextType {
   user: User | null;
   business: Business | null; // New: separate business state
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
   loginWithApiData: (userData: User) => void;
   logout: () => void;
   updateCredentials: (
@@ -38,75 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const currentUser = storage.getCurrentUser();
     setUser(currentUser);
+
+    // Also restore business data from localStorage if available
+    setBusiness((currentUser?.business as Business) || null);
+
     setIsLoading(false);
   }, []);
-
-  const login = async (
-    username: string,
-    password: string,
-  ): Promise<boolean> => {
-    try {
-      const res = await apiRequest("POST", "/users/login", {
-        username,
-        password,
-      });
-
-      const data = await res.json();
-      if (res.ok && data.user && data.token) {
-        const userData: User = {
-          id: data.user._id,
-          username: data.user.username,
-          role: data.user.role,
-          businessId: data.user.businessId, // New: businessId from backend
-          businessSetup: data.user.businessSetup, // Keep for backward compatibility
-          token: data.token,
-        };
-
-        setUser(userData);
-
-        // TODO: Fetch business data if not included in login response
-        // For now, set business to null - will be updated when business is fetched
-        setBusiness(null);
-
-        try {
-          const state = JSON.parse(
-            localStorage.getItem("erp_system_state") || "{}",
-          );
-          state.currentUser = userData;
-          localStorage.setItem("erp_system_state", JSON.stringify(state));
-        } catch (error) {
-          console.error("Failed to save user to localStorage:", error);
-          // Continue without localStorage - user is still logged in via state
-        }
-
-        return true;
-      }
-
-      // Fallback to localStorage-based auth for offline/demo compatibility
-      const loggedInUser = storage.login(username, password);
-      if (loggedInUser) {
-        setUser(loggedInUser);
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      // API may be unavailable; keep localStorage fallback
-      const loggedInUser = storage.login(username, password);
-      if (loggedInUser) {
-        setUser(loggedInUser);
-        return true;
-      }
-
-      console.error("Login error:", error);
-      return false;
-    }
-  };
 
   const loginWithApiData = (userData: User): void => {
     setUser(userData);
     // TODO: Set business if available in userData or fetch separately
-    setBusiness(null); // For now, set to null
+    setBusiness((userData.business as Business) || null); // For now, set to null
     // Also store in localStorage for persistence
     try {
       const state = JSON.parse(
@@ -154,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     const success = storage.updateBusinessSetup(user.id, businessSetup);
     if (success) {
-      const updatedUser = { ...user, businessSetup };
+      const updatedUser = { ...user, business: businessSetup };
       setUser(updatedUser);
       return true;
     }
@@ -163,6 +104,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateBusiness = (newBusiness: Business | null): void => {
     setBusiness(newBusiness);
+
+    // Persist business data to localStorage
+    try {
+      const state = JSON.parse(
+        localStorage.getItem("erp_system_state") || "{}",
+      );
+      state.currentBusiness = newBusiness;
+      localStorage.setItem("erp_system_state", JSON.stringify(state));
+    } catch (error) {
+      console.error("Failed to save business to localStorage:", error);
+      // Continue - business is still in state
+    }
   };
 
   return (
@@ -171,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         business, // New: include business in context
         isLoading,
-        login,
         loginWithApiData,
         logout,
         updateCredentials,

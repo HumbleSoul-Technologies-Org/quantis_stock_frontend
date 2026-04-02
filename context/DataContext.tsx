@@ -560,7 +560,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSale = useCallback(
     (id: string, sale: Partial<Sale>) => {
       storage.updateSale(id, sale);
-      setSales(sales.map((s) => (s.id === id ? { ...s, ...sale } : s)));
+      setSales(
+        sales.map((s) => (s.id === id || s._id === id ? { ...s, ...sale } : s)),
+      );
     },
     [sales],
   );
@@ -568,7 +570,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteSale = useCallback(
     (id: string) => {
       storage.deleteSale(id);
-      setSales(sales.filter((s) => s.id !== id));
+      setSales(sales.filter((s) => s.id !== id || (s as any)._id !== id));
     },
     [sales],
   );
@@ -635,18 +637,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const getSupplierById = useCallback(
-    (id: string) => suppliers.find((s) => s.id === id),
+    (id: string) => suppliers.find((s) => s.id === id || (s as any)._id === id),
     [suppliers],
   );
 
   const getSalesForUser = useCallback(
-    (userId: string) => sales.filter((s) => s.createdBy === userId),
+    (userId: string) =>
+      sales.filter((s) => s.createdBy === userId || s._id === userId),
     [sales],
   );
 
   const getProductStockHistory = useCallback(
     (productId: string) =>
-      stockMovements.filter((m) => m.productId === productId),
+      stockMovements.filter(
+        (m) => m.productId === productId || m._id === productId,
+      ),
     [stockMovements],
   );
 

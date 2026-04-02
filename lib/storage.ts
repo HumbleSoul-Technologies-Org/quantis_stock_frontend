@@ -179,9 +179,14 @@ class StorageService {
       }
 
       const parsed = JSON.parse(stored);
-      // Ensure settings always has defaults
+      // Ensure all required properties exist with defaults
       return {
-        ...parsed,
+        users: parsed.users || [],
+        currentUser: parsed.currentUser || null,
+        products: parsed.products || [],
+        suppliers: parsed.suppliers || [],
+        sales: parsed.sales || [],
+        stockMovements: parsed.stockMovements || [],
         settings: {
           ...DEFAULT_SETTINGS,
           ...parsed.settings,
@@ -241,7 +246,6 @@ class StorageService {
         username: teamUser.email, // Use email as username for team users
         password: teamUser.password,
         role: teamUser.role === 'accountant' ? 'manager' : (teamUser.role), // Map accountant → manager
-        businessSetup: undefined, // Team users join existing business, so setup is complete
         createdAt: teamUser.createdAt,
       };
       state.currentUser = user;
@@ -301,7 +305,7 @@ class StorageService {
     const state = this.getState();
     const user = state.users.find((u) => u.id === userId || u._id === userId);
     if (user) {
-      user.businessSetup = businessSetup;
+      user.business = businessSetup;
       if (state.currentUser?.id === userId || state.currentUser?._id === userId) {
         state.currentUser = user;
       }
@@ -314,7 +318,7 @@ class StorageService {
   getBusinessSetup(userId: string): any | null {
     const state = this.getState();
     const user = state.users.find((u) => u.id === userId || u._id === userId);
-    return user?.businessSetup || null;
+    return user?.business || null;
   }
 
   // Products

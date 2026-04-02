@@ -39,7 +39,7 @@ export interface User {
   password?: string; // hashed in production
   role: UserRole;
   businessId?: string; // Reference to Business model (optional during transition)
-  businessSetup?: BusinessSetup; // Keep for backward compatibility during transition
+  business?: BusinessSetup; // Keep for backward compatibility during transition
   createdAt?: string;
   token?: string; // For session management
 }

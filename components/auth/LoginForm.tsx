@@ -20,7 +20,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { loginWithApiData } = useAuth();
+  const { loginWithApiData, updateBusiness, updateBusinessSetup } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,19 +41,33 @@ export function LoginForm() {
         return;
       }
 
-      // Store user data and token
+      // Extract user data from backend response
       const userData = {
-        id: data.user.id,
+        id: data.user._id || data.user.id,
         username: data.user.username,
         role: data.user.role,
-        businessSetup: data.user.businessSetup,
+        businessId: data.user.businessId, // Critical: get businessId from response
+        business: data.user.business, // For backward compatibility
         token: data.token,
       };
 
       // Update auth context with API user data
       loginWithApiData(userData);
 
-      router.push("/dashboard");
+      // Update business setup in context if provided (for backward compatibility)
+      if (data.user.business) {
+        updateBusiness(data.user.business);
+        updateBusinessSetup(data.user.business);
+      }
+      // Determine redirect based on whether user has business set up
+      // If user has businessId or business data, they're ready for dashboard
+      // If not, they need to complete onboarding
+      if (userData.businessId || data.user.business) {
+        router.push("/dashboard");
+      } else {
+        // User needs to complete business setup
+        router.push("/onboarding");
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Login failed");
     } finally {
