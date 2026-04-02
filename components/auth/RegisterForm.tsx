@@ -115,6 +115,7 @@ export function RegisterForm() {
         role: data.user.role,
         createdAt: data.user.createdAt,
         token: data.token,
+        businessId: data.user.businessId, // Include business data if returned by backend
       };
 
       // Only initialize local storage after successful API response
@@ -146,7 +147,7 @@ export function RegisterForm() {
         user?.token,
       );
       // Clear local auth state and redirect to registration page
-      localStorage.clear();
+      localStorage.removeItem("erp_system_state");
       router.push("/auth/register");
     } catch (error) {
       console.error("Restart registration failed:", error);

@@ -256,6 +256,7 @@ class StorageService {
     const state = this.getState();
     state.currentUser = null;
     this.saveState(state);
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   getCurrentUser(): User | null {
@@ -264,7 +265,7 @@ class StorageService {
 
   updateUserCredentials(userId: string, newUsername: string, newPassword: string): boolean {
     const state = this.getState();
-    const user = state.users.find((u) => u.id === userId);
+    const user = state.users.find((u) => u.id === userId || u._id === userId);
     if (user) {
       user.username = newUsername;
       user.password = newPassword;
@@ -298,10 +299,10 @@ class StorageService {
   // Business Setup
   updateBusinessSetup(userId: string, businessSetup: any): boolean {
     const state = this.getState();
-    const user = state.users.find((u) => u.id === userId);
+    const user = state.users.find((u) => u.id === userId || u._id === userId);
     if (user) {
       user.businessSetup = businessSetup;
-      if (state.currentUser?.id === userId) {
+      if (state.currentUser?.id === userId || state.currentUser?._id === userId) {
         state.currentUser = user;
       }
       this.saveState(state);
@@ -312,7 +313,7 @@ class StorageService {
 
   getBusinessSetup(userId: string): any | null {
     const state = this.getState();
-    const user = state.users.find((u) => u.id === userId);
+    const user = state.users.find((u) => u.id === userId || u._id === userId);
     return user?.businessSetup || null;
   }
 
@@ -329,7 +330,7 @@ class StorageService {
 
   updateProduct(id: string, product: Partial<Product>): void {
     const state = this.getState();
-    const index = state.products.findIndex((p:any) => p.id === id);
+    const index = state.products.findIndex((p:any) => p.id === id || p._id === id);
     if (index !== -1) {
       state.products[index] = { ...state.products[index], ...product, updatedAt: new Date().toISOString() };
       this.saveState(state);
@@ -338,7 +339,7 @@ class StorageService {
 
   deleteProduct(id: string): void {
     const state = this.getState();
-    state.products = state.products.filter((p:any) => p.id !== id);
+    state.products = state.products.filter((p:any) => p.id !== id && p._id !== id);
     this.saveState(state);
   }
 
@@ -355,7 +356,7 @@ class StorageService {
 
   updateSupplier(id: string, supplier: Partial<Supplier>): void {
     const state = this.getState();
-    const index = state.suppliers.findIndex((s:any) => s.id === id);
+    const index = state.suppliers.findIndex((s:any) => s.id === id || s._id === id);
     if (index !== -1) {
       state.suppliers[index] = { ...state.suppliers[index], ...supplier, updatedAt: new Date().toISOString() };
       this.saveState(state);
@@ -364,7 +365,7 @@ class StorageService {
 
   deleteSupplier(id: string): void {
     const state = this.getState();
-    state.suppliers = state.suppliers.filter((s:any) => s.id !== id);
+    state.suppliers = state.suppliers.filter((s:any) => s.id !== id && s._id !== id);
     this.saveState(state);
   }
 
@@ -379,7 +380,7 @@ class StorageService {
 
     // Deduct from stock
     sale.items.forEach((item) => {
-      const product = state.products.find((p:any) => p.id === item.productId);
+      const product = state.products.find((p:any) => p.id === item.productId || p._id === item.productId);
       if (product) {
         product.currentStock -= item.quantity;
 
@@ -403,7 +404,7 @@ class StorageService {
 
   updateSale(id: string, sale: Partial<Sale>): void {
     const state = this.getState();
-    const index = state.sales.findIndex((s) => s.id === id);
+    const index = state.sales.findIndex((s) => s.id === id || s._id === id);
     if (index !== -1) {
       state.sales[index] = { ...state.sales[index], ...sale };
       this.saveState(state);
@@ -412,7 +413,7 @@ class StorageService {
 
   deleteSale(id: string): void {
     const state = this.getState();
-    state.sales = state.sales.filter((s) => s.id !== id);
+    state.sales = state.sales.filter((s) => s.id !== id && s._id !== id);
     this.saveState(state);
   }
 

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
  * Redirects to onboarding if not
  */
 export function useCheckOnboarding() {
-  const { user, isLoading } = useAuth();
+  const { user, business, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,14 +18,14 @@ export function useCheckOnboarding() {
       }
 
       // If logged in but no business setup, redirect to onboarding
-      if (!user.businessSetup) {
+      if (!business) {
         router.push('/onboarding');
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, business, isLoading, router]);
 
   return {
-    needsOnboarding: user && !user.businessSetup,
-    isReady: user && user.businessSetup && !isLoading,
+    needsOnboarding: user && !business,
+    isReady: user && business && !isLoading,
   };
 }

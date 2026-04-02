@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
-  const { user, isLoading } = useAuth();
+  const { user, business, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading) {
       if (user) {
         // Check if admin user has completed business setup
-        if (user.role === "admin" && !user.businessSetup) {
+        if (user.role === "admin" && !business) {
           router.push("/onboarding");
         } else {
           router.push("/dashboard");
@@ -21,7 +21,7 @@ export default function Home() {
         router.push("/auth/login");
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, business, isLoading, router]);
 
   return (
     <div className="flex items-center justify-center h-screen">

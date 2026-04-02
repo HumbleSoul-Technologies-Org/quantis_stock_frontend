@@ -18,6 +18,7 @@ export interface BusinessSetup {
 
 export interface Business {
   id: string;
+  _id?: string; // For backward compatibility with older business objects
   ownerId: string; // Reference to admin user who owns the business
   businessName: string;
   businessType: BusinessType;
@@ -33,6 +34,7 @@ export interface Business {
 
 export interface User {
   id: string;
+  _id?: string; // For backward compatibility with older user objects
   username: string;
   password?: string; // hashed in production
   role: UserRole;
@@ -126,6 +128,7 @@ export interface Product {
 // Inventory Types
 export interface StockMovement {
   id: string;
+  _id?: string; // For backward compatibility with older movement objects
   productId: string;
   type: 'in' | 'out' | 'adjustment';
   quantity: number;

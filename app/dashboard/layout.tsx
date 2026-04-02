@@ -14,7 +14,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, business, isLoading } = useAuth();
   const router = useRouter();
   const { showSyncModal, setShowSyncModal } = useOfflineSync();
 
@@ -26,7 +26,7 @@ export default function DashboardLayout({
       return;
     }
 
-    if (user.role === "admin" && !user.businessSetup) {
+    if (user.role === "admin" && !business) {
       router.push("/onboarding");
       return;
     }
@@ -38,7 +38,7 @@ export default function DashboardLayout({
     ) {
       router.push("/dashboard");
     }
-  }, [user, isLoading, router]);
+  }, [user, business, isLoading, router]);
 
   if (isLoading || !user) {
     return (

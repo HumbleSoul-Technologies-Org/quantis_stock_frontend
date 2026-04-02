@@ -11,26 +11,22 @@ import Link from "next/link";
 
 function OnboardingContent() {
   const router = useRouter();
-  const { user, business, updateBusiness } = useAuth();
+  const { user, business, updateBusiness, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    userRedirecting();
-  }, [user]); // Re-run when user changes to handle redirects
-
-  const userRedirecting = () => {
-    // Redirect if already has business setup
-    if (user?.role === "admin" && business) {
-      router.push("/dashboard");
-      return null;
-    }
+    if (authLoading) return;
 
     if (!user) {
-      router.push("/auth/login");
-      return null;
+      router.replace("/auth/login");
+      return;
     }
-  };
+
+    if (user.role === "admin" && business) {
+      router.replace("/dashboard");
+    }
+  }, [user, business, authLoading, router]);
 
   const handleSubmit = async (businessSetup: BusinessSetup) => {
     setIsLoading(true);
@@ -38,8 +34,8 @@ function OnboardingContent() {
 
     try {
       const response = await apiRequest(
-        "POST",
-        "/business/setup",
+        "PUT",
+        `/users/${user?.id}/business-setup`,
         {
           businessName: businessSetup.businessName,
           businessType: businessSetup.businessType,
@@ -59,7 +55,7 @@ function OnboardingContent() {
       if (response.ok && data.business) {
         // Update business in context
         updateBusiness(data.business);
-        router.push("/dashboard");
+        router.replace("/dashboard");
       } else {
         setError(
           data.message || "Failed to create business. Please try again.",
@@ -69,6 +65,9 @@ function OnboardingContent() {
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
+      console.log("====================================");
+      console.log(err);
+      console.log("====================================");
     }
   };
 
@@ -81,7 +80,7 @@ function OnboardingContent() {
         user?.token,
       );
       // Clear local auth state and redirect to registration page
-      localStorage.clear();
+      localStorage.removeItem("erp_system_state");
       router.push("/auth/register");
     } catch (error) {
       console.error("Restart registration failed:", error);

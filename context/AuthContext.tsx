@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.user && data.token) {
         const userData: User = {
-          id: data.user.id,
+          id: data.user._id,
           username: data.user.username,
           role: data.user.role,
           businessId: data.user.businessId, // New: businessId from backend
