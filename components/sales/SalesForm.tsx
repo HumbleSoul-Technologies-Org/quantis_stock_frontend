@@ -10,7 +10,6 @@ import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
-import { apiRequest } from "@/lib/queryClient";
 import { set } from "date-fns";
 import Select from "react-select";
 
@@ -122,33 +121,29 @@ export function SalesForm({
         txnId: uuidv4(),
       };
 
-      const res = await apiRequest("POST", "/sales/new", payLoad, user?.token);
+      const sale: Sale = {
+        id: "", // Will be set by the backend
+        saleNumber,
+        date: saleDate,
+        items,
+        totalAmount,
+        status: "completed",
+        notes,
+        createdBy: currentUserId,
+        createdAt: new Date().toISOString(),
+        customerName,
+        paymentType,
+        txnId: uuidv4(),
+      };
 
-      if (res.ok) {
-        const data = await res.json();
-        const sale: Sale = {
-          id: data._id,
-          saleNumber,
-          date: saleDate,
-          items,
-          totalAmount,
-          status: "completed",
-          notes,
-          createdBy: currentUserId,
-          createdAt: data.sale.createdAt,
-          customerName,
-          paymentType,
-          txnId: data.sale.txnId,
-        };
-        onSubmit(sale);
-        setItems([]);
-        setCustomerName("");
-        setPaymentType("cash");
-        setTxnId("");
-        setSaleDate(new Date().toISOString().split("T")[0]);
-        setNotes("");
-        setErrors({});
-      }
+      onSubmit(sale);
+      setItems([]);
+      setCustomerName("");
+      setPaymentType("cash");
+      setTxnId("");
+      setSaleDate(new Date().toISOString().split("T")[0]);
+      setNotes("");
+      setErrors({});
     } catch (error) {
       console.error("Failed to complete sale:", error);
       setErrors({ general: "Failed to complete sale. Please try again." });

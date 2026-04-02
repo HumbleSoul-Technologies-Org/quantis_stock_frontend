@@ -13,7 +13,6 @@ import {
 } from "@/lib/business-config";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiRequest } from "@/lib/queryClient";
 import { on } from "events";
 
 interface ProductFormProps {
@@ -315,67 +314,27 @@ export function ProductForm({
         // Preserve existing image if no new image was uploaded
         image: {
           url: formData.imageUrl || product?.imageUrl || "",
-          public_id: formData.imagePublicId || product?.imagePublicId || "",
+          publicId: formData.imagePublicId || product?.imagePublicId || "",
         },
       };
 
       if ((product && product.id) || product?._id) {
-        res = await apiRequest(
-          "PUT",
-          `/products/${product.id || product._id}/update`,
-          payLoad,
-          user?.token || "",
-        );
-      } else {
-        res = await apiRequest(
-          "POST",
-          `/products/new`,
-          payLoad,
-          user?.token || "",
-        );
-      }
-
-      if (res.ok) {
-        const data = await res.json();
-        const newProduct: Product = {
-          id: data.product._id,
-          name: formData.name || "",
-          sku: formData.sku || "",
-          category: formData.category || "",
-          unitPrice: formData.unitPrice || 0,
-          costPrice: formData.costPrice || 0,
-          unit: formData.unit || "units",
-          supplierId: selectedSupplierId || "",
-          reorderLevel: formData.reorderLevel || 10,
-          currentStock: formData.currentStock ?? product?.currentStock ?? 0,
-          createdAt: data.product.createdAt,
-          updatedAt: data.product.updatedAt,
-          retailSubType: formData.retailSubType || retailSubType,
-
-          // Optional new fields (backward compatible)
-          status: (formData.status as "active" | "discontinued") || "active",
-          description: formData.description,
-          baseUoM: formData.baseUoM || formData.unit,
-          alternateUoMs: formData.alternateUoMs,
-          tracking: formData.tracking,
-          suppliers: formData.suppliers,
-          reorderStrategy: formData.reorderStrategy,
-          warehouseLocations: formData.warehouseLocations,
-          customAttributes: categoryFields,
-          discontinuedDate: formData.discontinuedDate,
-          discontinuationReason: formData.discontinuationReason,
-          imageUrl:
-            formData.imageUrl ||
-            data.product.image?.url ||
-            product?.imageUrl ||
-            "",
-          imagePublicId:
-            formData.imagePublicId ||
-            data.product.image?.public_id ||
-            product?.imagePublicId ||
-            "",
+        // For updates, create the updated product object
+        const updatedProduct: Product = {
+          ...product,
+          ...payLoad,
+          id: product.id || product._id || "",
+          updatedAt: new Date().toISOString(),
         };
-
+        onSubmit(updatedProduct);
+      } else {
+        // For new products, create the product object
+        const newProduct: Product = {
+          ...payLoad,
+          id: "", // Will be set by the backend
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
         onSubmit(newProduct);
       }
     } catch (error) {

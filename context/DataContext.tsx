@@ -272,15 +272,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Products
   const addProduct = useCallback(
-    (product: Product) => {
+    async (product: Product) => {
       storage.addProduct(product);
       setProducts([...products, product]);
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest("POST", "/products/new", product, user.token);
+          // Immediately refetch products to ensure consistency
+          refetchProducts();
+        } catch (error) {
+          console.warn("Failed to save product to API:", error);
+          // Enqueue for later sync
+          enqueueAction({
+            endpoint: "/products/new",
+            method: "POST",
+            payload: product,
+            type: "addProduct",
+          });
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: "/products/new",
+          method: "POST",
+          payload: product,
+          type: "addProduct",
+        });
+      }
     },
-    [products],
+    [products, isOnline, user?.token, enqueueAction, refetchProducts],
   );
 
   const updateProduct = useCallback(
-    (id: string, product: Partial<Product>) => {
+    async (id: string, product: Partial<Product>) => {
       storage.updateProduct(id, product);
       setProducts(
         products.map((p) =>
@@ -293,8 +318,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
             : p,
         ),
       );
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest(
+            "PUT",
+            `/products/${id}/update`,
+            product,
+            user.token,
+          );
+          // Immediately refetch products to ensure consistency
+          refetchProducts();
+        } catch (error) {
+          console.warn("Failed to update product in API:", error);
+          // Enqueue for later sync
+          enqueueAction({
+            endpoint: `/products/${id}/update`,
+            method: "PUT",
+            payload: product,
+            type: "updateProduct",
+          });
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: `/products/${id}/update`,
+          method: "PUT",
+          payload: product,
+          type: "updateProduct",
+        });
+      }
     },
-    [products],
+    [products, isOnline, user?.token, enqueueAction, refetchProducts],
   );
 
   const deleteProduct = useCallback(
@@ -307,15 +362,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Suppliers
   const addSupplier = useCallback(
-    (supplier: Supplier) => {
+    async (supplier: Supplier) => {
       storage.addSupplier(supplier);
       setSuppliers([...suppliers, supplier]);
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest("POST", "/suppliers/create", supplier, user.token);
+          // Immediately refetch suppliers to ensure consistency
+          refetchSuppliers();
+        } catch (error) {
+          console.warn("Failed to save supplier to API:", error);
+          // Enqueue for later sync
+          enqueueAction({
+            endpoint: "/suppliers/create",
+            method: "POST",
+            payload: supplier,
+            type: "addSupplier",
+          });
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: "/suppliers/create",
+          method: "POST",
+          payload: supplier,
+          type: "addSupplier",
+        });
+      }
     },
-    [suppliers],
+    [suppliers, isOnline, user?.token, enqueueAction, refetchSuppliers],
   );
 
   const updateSupplier = useCallback(
-    (id: string, supplier: Partial<Supplier>) => {
+    async (id: string, supplier: Partial<Supplier>) => {
       storage.updateSupplier(id, supplier);
       setSuppliers(
         suppliers.map((s) =>
@@ -328,8 +408,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
             : s,
         ),
       );
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest(
+            "PUT",
+            `/suppliers/${id}/update`,
+            supplier,
+            user.token,
+          );
+          // Immediately refetch suppliers to ensure consistency
+          refetchSuppliers();
+        } catch (error) {
+          console.warn("Failed to update supplier in API:", error);
+          // Enqueue for later sync
+          enqueueAction({
+            endpoint: `/suppliers/${id}/update`,
+            method: "PUT",
+            payload: supplier,
+            type: "updateSupplier",
+          });
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: `/suppliers/${id}/update`,
+          method: "PUT",
+          payload: supplier,
+          type: "updateSupplier",
+        });
+      }
     },
-    [suppliers],
+    [suppliers, isOnline, user?.token, enqueueAction, refetchSuppliers],
   );
 
   const deleteSupplier = useCallback(
@@ -391,12 +501,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   // Stock Movements
-  const addStockMovement = useCallback((movement: StockMovement) => {
-    storage.addStockMovement(movement);
-    // Immediately refetch products and inventory to reflect stock changes
-    refetchProducts();
-    refetchInventory();
-  }, [refetchProducts, refetchInventory]);
+  const addStockMovement = useCallback(
+    (movement: StockMovement) => {
+      storage.addStockMovement(movement);
+      // Immediately refetch products and inventory to reflect stock changes
+      refetchProducts();
+      refetchInventory();
+    },
+    [refetchProducts, refetchInventory],
+  );
 
   // Utilities
   const getProductById = useCallback(

@@ -4,7 +4,6 @@ import { useState, useEffect, useContext } from "react";
 import { StockMovement, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
 import Select from "react-select";
@@ -139,49 +138,26 @@ export function StockMovementForm({
         createdBy: currentUserId,
       };
 
-      let res;
-      let endpoint = "/inventory/movement/new";
-      let method = "POST";
+      const movement: StockMovement = {
+        id: initialMovement?.id || "", // Will be set by the backend for new movements
+        productId: formData.productId,
+        type: formData.type,
+        quantity: parseInt(formData.quantity),
+        reason: formData.reason,
+        reference: formData.reference,
+        createdBy: currentUserId,
+        createdAt: initialMovement?.createdAt || new Date().toISOString(),
+      };
+      onSubmit(movement);
 
-      if (isEditMode && initialMovement?.id) {
-        endpoint = `/inventory/movement/${initialMovement.id}/update`;
-        method = "PUT";
-      }
-
-      res = await apiRequest(method, endpoint, payload, user?.token);
-
-      if (res.ok) {
-        const data: any = await res.json();
-        const movementData = isEditMode ? data.movement : data.movement;
-        const movement: StockMovement = {
-          id: movementData._id || initialMovement?.id,
-          productId: formData.productId,
-          type: formData.type,
-          quantity: parseInt(formData.quantity),
-          reason: formData.reason,
-          reference: formData.reference,
-          createdBy: currentUserId,
-          createdAt:
-            movementData.createdAt ||
-            initialMovement?.createdAt ||
-            new Date().toISOString(),
-        };
-        onSubmit(movement);
-
-        // Only reset form in create mode
-        if (!isEditMode) {
-          setFormData({
-            productId: "",
-            type: "in",
-            quantity: "",
-            reason: "",
-            reference: "",
-          });
-        }
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        setErrors({
-          general: errorData.message || "Failed to record movement",
+      // Only reset form in create mode
+      if (!isEditMode) {
+        setFormData({
+          productId: "",
+          type: "in",
+          quantity: "",
+          reason: "",
+          reference: "",
         });
       }
     } catch (error) {

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { AlertCircle } from "lucide-react";
 import { uploadFile } from "@/lib/cloudinary";
 import { useAuth } from "@/context/AuthContext";
-import { apiRequest } from "@/lib/queryClient";
 
 interface SupplierFormProps {
   supplier?: Supplier;
@@ -152,92 +151,22 @@ export function SupplierForm({
       };
 
       if (supplier && supplier.id) {
-        const res = await apiRequest(
-          "PUT",
-          `/suppliers/${supplier.id}/update`,
-          payLoad,
-          user?.token,
-        );
-
-        const data = await res.json();
-
-        const updatedData: Supplier = {
-          id: data.supplier._id,
-          name: formData.name || "",
-          email: formData.email || "",
-          phone: formData.phone || "",
-          address: formData.address || { street: "", city: "", country: "" },
-          city: formData.address?.city || formData.city || "",
-          country: formData.address?.country || formData.country || "",
-          contact: {
-            primaryContact: supplyContact,
-            primaryPhone: formData.contact?.primaryPhone || "",
-            secondaryContact: formData.contact?.secondaryContact || "",
-            secondaryPhone: formData.contact?.secondaryPhone || "",
-          },
-          paymentTerms: formData.paymentTerms || "",
-          payment: {
-            bankDetails: formData.payment?.bankDetails || "",
-            taxId: formData.payment?.taxId || "",
-          },
-          website: formData.website || "",
-          products: productsSupplied
-            .split(",")
-            .map((p) => p.trim())
-            .filter(Boolean),
-          status: (formData.status as any) || "active",
-          rating: formData.rating || 0,
-          notes: formData.notes || "",
-          documentUrl: documentUrl || formData.documentUrl,
-          documentPublicId: documentPublicId || formData.documentPublicId,
-          createdAt: data.supplier.createdAt,
-          updatedAt: data.supplier.updatedAt,
+        // For updates, create the updated supplier object
+        const updatedSupplier: Supplier = {
+          ...supplier,
+          ...payLoad,
+          id: supplier.id,
+          updatedAt: new Date().toISOString(),
         };
-
-        onSubmit(updatedData);
+        onSubmit(updatedSupplier);
       } else {
-        const res = await apiRequest(
-          "POST",
-          "/suppliers/create",
-          payLoad,
-          user?.token,
-        );
-
-        const data = await res.json();
-
+        // For new suppliers, create the supplier object
         const newSupplier: Supplier = {
-          id: data.supplier._id,
-          name: formData.name || "",
-          email: formData.email || "",
-          phone: formData.phone || "",
-          address: formData.address || { street: "", city: "", country: "" },
-          city: formData.address?.city || formData.city || "",
-          country: formData.address?.country || formData.country || "",
-          contact: {
-            primaryContact: supplyContact,
-            primaryPhone: formData.contact?.primaryPhone || "",
-            secondaryContact: formData.contact?.secondaryContact || "",
-            secondaryPhone: formData.contact?.secondaryPhone || "",
-          },
-          paymentTerms: formData.paymentTerms || "",
-          payment: {
-            bankDetails: formData.payment?.bankDetails || "",
-            taxId: formData.payment?.taxId || "",
-          },
-          website: formData.website || "",
-          products: productsSupplied
-            .split(",")
-            .map((p) => p.trim())
-            .filter(Boolean),
-          status: (formData.status as any) || "active",
-          rating: formData.rating || 0,
-          notes: formData.notes || "",
-          documentUrl: documentUrl || formData.documentUrl,
-          documentPublicId: documentPublicId || formData.documentPublicId,
-          createdAt: data.supplier.createdAt,
-          updatedAt: data.supplier.updatedAt,
+          ...payLoad,
+          id: "", // Will be set by the backend
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
-
         onSubmit(newSupplier);
       }
     } catch (error) {
