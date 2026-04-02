@@ -8,36 +8,45 @@ import { Input } from "@/components/ui/input";
 import { CURRENCIES } from "@/lib/business-config";
 import { Building2, Settings } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { apiRequest } from "@/lib/queryClient";
 
 interface CombinedGeneralSettingsProps {
-  businessSetup: BusinessSetup | undefined;
-  settings: AppSettings;
-  onUpdateBusiness: (businessSetup: BusinessSetup) => void;
+  // No longer needs props - uses context
 }
 
-export function CombinedGeneralSettings({
-  businessSetup,
-  settings,
-  onUpdateBusiness,
-}: CombinedGeneralSettingsProps) {
+export function CombinedGeneralSettings({}: CombinedGeneralSettingsProps) {
+  const { user, business } = useAuth();
+  const { settings, updateBusinessSettings } = useSettings();
   const [businessData, setBusinessData] = useState<BusinessSetup>(
-    businessSetup || {
-      businessName: "",
-      businessType: "retail",
-      currency: "",
-      lowStockThreshold: 20,
-      emailAlerts: true,
-      smsAlerts: false,
-      lowStockAlerts: true,
-      saleNotifications: true,
-      setupCompletedAt: new Date().toISOString(),
-    },
+    business
+      ? {
+          businessName: business.businessName,
+          businessType: business.businessType,
+          retailSubType: business.retailSubType,
+          currency: business.currency,
+          lowStockThreshold: business.lowStockThreshold,
+          emailAlerts: business.emailAlerts,
+          smsAlerts: business.smsAlerts,
+          lowStockAlerts: business.lowStockAlerts,
+          saleNotifications: business.saleNotifications,
+          setupCompletedAt: business.setupCompletedAt,
+        }
+      : {
+          businessName: "",
+          businessType: "retail",
+          currency: "",
+          lowStockThreshold: 20,
+          emailAlerts: true,
+          smsAlerts: false,
+          lowStockAlerts: true,
+          saleNotifications: true,
+          setupCompletedAt: new Date().toISOString(),
+        },
   );
 
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { user } = useAuth();
 
   // Get the selected currency object
   const selectedCurrency = CURRENCIES.find(
@@ -49,47 +58,48 @@ export function CombinedGeneralSettings({
   };
 
   const handleSave = async () => {
-    try {
-      const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {};
 
-      if (!businessData.businessName?.trim()) {
-        newErrors.businessName = "Business name is required";
-      }
-      if (!businessData.currency?.trim()) {
-        newErrors.currency = "Currency is required";
-      }
-      if (
-        businessData.lowStockThreshold < 1 ||
-        businessData.lowStockThreshold > 100
-      ) {
-        newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
-      }
+    if (!businessData.businessName?.trim()) {
+      newErrors.businessName = "Business name is required";
+    }
+    if (!businessData.currency?.trim()) {
+      newErrors.currency = "Currency is required";
+    }
+    if (
+      businessData.lowStockThreshold < 1 ||
+      businessData.lowStockThreshold > 100
+    ) {
+      newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
+    }
 
-      setErrors(newErrors);
+    setErrors(newErrors);
 
-      const payLoad = {
-        businessName: businessData.businessName,
-        businessType: businessData.businessType,
-        currency: businessData.currency,
-        lowStockThreshold: businessData.lowStockThreshold,
+    if (Object.keys(newErrors).length === 0) {
+      // Map BusinessSetup to AppSettings format for updateBusinessSettings
+      const settingsUpdate: Partial<AppSettings> = {
+        currency: {
+          code: businessData.currency,
+          symbol:
+            CURRENCIES.find((c) => c.code === businessData.currency)?.symbol ||
+            "$",
+          decimalPlaces: 2,
+        },
+        notifications: {
+          emailAlerts: businessData.emailAlerts,
+          smsAlerts: businessData.smsAlerts,
+          lowStockAlerts: businessData.lowStockAlerts,
+          saleNotifications: businessData.saleNotifications,
+        },
       };
 
-      await apiRequest(
-        "PUT",
-        `/users/${user?.id}/business-setup`,
-        payLoad,
-        user?.token,
-      );
-      if (Object.keys(newErrors).length === 0) {
-        onUpdateBusiness(businessData);
+      const success = await updateBusinessSettings(settingsUpdate);
+      if (success) {
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       }
-    } catch (error) {
-      console.error("Failed to update business settings:", error);
     }
   };
-
   return (
     <div className="space-y-6">
       <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">

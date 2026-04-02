@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ClientOnly } from "@/components/client-only";
 import { BusinessSetupForm } from "@/components/onboarding/BusinessSetupForm";
-import { BusinessSetup } from "@/lib/types";
+import { BusinessSetup, Business } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import Link from "next/link";
 
 function OnboardingContent() {
   const router = useRouter();
-  const { user, updateBusinessSetup } = useAuth();
+  const { user, business, updateBusiness } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,7 +21,7 @@ function OnboardingContent() {
 
   const userRedirecting = () => {
     // Redirect if already has business setup
-    if (user?.role === "admin" && user?.businessSetup) {
+    if (user?.role === "admin" && business) {
       router.push("/dashboard");
       return null;
     }
@@ -37,15 +37,33 @@ function OnboardingContent() {
     setError("");
 
     try {
-      await apiRequest("POST", `/users/${user?.id}/onboarding`, {
-        businessSetup,
-      });
-      const success = updateBusinessSetup(businessSetup);
-      if (success) {
-        // SettingsContext will automatically sync the currency from businessSetup
+      const response = await apiRequest(
+        "POST",
+        "/business/setup",
+        {
+          businessName: businessSetup.businessName,
+          businessType: businessSetup.businessType,
+          retailSubType: businessSetup.retailSubType,
+          currency: businessSetup.currency,
+          lowStockThreshold: businessSetup.lowStockThreshold,
+          emailAlerts: businessSetup.emailAlerts,
+          smsAlerts: businessSetup.smsAlerts,
+          lowStockAlerts: businessSetup.lowStockAlerts,
+          saleNotifications: businessSetup.saleNotifications,
+        },
+        user?.token,
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.business) {
+        // Update business in context
+        updateBusiness(data.business);
         router.push("/dashboard");
       } else {
-        setError("Failed to save business setup. Please try again.");
+        setError(
+          data.message || "Failed to create business. Please try again.",
+        );
         setIsLoading(false);
       }
     } catch (err) {

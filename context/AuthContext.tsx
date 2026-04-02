@@ -7,12 +7,13 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { User, BusinessSetup } from "@/lib/types";
+import { User, BusinessSetup, Business } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { apiRequest } from "@/lib/queryClient";
 
 interface AuthContextType {
   user: User | null;
+  business: Business | null; // New: separate business state
   isLoading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   loginWithApiData: (userData: User) => void;
@@ -23,12 +24,14 @@ interface AuthContextType {
     oldPassword: string,
   ) => boolean;
   updateBusinessSetup: (businessSetup: BusinessSetup) => boolean;
+  updateBusiness: (business: Business | null) => void; // New: set business data
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [business, setBusiness] = useState<Business | null>(null); // New: business state
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize from storage on mount
@@ -54,11 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: data.user.id,
           username: data.user.username,
           role: data.user.role,
-          businessSetup: data.user.businessSetup,
+          businessId: data.user.businessId, // New: businessId from backend
+          businessSetup: data.user.businessSetup, // Keep for backward compatibility
           token: data.token,
         };
 
         setUser(userData);
+
+        // TODO: Fetch business data if not included in login response
+        // For now, set business to null - will be updated when business is fetched
+        setBusiness(null);
 
         try {
           const state = JSON.parse(
@@ -97,6 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithApiData = (userData: User): void => {
     setUser(userData);
+    // TODO: Set business if available in userData or fetch separately
+    setBusiness(null); // For now, set to null
     // Also store in localStorage for persistence
     try {
       const state = JSON.parse(
@@ -151,16 +161,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const updateBusiness = (newBusiness: Business | null): void => {
+    setBusiness(newBusiness);
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        business, // New: include business in context
         isLoading,
         login,
         loginWithApiData,
         logout,
         updateCredentials,
         updateBusinessSetup,
+        updateBusiness, // New: include updateBusiness in context
       }}
     >
       {children}

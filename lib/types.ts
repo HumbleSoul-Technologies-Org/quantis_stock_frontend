@@ -16,12 +16,28 @@ export interface BusinessSetup {
   setupCompletedAt: string;
 }
 
+export interface Business {
+  id: string;
+  ownerId: string; // Reference to admin user who owns the business
+  businessName: string;
+  businessType: BusinessType;
+  retailSubType?: RetailSubType;
+  currency: string;
+  lowStockThreshold: number;
+  emailAlerts: boolean;
+  smsAlerts: boolean;
+  lowStockAlerts: boolean;
+  saleNotifications: boolean;
+  setupCompletedAt: string;
+}
+
 export interface User {
   id: string;
   username: string;
   password?: string; // hashed in production
   role: UserRole;
-  businessSetup?: BusinessSetup; // Optional for backward compatibility
+  businessId?: string; // Reference to Business model (optional during transition)
+  businessSetup?: BusinessSetup; // Keep for backward compatibility during transition
   createdAt?: string;
   token?: string; // For session management
 }
@@ -66,6 +82,7 @@ export interface Product {
   supplierId: string;
   reorderLevel: number;
   currentStock: number;
+  businessId?: string; // Business isolation (optional during transition)
   createdAt: string;
   updatedAt: string;
 
@@ -114,13 +131,18 @@ export interface StockMovement {
   quantity: number;
   reason: string;
   reference: string; // Purchase order, Sales order, etc
+  businessId?: string; // Business isolation (optional during transition)
   createdBy: string | User;
   createdAt: string;
 }
 
-export interface InventoryHistory {
-  productId: string;
-  movements: StockMovement[];
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  businessId?: string; // Business isolation (optional during transition)
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Sales Types
@@ -133,6 +155,7 @@ export interface Sale {
   totalAmount: number;
   status: 'pending' | 'completed' | 'cancelled';
   notes: string;
+  businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
   createdAt: string;
   customerName?: string;
@@ -154,6 +177,7 @@ export interface Supplier {
   name: string;
   email: string;
   phone: string;
+  businessId?: string; // Business isolation (optional during transition)
   // Address can be a structured object; keep city/country top-level for compatibility
   address?: {
     street?: string;

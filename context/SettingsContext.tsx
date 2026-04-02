@@ -11,10 +11,12 @@ import { AppSettings } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { CURRENCIES } from "@/lib/business-config";
 import { useAuth } from "@/context/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
+  updateBusinessSettings: (settings: Partial<AppSettings>) => Promise<boolean>; // New: update via API
   formatCurrency: (amount: number) => string;
   getCurrencySymbol: () => string;
   getDecimalPlaces: () => number;
@@ -60,9 +62,9 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const { user } = useAuth();
+  const { user, business } = useAuth();
 
-  // Initialize from storage on mount and sync currency from user's businessSetup
+  // Initialize from storage on mount and sync currency from business
   useEffect(() => {
     const storedSettings = storage.getSettings() || DEFAULT_SETTINGS;
 
@@ -95,10 +97,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       },
     };
 
-    if (user?.businessSetup?.currency) {
-      const currencyObj = CURRENCIES.find(
-        (c) => c.code === user.businessSetup!.currency,
-      );
+    if (business?.currency) {
+      const currencyObj = CURRENCIES.find((c) => c.code === business.currency);
       if (currencyObj) {
         normalizedSettings.currency = {
           code: currencyObj.code,
@@ -109,7 +109,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
 
     setSettings(normalizedSettings);
-  }, [user?.businessSetup?.currency]);
+  }, [business?.currency]);
 
   const updateSettings = (newSettings: Partial<AppSettings>): void => {
     const merged = {
@@ -142,6 +142,49 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
     setSettings(merged as AppSettings);
     storage.updateSettings(newSettings);
+  };
+
+  const updateBusinessSettings = async (
+    newSettings: Partial<AppSettings>,
+  ): Promise<boolean> => {
+    try {
+      // Map AppSettings to business update payload
+      const businessUpdate = {
+        currency: newSettings.currency?.code,
+        lowStockThreshold: business?.lowStockThreshold, // Keep existing
+        emailAlerts:
+          newSettings.notifications?.emailAlerts ?? business?.emailAlerts,
+        smsAlerts: newSettings.notifications?.smsAlerts ?? business?.smsAlerts,
+        lowStockAlerts:
+          newSettings.notifications?.lowStockAlerts ?? business?.lowStockAlerts,
+        saleNotifications:
+          newSettings.notifications?.saleNotifications ??
+          business?.saleNotifications,
+      };
+
+      const response = await apiRequest(
+        "PUT",
+        "/business/setup",
+        businessUpdate,
+        user?.token,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update business in context if returned
+        if (data.business) {
+          // Note: We'll need to import updateBusiness from AuthContext
+          // For now, just update local settings
+        }
+        // Update local settings
+        updateSettings(newSettings);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to update business settings:", error);
+      return false;
+    }
   };
 
   const formatCurrency = (amount: number): string => {
@@ -196,6 +239,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           },
         },
         updateSettings,
+        updateBusinessSettings, // New: include updateBusinessSettings
         formatCurrency,
         getCurrencySymbol,
         getDecimalPlaces,

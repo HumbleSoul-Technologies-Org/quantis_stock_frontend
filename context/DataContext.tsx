@@ -178,25 +178,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Poll suppliers from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
-    queryKey: ["suppliers", "all", user?.token],
+    queryKey: ["suppliers", user?.businessId],
     queryFn: () => apiSuppliers(user?.token),
-    enabled: !!user?.token && isInitialized,
+    enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
 
   // Poll products from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: productsData, refetch: refetchProducts } = useQuery({
-    queryKey: ["products", "all", user?.token],
+    queryKey: ["products", user?.businessId],
     queryFn: () => apiProducts(user?.token),
-    enabled: !!user?.token && isInitialized,
+    enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
 
   // Poll inventory movements from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: inventoryData, refetch: refetchInventory } = useQuery({
-    queryKey: ["inventory", "movements", user?.token],
+    queryKey: ["inventory", "movements", user?.businessId],
     queryFn: () => apiInventory(user?.token),
     enabled: !!user?.token && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
@@ -205,9 +205,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Poll sales from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: salesData, refetch: refetchSales } = useQuery({
-    queryKey: ["sales", "all", user?.token],
+    queryKey: ["sales", user?.businessId],
     queryFn: () => apiSales(user?.token),
-    enabled: !!user?.token && isInitialized,
+    enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
@@ -273,12 +273,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Products
   const addProduct = useCallback(
     async (product: Product) => {
-      storage.addProduct(product);
-      setProducts([...products, product]);
+      // Ensure businessId is included
+      const productWithBusinessId = {
+        ...product,
+        businessId: product.businessId || user?.businessId,
+      };
+
+      storage.addProduct(productWithBusinessId);
+      setProducts([...products, productWithBusinessId]);
       // Send to API if online
       if (isOnline && user?.token) {
         try {
-          await apiRequest("POST", "/products/new", product, user.token);
+          await apiRequest(
+            "POST",
+            "/products/new",
+            productWithBusinessId,
+            user.token,
+          );
           // Immediately refetch products to ensure consistency
           refetchProducts();
         } catch (error) {
@@ -287,7 +298,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           enqueueAction({
             endpoint: "/products/new",
             method: "POST",
-            payload: product,
+            payload: productWithBusinessId,
             type: "addProduct",
           });
         }
@@ -296,23 +307,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
         enqueueAction({
           endpoint: "/products/new",
           method: "POST",
-          payload: product,
+          payload: productWithBusinessId,
           type: "addProduct",
         });
       }
     },
-    [products, isOnline, user?.token, enqueueAction, refetchProducts],
+    [
+      products,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      refetchProducts,
+    ],
   );
 
   const updateProduct = useCallback(
     async (id: string, product: Partial<Product>) => {
-      storage.updateProduct(id, product);
+      // Ensure businessId is included if updating
+      const productWithBusinessId = {
+        ...product,
+        businessId: product.businessId || user?.businessId,
+      };
+
+      storage.updateProduct(id, productWithBusinessId);
       setProducts(
         products.map((p) =>
           p.id === id
             ? {
                 ...p,
-                ...product,
+                ...productWithBusinessId,
                 updatedAt: new Date().toISOString(),
               }
             : p,
@@ -324,7 +348,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await apiRequest(
             "PUT",
             `/products/${id}/update`,
-            product,
+            productWithBusinessId,
             user.token,
           );
           // Immediately refetch products to ensure consistency
@@ -335,7 +359,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           enqueueAction({
             endpoint: `/products/${id}/update`,
             method: "PUT",
-            payload: product,
+            payload: productWithBusinessId,
             type: "updateProduct",
           });
         }
@@ -363,12 +387,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Suppliers
   const addSupplier = useCallback(
     async (supplier: Supplier) => {
-      storage.addSupplier(supplier);
-      setSuppliers([...suppliers, supplier]);
+      // Ensure businessId is included
+      const supplierWithBusinessId = {
+        ...supplier,
+        businessId: supplier.businessId || user?.businessId,
+      };
+
+      storage.addSupplier(supplierWithBusinessId);
+      setSuppliers([...suppliers, supplierWithBusinessId]);
       // Send to API if online
       if (isOnline && user?.token) {
         try {
-          await apiRequest("POST", "/suppliers/create", supplier, user.token);
+          await apiRequest(
+            "POST",
+            "/suppliers/create",
+            supplierWithBusinessId,
+            user.token,
+          );
           // Immediately refetch suppliers to ensure consistency
           refetchSuppliers();
         } catch (error) {
@@ -377,7 +412,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           enqueueAction({
             endpoint: "/suppliers/create",
             method: "POST",
-            payload: supplier,
+            payload: supplierWithBusinessId,
             type: "addSupplier",
           });
         }
@@ -386,23 +421,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
         enqueueAction({
           endpoint: "/suppliers/create",
           method: "POST",
-          payload: supplier,
+          payload: supplierWithBusinessId,
           type: "addSupplier",
         });
       }
     },
-    [suppliers, isOnline, user?.token, enqueueAction, refetchSuppliers],
+    [
+      suppliers,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      refetchSuppliers,
+    ],
   );
 
   const updateSupplier = useCallback(
     async (id: string, supplier: Partial<Supplier>) => {
-      storage.updateSupplier(id, supplier);
+      // Ensure businessId is included if updating
+      const supplierWithBusinessId = {
+        ...supplier,
+        businessId: supplier.businessId || user?.businessId,
+      };
+
+      storage.updateSupplier(id, supplierWithBusinessId);
       setSuppliers(
         suppliers.map((s) =>
           s.id === id
             ? {
                 ...s,
-                ...supplier,
+                ...supplierWithBusinessId,
                 updatedAt: new Date().toISOString(),
               }
             : s,
@@ -414,7 +462,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await apiRequest(
             "PUT",
             `/suppliers/${id}/update`,
-            supplier,
+            supplierWithBusinessId,
             user.token,
           );
           // Immediately refetch suppliers to ensure consistency
@@ -425,7 +473,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           enqueueAction({
             endpoint: `/suppliers/${id}/update`,
             method: "PUT",
-            payload: supplier,
+            payload: supplierWithBusinessId,
             type: "updateSupplier",
           });
         }
@@ -434,12 +482,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         enqueueAction({
           endpoint: `/suppliers/${id}/update`,
           method: "PUT",
-          payload: supplier,
+          payload: supplierWithBusinessId,
           type: "updateSupplier",
         });
       }
     },
-    [suppliers, isOnline, user?.token, enqueueAction, refetchSuppliers],
+    [
+      suppliers,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      refetchSuppliers,
+    ],
   );
 
   const deleteSupplier = useCallback(
@@ -453,11 +508,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Sales
   const addSale = useCallback(
     async (sale: Sale) => {
-      storage.addSale(sale);
+      // Ensure businessId is included
+      const saleWithBusinessId = {
+        ...sale,
+        businessId: sale.businessId || user?.businessId,
+      };
+
+      storage.addSale(saleWithBusinessId);
       // Send to API if online
       if (isOnline && user?.token) {
         try {
-          await apiRequest("POST", "/sales/create", sale, user.token);
+          await apiRequest(
+            "POST",
+            "/sales/create",
+            saleWithBusinessId,
+            user.token,
+          );
           // Immediately refetch products and sales to reflect stock changes
           refetchProducts();
           refetchSales();
@@ -467,7 +533,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           enqueueAction({
             endpoint: "/sales/create",
             method: "POST",
-            payload: sale,
+            payload: saleWithBusinessId,
             type: "addSale",
           });
         }
@@ -476,12 +542,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         enqueueAction({
           endpoint: "/sales/create",
           method: "POST",
-          payload: sale,
+          payload: saleWithBusinessId,
           type: "addSale",
         });
       }
     },
-    [user?.token, isOnline, enqueueAction, refetchProducts, refetchSales],
+    [
+      user?.token,
+      user?.businessId,
+      isOnline,
+      enqueueAction,
+      refetchProducts,
+      refetchSales,
+    ],
   );
 
   const updateSale = useCallback(
@@ -502,13 +575,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Stock Movements
   const addStockMovement = useCallback(
-    (movement: StockMovement) => {
-      storage.addStockMovement(movement);
-      // Immediately refetch products and inventory to reflect stock changes
+    async (movement: StockMovement) => {
+      // Ensure businessId is included
+      const movementWithBusinessId = {
+        ...movement,
+        businessId: movement.businessId || user?.businessId,
+      };
+
+      storage.addStockMovement(movementWithBusinessId);
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest(
+            "POST",
+            "/inventory/movement",
+            movementWithBusinessId,
+            user.token,
+          );
+          // Immediately refetch products and inventory to reflect stock changes
+          refetchProducts();
+          refetchInventory();
+        } catch (error) {
+          console.warn("Failed to save stock movement to API:", error);
+          // Enqueue for later sync
+          enqueueAction({
+            endpoint: "/inventory/movement",
+            method: "POST",
+            payload: movementWithBusinessId,
+            type: "addStockMovement",
+          });
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: "/inventory/movement",
+          method: "POST",
+          payload: movementWithBusinessId,
+          type: "addStockMovement",
+        });
+      }
+      // Always refetch locally
       refetchProducts();
       refetchInventory();
     },
-    [refetchProducts, refetchInventory],
+    [
+      user?.token,
+      user?.businessId,
+      isOnline,
+      enqueueAction,
+      refetchProducts,
+      refetchInventory,
+    ],
   );
 
   // Utilities

@@ -50,11 +50,7 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
-          <CombinedGeneralSettings
-            businessSetup={user.businessSetup}
-            settings={settings}
-            onUpdateBusiness={updateBusinessSetup}
-          />
+          <CombinedGeneralSettings />
         </TabsContent>
 
         <TabsContent value="units" className="space-y-4">

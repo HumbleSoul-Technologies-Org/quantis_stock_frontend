@@ -1,34 +1,37 @@
-'use client';
+"use client";
 
-import { AppSettings } from '@/lib/types';
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { AppSettings } from "@/lib/types";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useSettings } from "@/context/SettingsContext";
 
 interface CurrencySettingsProps {
-  settings: AppSettings;
-  onUpdate: (settings: Partial<AppSettings>) => void;
+  // No longer needs props - uses context
 }
 
-export function CurrencySettings({ settings, onUpdate }: CurrencySettingsProps) {
+export function CurrencySettings({}: CurrencySettingsProps) {
+  const { settings, updateBusinessSettings } = useSettings();
   const [formData, setFormData] = useState(settings.currency);
   const [saved, setSaved] = useState(false);
 
   const currencies = [
-    { code: 'USD', symbol: '$' },
-    { code: 'EUR', symbol: '€' },
-    { code: 'GBP', symbol: '£' },
-    { code: 'JPY', symbol: '¥' },
-    { code: 'INR', symbol: '₹' },
-    { code: 'CAD', symbol: 'C$' },
-    { code: 'AUD', symbol: 'A$' },
+    { code: "USD", symbol: "$" },
+    { code: "EUR", symbol: "€" },
+    { code: "GBP", symbol: "£" },
+    { code: "JPY", symbol: "¥" },
+    { code: "INR", symbol: "₹" },
+    { code: "CAD", symbol: "C$" },
+    { code: "AUD", symbol: "A$" },
   ];
 
-  const handleSave = () => {
-    onUpdate({ currency: formData });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    const success = await updateBusinessSettings({ currency: formData });
+    if (success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
   };
 
   return (
@@ -38,13 +41,21 @@ export function CurrencySettings({ settings, onUpdate }: CurrencySettingsProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Select Currency</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Currency
+          </label>
           <select
             value={formData.code}
             onChange={(e) => {
-              const selected = currencies.find((c) => c.code === e.target.value);
+              const selected = currencies.find(
+                (c) => c.code === e.target.value,
+              );
               if (selected) {
-                setFormData({ ...formData, code: selected.code, symbol: selected.symbol });
+                setFormData({
+                  ...formData,
+                  code: selected.code,
+                  symbol: selected.symbol,
+                });
               }
             }}
             className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
@@ -58,10 +69,14 @@ export function CurrencySettings({ settings, onUpdate }: CurrencySettingsProps) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Currency Symbol
+          </label>
           <Input
             value={formData.symbol}
-            onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, symbol: e.target.value })
+            }
             placeholder="$"
             className="border-green-200"
             maxLength={3}
@@ -69,10 +84,17 @@ export function CurrencySettings({ settings, onUpdate }: CurrencySettingsProps) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Decimal Places</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Decimal Places
+          </label>
           <select
             value={formData.decimalPlaces}
-            onChange={(e) => setFormData({ ...formData, decimalPlaces: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                decimalPlaces: parseInt(e.target.value),
+              })
+            }
             className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
           >
             <option value={0}>0 (12)</option>
@@ -90,9 +112,16 @@ export function CurrencySettings({ settings, onUpdate }: CurrencySettingsProps) 
           </p>
         </div>
 
-        {saved && <p className="text-green-600 text-sm">✓ Currency settings saved successfully</p>}
+        {saved && (
+          <p className="text-green-600 text-sm">
+            ✓ Currency settings saved successfully
+          </p>
+        )}
 
-        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+        <Button
+          onClick={handleSave}
+          className="bg-green-600 hover:bg-green-700"
+        >
           Save Changes
         </Button>
       </CardContent>
