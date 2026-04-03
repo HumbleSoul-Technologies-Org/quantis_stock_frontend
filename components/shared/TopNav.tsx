@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Moon, Sun, Bell, Wifi, WifiOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NotificationSidebar } from "@/components/notifications/NotificationSidebar";
+import { SyncModal } from "@/components/SyncModal";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 export function TopNav() {
@@ -17,6 +18,7 @@ export function TopNav() {
   const { isOnline, pendingActions } = useOfflineSync();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const getPageTitle = () => {
@@ -77,7 +79,11 @@ export function TopNav() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Connection Indicator */}
-            <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-teal-400">
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="flex items-center gap-1 text-xs text-gray-600 dark:text-teal-400 cursor-pointer hover:opacity-80 transition-opacity"
+              title="Click to open sync"
+            >
               {isOnline ? (
                 <Wifi className="w-4 h-4 text-green-600" />
               ) : (
@@ -88,7 +94,7 @@ export function TopNav() {
                 {pendingActions.length > 0 &&
                   ` (${pendingActions.length} pending)`}
               </span>
-            </div>
+            </button>
             <Button
               variant="ghost"
               size="sm"
@@ -132,6 +138,11 @@ export function TopNav() {
       <NotificationSidebar
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+      />
+
+      <SyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
       />
     </>
   );

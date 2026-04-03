@@ -121,7 +121,7 @@ export function SalesForm({
         createdAt: new Date().toISOString(),
         customerName,
         paymentType,
-        txnId, // Generate a random txnId if not provided
+        txnId: txnId || uuidv4(), // Use provided txnId or generate a unique one for cash sales
       };
 
       onSubmit(sale);

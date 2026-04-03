@@ -239,13 +239,15 @@ function InventoryPageContent() {
               Track and manage stock levels in real-time
             </p>
           </div>
-          <Button
-            onClick={() => setShowDialog(true)}
-            className="bg-white text-emerald-600 hover:bg-emerald-50 dark:hover:bg-gray-100 gap-2 w-full sm:w-auto font-semibold shadow-md hover:shadow-lg transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            Stock In
-          </Button>
+          {((user && user?.role === "manager") || user?.role === "admin") && (
+            <Button
+              onClick={() => setShowDialog(true)}
+              className="bg-white text-emerald-600 hover:bg-emerald-50 dark:hover:bg-gray-100 gap-2 w-full sm:w-auto font-semibold shadow-md hover:shadow-lg transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Stock In
+            </Button>
+          )}
         </div>
       </div>
 
