@@ -150,12 +150,12 @@ export function SupplierForm({
         },
       };
 
-      if (supplier && supplier.id) {
+      if ((supplier && supplier.id) || supplier?._id) {
         // For updates, create the updated supplier object
         const updatedSupplier: Supplier = {
           ...supplier,
           ...payLoad,
-          id: supplier.id,
+          id: supplier.id || supplier._id,
           updatedAt: new Date().toISOString(),
         };
         onSubmit(updatedSupplier);

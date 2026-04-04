@@ -40,8 +40,8 @@ function SuppliersPageContent() {
   );
 
   const handleAddSupplier = (supplier: Supplier) => {
-    if (editingSupplier && editingSupplier.id) {
-      updateSupplier(editingSupplier.id, supplier);
+    if (editingSupplier && (editingSupplier.id || editingSupplier._id)) {
+      updateSupplier(editingSupplier?.id || editingSupplier?._id, supplier);
       notifyResourceUpdated("Supplier", supplier.name);
     } else {
       addSupplier(supplier);
@@ -52,7 +52,7 @@ function SuppliersPageContent() {
   };
 
   const handleDeleteSupplier = (id: string) => {
-    const supplier = safeSuppliers.find((s) => s.id === id);
+    const supplier = safeSuppliers.find((s) => s.id === id || s._id === id);
     if (supplier) {
       deleteSupplier(id);
       notifyResourceDeleted("Supplier", supplier.name);

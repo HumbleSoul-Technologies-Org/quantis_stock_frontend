@@ -15,6 +15,7 @@ export interface BusinessConfig {
   lowStockWarningThreshold: number;
 }
 
+
 // East African currencies + Major international
 export const CURRENCIES = [
   // East African
@@ -138,13 +139,9 @@ const GENERAL_RETAIL_CONFIG: BusinessConfig = {
     'Food & Beverages',
     'Medicine & Healthcare',
     'Accessories',
-    'Home & Garden',
-    'Sports & Outdoors',
-    'Books & Media',
-    'Toys & Games',
     'Beauty & Personal Care',
     'Hardware & Building Materials',
-    'Other',
+     
   ],
   units: [
     'units',

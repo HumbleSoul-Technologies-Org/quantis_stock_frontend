@@ -447,7 +447,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       storage.updateSupplier(id, supplierWithBusinessId);
       setSuppliers(
         suppliers.map((s) =>
-          s.id === id
+          s.id === id || (s as any)._id === id
             ? {
                 ...s,
                 ...supplierWithBusinessId,
