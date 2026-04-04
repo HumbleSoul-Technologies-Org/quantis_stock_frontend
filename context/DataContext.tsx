@@ -16,20 +16,18 @@ import { useAuth } from "./AuthContext";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 // API functions for polling
-const apiSuppliers = async (token?: string) => {
+const apiSuppliers = async (token?: string, businessId?: string) => {
   try {
     const response = await apiRequest(
       "GET",
-      "/suppliers/all",
-      {
-        limit: 20,
-        status: "active",
-      },
+      `/suppliers/all`,
+      businessId ? { businessId } : {},
       token,
     );
 
     if (response.ok) {
       const data = await response.json();
+
       return data || [];
     }
   } catch (error) {
@@ -179,7 +177,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Poll suppliers from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
     queryKey: ["suppliers", user?.businessId],
-    queryFn: () => apiSuppliers(user?.token),
+    queryFn: () => apiSuppliers(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5
@@ -215,7 +213,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Update state when API data changes
   useEffect(() => {
     if (suppliersData) {
-      setSuppliers(suppliersData);
+      setSuppliers(suppliersData || []);
       // Also save to storage for persistence
       const state = storage.getState();
       state.suppliers = suppliersData;
@@ -498,9 +496,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteSupplier = useCallback(
-    (id: string) => {
-      storage.deleteSupplier(id);
-      setSuppliers(suppliers.filter((s) => s.id !== id));
+    async (id: string) => {
+      try {
+        await apiRequest("DELETE", `/suppliers/${id}/delete`, {}, user?.token);
+      } catch (error) {
+        console.log("====================================");
+        console.log(error);
+        console.log("====================================");
+      } finally {
+        storage.deleteSupplier(id);
+        setSuppliers(
+          suppliers.filter((s) => s.id !== id && (s as any)._id !== id),
+        );
+      }
     },
     [suppliers],
   );

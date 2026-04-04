@@ -151,7 +151,7 @@ export function SupplierTable({
                       </a>
                     </td>
                     <td className="p-3 text-gray-600 dark:text-slate-400">
-                      {supplier.city}, {supplier.country}
+                      {supplier.address?.city}, {supplier.address?.country}
                     </td>
                     <td className="p-3 text-gray-600 dark:text-slate-400">
                       {(() => {
@@ -266,8 +266,8 @@ export function SupplierTable({
                 <strong>Phone:</strong> {selectedSupplier.phone}
               </p>
               <p>
-                <strong>Location:</strong> {selectedSupplier.city},{" "}
-                {selectedSupplier.country}
+                <strong>Location:</strong> {selectedSupplier.address?.city},{" "}
+                {selectedSupplier.address?.country}
               </p>
               <p>
                 <strong>Payment Terms:</strong> {selectedSupplier.paymentTerms}

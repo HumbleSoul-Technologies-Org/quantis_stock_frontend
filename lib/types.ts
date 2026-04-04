@@ -181,15 +181,12 @@ export interface Supplier {
   email: string;
   phone: string;
   businessId?: string; // Business isolation (optional during transition)
-  // Address can be a structured object; keep city/country top-level for compatibility
+  // Address as a structured object
   address?: {
     street?: string;
     city?: string;
     country?: string;
   };
-  // Backwards-compatible flat fields (some components read these)
-  city?: string;
-  country?: string;
   // Contact persons
   contact?: {
     primaryContact?: string;
@@ -215,7 +212,7 @@ export interface Supplier {
   updatedAt?: string;
   contract?: {
     url: string;
-    publicId?: string;
+    public_id?: string;
   };
 }
 

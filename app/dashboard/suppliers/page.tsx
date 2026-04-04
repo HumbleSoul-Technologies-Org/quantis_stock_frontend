@@ -41,8 +41,11 @@ function SuppliersPageContent() {
 
   const handleAddSupplier = (supplier: Supplier) => {
     if (editingSupplier && (editingSupplier.id || editingSupplier._id)) {
-      updateSupplier(editingSupplier?.id || editingSupplier?._id, supplier);
-      notifyResourceUpdated("Supplier", supplier.name);
+      const supplierId = editingSupplier.id || editingSupplier._id;
+      if (supplierId) {
+        updateSupplier(supplierId, supplier);
+        notifyResourceUpdated("Supplier", supplier.name);
+      }
     } else {
       addSupplier(supplier);
       notifyResourceCreated("Supplier", supplier.name);

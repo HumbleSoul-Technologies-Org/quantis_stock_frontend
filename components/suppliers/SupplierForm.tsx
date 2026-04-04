@@ -20,27 +20,46 @@ export function SupplierForm({
   onCancel,
 }: SupplierFormProps) {
   const [formData, setFormData] = useState<Partial<Supplier>>(
-    supplier || {
-      name: "",
-      email: "",
-      phone: "",
-      address: { street: "", city: "", country: "" },
-      city: "",
-      country: "",
-      contact: {
-        primaryContact: "",
-        primaryPhone: "",
-        secondaryContact: "",
-        secondaryPhone: "",
-      },
-      paymentTerms: "",
-      payment: { bankDetails: "", taxId: "" },
-      website: "",
-      products: [],
-      status: "active",
-      rating: 0,
-      notes: "",
-    },
+    supplier
+      ? {
+          ...supplier,
+          address: {
+            street: supplier.address?.street || "",
+            city: supplier.address?.city || "",
+            country: supplier.address?.country || "",
+          },
+        }
+      : {
+          name: "",
+          email: "",
+          phone: "",
+          address: { street: "", city: "", country: "" },
+          contact: {
+            primaryContact: "",
+            primaryPhone: "",
+            secondaryContact: "",
+            secondaryPhone: "",
+          },
+          paymentTerms: "",
+          payment: { bankDetails: "", taxId: "" },
+          website: "",
+          products: [],
+          status: "active",
+          rating: 0,
+          notes: "",
+        },
+  );
+
+  const [addressText, setAddressText] = useState(
+    supplier
+      ? [
+          supplier.address?.street,
+          supplier.address?.city,
+          supplier.address?.country,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "",
   );
 
   const [productsSupplied, setProductsSupplied] = useState(
@@ -95,11 +114,18 @@ export function SupplierForm({
       newErrors.email = "Invalid email format";
     }
     if (!formData.phone?.trim()) newErrors.phone = "Phone is required";
-    if (!formData.address || !formData.address.street?.trim())
-      newErrors.address = "Street address is required";
-    if (!formData.address?.city?.trim()) newErrors.city = "City is required";
-    if (!formData.address?.country?.trim())
-      newErrors.country = "Country is required";
+    if (!addressText.trim()) {
+      newErrors.address = "Address is required";
+    } else {
+      const addressParts = addressText
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (addressParts.length < 3) {
+        newErrors.address =
+          "Enter street, city, and country separated by commas";
+      }
+    }
     if (!productsSupplied.trim())
       newErrors.productsSupplied = "Products supplied is required";
     if (!supplyContact.trim())
@@ -118,13 +144,23 @@ export function SupplierForm({
     setErrors({});
 
     try {
+      const addressParts = addressText
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      const street =
+        addressParts.length > 2
+          ? addressParts.slice(0, -2).join(", ")
+          : addressParts[0] || "";
+      const city =
+        addressParts.length > 1 ? addressParts[addressParts.length - 2] : "";
+      const country = addressParts[addressParts.length - 1] || "";
+
       const payLoad: Supplier = {
         name: formData.name || "",
         email: formData.email || "",
         phone: formData.phone || "",
-        address: formData.address || { street: "", city: "", country: "" },
-        city: formData.address?.city || formData.city || "",
-        country: formData.address?.country || formData.country || "",
+        address: { street, city, country },
         contact: {
           primaryContact: supplyContact,
           primaryPhone: formData.contact?.primaryPhone || "",
@@ -137,16 +173,13 @@ export function SupplierForm({
           taxId: formData.payment?.taxId || "",
         },
         website: formData.website || "",
-        products: productsSupplied
-          .split(",")
-          .map((p) => p.trim())
-          .filter(Boolean),
+        products: [],
         status: (formData.status as any) || "active",
         rating: formData.rating || 0,
         notes: formData.notes || "",
         contract: {
           url: documentUrl || formData?.contract?.url || "",
-          publicId: documentPublicId || formData?.contract?.publicId || "",
+          public_id: documentPublicId || formData?.contract?.public_id || "",
         },
       };
 
@@ -155,7 +188,7 @@ export function SupplierForm({
         const updatedSupplier: Supplier = {
           ...supplier,
           ...payLoad,
-          id: supplier.id || supplier._id,
+          id: supplier.id || supplier._id || "", // Ensure we have an id for updates
           updatedAt: new Date().toISOString(),
         };
         onSubmit(updatedSupplier);
@@ -254,14 +287,9 @@ export function SupplierForm({
             Address *
           </label>
           <Input
-            value={formData.address?.street || ""}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                address: { ...formData.address, street: e.target.value },
-              })
-            }
-            placeholder="Street address"
+            value={addressText}
+            onChange={(e) => setAddressText(e.target.value)}
+            placeholder="Street, City, Country"
             className={
               errors.address
                 ? "border-red-500"
@@ -270,54 +298,6 @@ export function SupplierForm({
           />
           {errors.address && (
             <p className="text-red-500 text-xs mt-1">{errors.address}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            City *
-          </label>
-          <Input
-            value={formData.address?.city || ""}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                address: { ...formData.address, city: e.target.value },
-              })
-            }
-            placeholder="City"
-            className={
-              errors.city
-                ? "border-red-500"
-                : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
-            }
-          />
-          {errors.city && (
-            <p className="text-red-500 text-xs mt-1">{errors.city}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            Country *
-          </label>
-          <Input
-            value={formData.address?.country || ""}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                address: { ...formData.address, country: e.target.value },
-              })
-            }
-            placeholder="Country"
-            className={
-              errors.country
-                ? "border-red-500"
-                : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
-            }
-          />
-          {errors.country && (
-            <p className="text-red-500 text-xs mt-1">{errors.country}</p>
           )}
         </div>
 
@@ -356,11 +336,12 @@ export function SupplierForm({
           />
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 hidden">
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Products Supplied *
           </label>
           <Input
+            disabled={true}
             value={productsSupplied}
             onChange={(e) => setProductsSupplied(e.target.value)}
             placeholder="Comma-separated product SKUs or names"
