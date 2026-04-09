@@ -12,6 +12,7 @@ import { Product, Supplier, Sale, StockMovement } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { isNetworkError } from "@/lib/errors";
 import { useAuth } from "./AuthContext";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
@@ -283,6 +284,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       storage.addProduct(productWithBusinessId);
       setProducts([...products, productWithBusinessId]);
+
       // Send to API if online
       if (isOnline && user?.token) {
         try {
@@ -296,13 +298,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
           refetchProducts();
         } catch (error) {
           console.warn("Failed to save product to API:", error);
-          // Enqueue for later sync
-          enqueueAction({
-            endpoint: "/products/new",
-            method: "POST",
-            payload: productWithBusinessId,
-            type: "addProduct",
-          });
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: "/products/new",
+              method: "POST",
+              payload: productWithBusinessId,
+              type: "addProduct",
+            });
+          } else {
+            // For API errors, remove from local state since sync failed
+            setProducts(products.filter((p) => p.id !== product.id));
+            throw error; // Re-throw so caller can handle it
+          }
         }
       } else {
         // Offline: enqueue action
@@ -357,13 +365,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           refetchProducts();
         } catch (error) {
           console.warn("Failed to update product in API:", error);
-          // Enqueue for later sync
-          enqueueAction({
-            endpoint: `/products/${id}/update`,
-            method: "PUT",
-            payload: productWithBusinessId,
-            type: "updateProduct",
-          });
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: `/products/${id}/update`,
+              method: "PUT",
+              payload: productWithBusinessId,
+              type: "updateProduct",
+            });
+          } else {
+            throw error; // Re-throw so caller can handle it
+          }
         }
       } else {
         // Offline: enqueue action
@@ -410,13 +422,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
           refetchSuppliers();
         } catch (error) {
           console.warn("Failed to save supplier to API:", error);
-          // Enqueue for later sync
-          enqueueAction({
-            endpoint: "/suppliers/create",
-            method: "POST",
-            payload: supplierWithBusinessId,
-            type: "addSupplier",
-          });
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: "/suppliers/create",
+              method: "POST",
+              payload: supplierWithBusinessId,
+              type: "addSupplier",
+            });
+          } else {
+            setSuppliers(suppliers.filter((s) => s.id !== supplier.id));
+            throw error; // Re-throw so caller can handle it
+          }
         }
       } else {
         // Offline: enqueue action
@@ -471,13 +488,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           refetchSuppliers();
         } catch (error) {
           console.warn("Failed to update supplier in API:", error);
-          // Enqueue for later sync
-          enqueueAction({
-            endpoint: `/suppliers/${id}/update`,
-            method: "PUT",
-            payload: supplierWithBusinessId,
-            type: "updateSupplier",
-          });
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: `/suppliers/${id}/update`,
+              method: "PUT",
+              payload: supplierWithBusinessId,
+              type: "updateSupplier",
+            });
+          } else {
+            throw error; // Re-throw so caller can handle it
+          }
         }
       } else {
         // Offline: enqueue action
@@ -541,13 +562,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           refetchSales();
         } catch (error) {
           console.warn("Failed to save sale to API:", error);
-          // Enqueue for later sync
-          enqueueAction({
-            endpoint: "/sales/create",
-            method: "POST",
-            payload: saleWithBusinessId,
-            type: "addSale",
-          });
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: "/sales/create",
+              method: "POST",
+              payload: saleWithBusinessId,
+              type: "addSale",
+            });
+          } else {
+            throw error; // Re-throw so caller can handle it
+          }
         }
       } else {
         // Offline: enqueue action
@@ -611,13 +636,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           refetchInventory();
         } catch (error) {
           console.warn("Failed to save stock movement to API:", error);
-          // Enqueue for later sync
-          enqueueAction({
-            endpoint: "/inventory/movement",
-            method: "POST",
-            payload: movementWithBusinessId,
-            type: "addStockMovement",
-          });
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: "/inventory/movement",
+              method: "POST",
+              payload: movementWithBusinessId,
+              type: "addStockMovement",
+            });
+          } else {
+            throw error; // Re-throw so caller can handle it
+          }
         }
       } else {
         // Offline: enqueue action

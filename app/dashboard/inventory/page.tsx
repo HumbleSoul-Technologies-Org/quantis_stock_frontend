@@ -177,9 +177,12 @@ function InventoryPageContent() {
       });
   }, [safeStockMovements]);
 
-  // Filter movement history (currently showing all types, include stock out and adjustments)
+  // Filter movement history (only stock in movements)
   const filteredStockInHistory = useMemo(() => {
     return sortedMovements.filter((movement: StockMovement) => {
+      // Only include stock in movements
+      if (movement.type !== "in") return false;
+
       const matchesProduct =
         !historyProductFilter || movement.productId === historyProductFilter;
 
@@ -222,6 +225,27 @@ function InventoryPageContent() {
     0,
   );
   const totalStockInTransactions = filteredStockInHistory.length;
+
+  // Calculate stock out summary stats
+  const stockOutMovements = useMemo(() => {
+    return sortedMovements.filter((m: StockMovement) => m.type === "out");
+  }, [sortedMovements]);
+
+  const totalUnitsStockedOut = stockOutMovements.reduce(
+    (sum: number, m: any) => sum + (m.quantity || 0),
+    0,
+  );
+
+  const lastStockOut =
+    stockOutMovements.length > 0 ? stockOutMovements[0] : null;
+  const lastStockOutDate = lastStockOut
+    ? new Date(lastStockOut.createdAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "N/A";
+  const lastStockOutReason = lastStockOut?.reason || "No reason provided";
 
   return (
     <div className="space-y-8">
@@ -493,6 +517,69 @@ function InventoryPageContent() {
                 </div>
                 <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-lg">
                   <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stock Outs Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-6 border-t border-gray-200 dark:border-slate-700 mt-6">
+          <Card className="border-2 border-red-200 dark:border-red-700 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">
+                    Total Units Stocked Out
+                  </p>
+                  <p className="text-4xl font-bold text-red-700 dark:text-red-300">
+                    {totalUnitsStockedOut.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-3">
+                    Total outgoing stock
+                  </p>
+                </div>
+                <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-lg">
+                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-orange-200 dark:border-orange-700 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">
+                    Last Stock Out Date
+                  </p>
+                  <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                    {lastStockOutDate}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-3">
+                    Most recent outgoing
+                  </p>
+                </div>
+                <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-lg">
+                  <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-rose-200 dark:border-rose-700 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex flex-col h-full justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">
+                    Last Stock Out Reason
+                  </p>
+                  <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 line-clamp-3">
+                    {lastStockOutReason}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-3">
+                    Reason for last outgoing
+                  </p>
                 </div>
               </div>
             </CardContent>

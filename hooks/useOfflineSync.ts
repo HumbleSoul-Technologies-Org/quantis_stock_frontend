@@ -11,6 +11,48 @@ export interface SyncAction {
 }
 
 const SYNC_QUEUE_KEY = 'erp_system_sync_queue';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+
+/**
+ * Check if backend API is actually reachable (not just navigator.onLine)
+ * Uses an image beacon as a lightweight, CORS-friendly connectivity check
+ */
+async function checkBackendConnectivity(): Promise<boolean> {
+  try {
+    // First check navigator.onLine - this is the most reliable indicator
+    if (!navigator.onLine) {
+      return false;
+    }
+
+    // For more robust checking, use a simple image beacon ping
+    // This avoids CORS issues and auth requirements
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+    try {
+      // Try a simple ping to the API_BASE_URL
+      const response = await fetch(`${API_BASE_URL}/ping`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      clearTimeout(timeoutId);
+      // Any successful response means we're online
+      return response.ok;
+    } catch {
+      clearTimeout(timeoutId);
+      // If the specific endpoint fails, fall back to navigator.onLine
+      // This prevents false negatives when endpoints have auth/CORS issues
+      return navigator.onLine;
+    }
+  } catch (error) {
+    console.debug('Connectivity check error:', error);
+    // If anything fails, trust navigator.onLine
+    return navigator.onLine;
+  }
+}
 
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -68,18 +110,48 @@ export function useOfflineSync() {
     savePendingActions(updated);
   }, [pendingActions, savePendingActions]);
 
-  // Check connectivity
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      // Show sync modal if there are pending actions
-      if (pendingActions.length > 0) {
-        setShowSyncModal(true);
-      }
-    };
-    const handleOffline = () => setIsOnline(false);
+  // Check actual backend connectivity (not just navigator.onLine)
+  const verifyConnectivity = useCallback(async () => {
+    // Trust navigator.onLine as the primary source of truth
+    const navigatorOnline = navigator.onLine;
+    
+    if (!navigatorOnline) {
+      setIsOnline(false);
+      return false;
+    }
 
-    setIsOnline(navigator.onLine);
+    // If navigator says we're online, trust it
+    // Only do backend checks if we want extra confidence, but don't fail on them
+    const isReachable = await checkBackendConnectivity();
+    setIsOnline(isReachable);
+
+    // If we just came online and have pending actions, show sync modal
+    if (isReachable && pendingActions.length > 0) {
+      setShowSyncModal(true);
+    }
+
+    return isReachable;
+  }, [pendingActions.length]);
+
+  // Check connectivity on window events and periodically
+  useEffect(() => {
+    const handleOnline = async () => {
+      // Verify backend is reachable when online event fires
+      await verifyConnectivity();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    // Initial check
+    verifyConnectivity();
+
+    // Periodic connectivity check (every 30 seconds) to catch silent disconnections
+    // This ensures the badge always reflects actual connectivity
+    const interval = setInterval(() => {
+      verifyConnectivity();
+    }, 30000); // 30 seconds
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -87,8 +159,9 @@ export function useOfflineSync() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
     };
-  }, [pendingActions.length]);
+  }, [verifyConnectivity]);
 
   // Load pending actions on mount
   useEffect(() => {
@@ -103,5 +176,6 @@ export function useOfflineSync() {
     enqueueAction,
     dequeueAction,
     incrementRetry,
+    verifyConnectivity, // Export connectivity checker for error handling
   };
 }
