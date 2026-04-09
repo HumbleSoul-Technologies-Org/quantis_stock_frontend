@@ -107,6 +107,10 @@ export function NotificationSidebar({
 
   if (!isOpen) return null;
 
+  // const filterdNotifications = notifications.filter((n) => {
+  //   return !n.readBy?.includes((user?._id as string) || (user?.id as string));
+  // });
+
   return (
     <>
       {/* Overlay */}
@@ -119,7 +123,7 @@ export function NotificationSidebar({
       <div className="fixed right-0 top-0 h-screen w-96 bg-white dark:bg-slate-800 shadow-lg z-50 flex flex-col border-l border-gray-200 dark:border-slate-700">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg flex items-center justify-center gap-2 font-bold text-gray-900 dark:text-white">
             Notifications
             {getUnreadCount() > 0 && (
               <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -170,13 +174,15 @@ export function NotificationSidebar({
             </div>
           ) : (
             <div className="space-y-2 p-4">
-              {notifications.map((notification) => (
+              {notifications.map((notification, index) => (
                 <Card
-                  key={notification.id}
+                  key={index} // Fallback to index if id is missing
                   className={`border p-3 cursor-pointer transition-all ${getNotificationColor(
                     notification.type,
-                  )} ${notification.read ? "opacity-60" : "opacity-100"}`}
-                  onClick={() => markAsRead(notification.id)}
+                  )} ${notification.readBy?.includes((user?._id as string) || (user?.id as string)) ? "opacity-60" : "opacity-100"}`}
+                  onClick={() =>
+                    markAsRead(notification.id || notification._id || "")
+                  }
                 >
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 mt-0.5">
@@ -192,7 +198,9 @@ export function NotificationSidebar({
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeNotification(notification.id);
+                            removeNotification(
+                              notification.id || notification._id || "",
+                            );
                           }}
                           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
                         >
@@ -203,7 +211,9 @@ export function NotificationSidebar({
                         {notification.message}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                        {format(notification.createdAt, "MMM dd, p")}
+                        {notification.createdAt
+                          ? format(notification.createdAt, "MMM dd, p")
+                          : ""}
                       </p>
                       {!notification.read && (
                         <div className="mt-2 w-2 h-2 bg-blue-500 rounded-full" />

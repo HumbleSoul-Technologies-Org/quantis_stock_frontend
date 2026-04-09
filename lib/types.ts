@@ -311,18 +311,22 @@ export type NotificationType = 'low_stock' | 'stock_out' | 'new_sale' | 'new_pro
 export type NotificationPriority = 'high' | 'medium' | 'low';
 
 export interface Notification {
-  id: string;
+  id?: string;
+  _id?: string; // For backward compatibility with older notification objects
   type: NotificationType;
   title: string;
   message: string;
   priority: NotificationPriority;
-  createdAt: Date;
+  createdAt?: Date;
   read: boolean;
   actionUrl?: string;
   actionLabel?: string;
   productId?: string;
   saleId?: string;
   metadata?: Record<string, any>;
+  userId?: string; // For user-specific notifications
+  businessId?: string; // For business-wide notifications
+  readBy?: string[]; // Array of user IDs who have read this notification
 }
 
 // Report Types

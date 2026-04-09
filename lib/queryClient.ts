@@ -141,9 +141,9 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false, // Disable global polling; set per-query instead
+      refetchInterval: 5000,  
       refetchOnWindowFocus: false,
-      staleTime: 60000, // 60 seconds - data doesn't need constant refresh
+      staleTime: 5000, // 5 seconds - data doesn't need constant refresh
       retry: 2,
     },
     mutations: {
