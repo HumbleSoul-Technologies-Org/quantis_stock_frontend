@@ -36,7 +36,7 @@ const apiSuppliers = async (token?: string, businessId?: string) => {
   return null;
 };
 
-const apiProducts = async (token?: string) => {
+const apiProducts = async (token?: string, businessId?: string) => {
   try {
     const response = await apiRequest(
       "GET",
@@ -44,12 +44,14 @@ const apiProducts = async (token?: string) => {
       {
         limit: 20,
         status: "active",
+        ...(businessId ? { businessId } : {}),
       },
       token,
     );
 
     if (response.ok) {
       const data = await response.json();
+
       return data || [];
     }
   } catch (error) {
@@ -58,7 +60,7 @@ const apiProducts = async (token?: string) => {
   return null;
 };
 
-const apiInventory = async (token?: string) => {
+const apiInventory = async (token?: string, businessId?: string) => {
   try {
     const response = await apiRequest(
       "GET",
@@ -66,6 +68,7 @@ const apiInventory = async (token?: string) => {
       {
         limit: 100,
         status: "active",
+        ...(businessId ? { businessId } : {}),
       },
       token,
     );
@@ -80,7 +83,7 @@ const apiInventory = async (token?: string) => {
   return null;
 };
 
-const apiSales = async (token?: string) => {
+const apiSales = async (token?: string, businessId?: string) => {
   try {
     const response = await apiRequest(
       "GET",
@@ -88,6 +91,7 @@ const apiSales = async (token?: string) => {
       {
         limit: 100,
         status: "active",
+        ...(businessId ? { businessId } : {}),
       },
       token,
     );
@@ -186,7 +190,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Poll products from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: productsData, refetch: refetchProducts } = useQuery({
     queryKey: ["products", user?.businessId],
-    queryFn: () => apiProducts(user?.token),
+    queryFn: () => apiProducts(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5
@@ -195,8 +199,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Poll inventory movements from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: inventoryData, refetch: refetchInventory } = useQuery({
     queryKey: ["inventory", "movements", user?.businessId],
-    queryFn: () => apiInventory(user?.token),
-    enabled: !!user?.token && isInitialized,
+    queryFn: () => apiInventory(user?.token, user?.businessId),
+    enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5
   });
@@ -204,7 +208,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Poll sales from API every 60 seconds (reduced from 5s to prevent server overload)
   const { data: salesData, refetch: refetchSales } = useQuery({
     queryKey: ["sales", user?.businessId],
-    queryFn: () => apiSales(user?.token),
+    queryFn: () => apiSales(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
     refetchInterval: 60000, // Poll every 60 seconds instead of 5

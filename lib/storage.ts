@@ -261,6 +261,7 @@ class StorageService {
     state.currentUser = null;
     this.saveState(state);
     localStorage.removeItem(STORAGE_KEY);
+    // localStorage.removeItem('erp_system_sync_queue');  
   }
 
   getCurrentUser(): User | null {

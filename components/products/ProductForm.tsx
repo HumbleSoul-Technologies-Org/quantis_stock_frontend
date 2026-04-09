@@ -473,7 +473,10 @@ export function ProductForm({
           >
             <option value="">Select supplier</option>
             {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
+              <option
+                key={supplier.id || supplier._id}
+                value={supplier.id || supplier._id}
+              >
                 {supplier.name}
               </option>
             ))}

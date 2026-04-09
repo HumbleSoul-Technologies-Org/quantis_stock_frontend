@@ -37,7 +37,10 @@ function ProductsPageContent() {
 
   const handleAddProduct = (product: Product) => {
     if (editingProduct) {
-      updateProduct(editingProduct?.id, product);
+      updateProduct(
+        (editingProduct.id as string) || (editingProduct._id as string),
+        product,
+      );
       notifyResourceUpdated("Product", product.name);
     } else {
       addProduct(product);
