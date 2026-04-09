@@ -63,9 +63,6 @@ export function SupplierForm({
       : "",
   );
 
-  const [productsSupplied, setProductsSupplied] = useState(
-    supplier?.name || "",
-  );
   const [supplyContact, setSupplyContact] = useState(
     supplier?.contact?.primaryContact || "",
   );
@@ -127,8 +124,6 @@ export function SupplierForm({
           "Enter street, city, and country separated by commas";
       }
     }
-    if (!productsSupplied.trim())
-      newErrors.productsSupplied = "Products supplied is required";
     if (!supplyContact.trim())
       newErrors.supplyContact = "Supply contact name is required";
 
@@ -335,28 +330,6 @@ export function SupplierForm({
             placeholder="https://example.com"
             className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
           />
-        </div>
-
-        <div className="md:col-span-2 hidden">
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            Products Supplied *
-          </label>
-          <Input
-            disabled={true}
-            value={productsSupplied}
-            onChange={(e) => setProductsSupplied(e.target.value)}
-            placeholder="Comma-separated product SKUs or names"
-            className={
-              errors.productsSupplied
-                ? "border-red-500"
-                : "border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
-            }
-          />
-          {errors.productsSupplied && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.productsSupplied}
-            </p>
-          )}
         </div>
 
         <div>
