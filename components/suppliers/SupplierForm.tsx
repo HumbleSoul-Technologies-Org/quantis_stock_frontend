@@ -183,7 +183,7 @@ export function SupplierForm({
         },
       };
 
-      if ((supplier && supplier.id) || supplier?._id) {
+      if (supplier?._id || supplier?.id) {
         // For updates, create the updated supplier object
         const updatedSupplier: Supplier = {
           ...supplier,
