@@ -110,15 +110,15 @@ const apiSales = async (token?: string, businessId?: string) => {
 interface DataContextType {
   // Products
   products: Product[];
-  addProduct: (product: Product) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
+  addProduct: (product: Product) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => void;
 
   // Suppliers
   suppliers: Supplier[];
-  addSupplier: (supplier: Supplier) => void;
-  updateSupplier: (id: string, supplier: Partial<Supplier>) => void;
-  deleteSupplier: (id: string) => void;
+  addSupplier: (supplier: Supplier) => Promise<void>;
+  updateSupplier: (id: string, supplier: Partial<Supplier>) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
 
   // Sales
   sales: Sale[];

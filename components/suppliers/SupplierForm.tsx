@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { AlertCircle } from "lucide-react";
 import { uploadFile } from "@/lib/cloudinary";
@@ -10,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 
 interface SupplierFormProps {
   supplier?: Supplier;
-  onSubmit: (supplier: Supplier) => void;
+  onSubmit: (supplier: Supplier) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -191,7 +192,7 @@ export function SupplierForm({
           id: supplier.id || supplier._id || "", // Ensure we have an id for updates
           updatedAt: new Date().toISOString(),
         };
-        onSubmit(updatedSupplier);
+        await onSubmit(updatedSupplier);
       } else {
         // For new suppliers, create the supplier object
         const newSupplier: Supplier = {
@@ -200,7 +201,7 @@ export function SupplierForm({
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        onSubmit(newSupplier);
+        await onSubmit(newSupplier);
       }
     } catch (error) {
       console.error("Failed to save supplier:", error);
@@ -524,6 +525,7 @@ export function SupplierForm({
             <Input
               type="file"
               onChange={handleFileUpload}
+              disabled={isSubmitting}
               className="border-green-200 dark:border-teal-700 cursor-pointer dark:bg-slate-700 dark:text-slate-50"
             />
             {uploadedFile && (
@@ -541,14 +543,25 @@ export function SupplierForm({
       <div className="flex gap-2 pt-4">
         <Button
           type="submit"
+          disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
-          {supplier ? "Update Supplier" : "Add Supplier"}
+          {isSubmitting ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              {supplier ? "Updating Supplier..." : "Adding Supplier..."}
+            </>
+          ) : supplier ? (
+            "Update Supplier"
+          ) : (
+            "Add Supplier"
+          )}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
+          disabled={isSubmitting}
           className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           Cancel

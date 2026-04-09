@@ -35,15 +35,15 @@ function ProductsPageContent() {
     new Set(safeProducts.map((p) => p?.category || "")),
   ).filter(Boolean);
 
-  const handleAddProduct = (product: Product) => {
+  const handleAddProduct = async (product: Product) => {
     if (editingProduct) {
-      updateProduct(
+      await updateProduct(
         (editingProduct.id as string) || (editingProduct._id as string),
         product,
       );
       notifyResourceUpdated("Product", product.name);
     } else {
-      addProduct(product);
+      await addProduct(product);
       notifyResourceCreated("Product", product.name);
     }
     setShowDialog(false);

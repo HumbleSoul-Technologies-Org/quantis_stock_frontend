@@ -39,15 +39,15 @@ function SuppliersPageContent() {
       supplier.phone?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleAddSupplier = (supplier: Supplier) => {
+  const handleAddSupplier = async (supplier: Supplier) => {
     if (editingSupplier && (editingSupplier.id || editingSupplier._id)) {
       const supplierId = editingSupplier.id || editingSupplier._id;
       if (supplierId) {
-        updateSupplier(supplierId, supplier);
+        await updateSupplier(supplierId, supplier);
         notifyResourceUpdated("Supplier", supplier.name);
       }
     } else {
-      addSupplier(supplier);
+      await addSupplier(supplier);
       notifyResourceCreated("Supplier", supplier.name);
     }
     setShowDialog(false);

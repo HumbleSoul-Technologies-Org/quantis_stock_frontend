@@ -15,7 +15,7 @@ interface ProductDialogProps {
   product?: Product;
   suppliers: Supplier[];
   categories?: string[];
-  onSubmit: (product: Product) => void;
+  onSubmit: (product: Product) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -44,10 +44,7 @@ export function ProductDialog({
           product={product}
           suppliers={suppliers}
           categories={categories}
-          onSubmit={(newProduct) => {
-            onSubmit(newProduct);
-            onOpenChange(false);
-          }}
+          onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
         />
       </DialogContent>

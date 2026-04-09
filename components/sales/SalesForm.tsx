@@ -5,6 +5,7 @@ import { Sale, SaleItem, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { X, Plus, Trash2 } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
@@ -15,7 +16,7 @@ import Select from "react-select";
 
 interface SalesFormProps {
   products: Product[];
-  onSubmit: (sale: Sale) => void;
+  onSubmit: (sale: Sale) => Promise<void> | void;
   onCancel: () => void;
   currentUserId: string;
   currentUsername: string;
@@ -124,7 +125,7 @@ export function SalesForm({
         txnId: txnId || uuidv4(), // Use provided txnId or generate a unique one for cash sales
       };
 
-      onSubmit(sale);
+      await onSubmit(sale);
       setItems([]);
       setCustomerName("");
       setPaymentType("cash");
@@ -426,10 +427,17 @@ export function SalesForm({
           type="submit"
           className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Processing Sale..." : "Complete Sale"}
+          {isSubmitting ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              Processing Sale...
+            </>
+          ) : (
+            "Complete Sale"
+          )}
         </Button>
         <Button
-          disabled={user?.role === "accountant"}
+          disabled={user?.role === "accountant" || isSubmitting}
           type="button"
           variant="outline"
           onClick={() => {

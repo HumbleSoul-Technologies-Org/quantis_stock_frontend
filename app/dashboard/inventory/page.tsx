@@ -113,8 +113,8 @@ function InventoryPageContent() {
     });
   }, [products, searchTerm, categoryFilter, stockFilter]);
 
-  const handleAddMovement = (movement: any) => {
-    addStockMovement(movement);
+  const handleAddMovement = async (movement: any) => {
+    await addStockMovement(movement);
 
     const product = safeProducts.find(
       (p) => p?._id === movement.productId || p?.id === movement.productId,
@@ -402,8 +402,8 @@ function InventoryPageContent() {
             </DialogHeader>
             <StockMovementForm
               products={products}
-              onSubmit={(movement) => {
-                handleAddMovement(movement);
+              onSubmit={async (movement) => {
+                await handleAddMovement(movement);
                 setShowDialog(false);
                 setSelectedMovement(null);
                 setSelectedProductId("");

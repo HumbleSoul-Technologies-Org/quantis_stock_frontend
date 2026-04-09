@@ -1,13 +1,19 @@
-'use client';
+"use client";
 
-import { Sale, Product } from '@/lib/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { SalesForm } from './SalesForm';
+import { Sale, Product } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { SalesForm } from "./SalesForm";
 
 interface SalesDialogProps {
   isOpen: boolean;
   products: Product[];
-  onSubmit: (sale: Sale) => void;
+  onSubmit: (sale: Sale) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
   currentUserId: string;
   currentUsername: string;
@@ -27,13 +33,14 @@ export function SalesDialog({
         <DialogHeader>
           <DialogTitle>Create New Sale</DialogTitle>
           <DialogDescription>
-            Record a new sales transaction with customer details and payment information.
+            Record a new sales transaction with customer details and payment
+            information.
           </DialogDescription>
         </DialogHeader>
         <SalesForm
           products={products}
-          onSubmit={(sale) => {
-            onSubmit(sale);
+          onSubmit={async (sale) => {
+            await onSubmit(sale);
             onOpenChange(false);
           }}
           onCancel={() => onOpenChange(false)}

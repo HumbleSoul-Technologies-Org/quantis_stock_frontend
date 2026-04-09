@@ -1,13 +1,19 @@
-'use client';
+"use client";
 
-import { Supplier } from '@/lib/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { SupplierForm } from './SupplierForm';
+import { Supplier } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { SupplierForm } from "./SupplierForm";
 
 interface SupplierDialogProps {
   isOpen: boolean;
   supplier?: Supplier;
-  onSubmit: (supplier: Supplier) => void;
+  onSubmit: (supplier: Supplier) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -21,17 +27,18 @@ export function SupplierDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{supplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
+          <DialogTitle>
+            {supplier ? "Edit Supplier" : "Add New Supplier"}
+          </DialogTitle>
           <DialogDescription>
-            {supplier ? 'Update supplier details and contact information.' : 'Add a new supplier with contact details and products supplied.'}
+            {supplier
+              ? "Update supplier details and contact information."
+              : "Add a new supplier with contact details and products supplied."}
           </DialogDescription>
         </DialogHeader>
         <SupplierForm
           supplier={supplier}
-          onSubmit={(s) => {
-            onSubmit(s);
-            onOpenChange(false);
-          }}
+          onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
         />
       </DialogContent>

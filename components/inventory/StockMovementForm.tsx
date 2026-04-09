@@ -3,6 +3,7 @@
 import { useState, useEffect, useContext } from "react";
 import { StockMovement, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
@@ -11,7 +12,7 @@ import { ThemeContext } from "@/components/theme-provider";
 
 interface StockMovementFormProps {
   products: Product[];
-  onSubmit: (movement: StockMovement) => void;
+  onSubmit: (movement: StockMovement) => Promise<void> | void;
   onCancel: () => void;
   currentUserId: string;
   preselectedProductId?: string;
@@ -127,16 +128,10 @@ export function StockMovementForm({
     setErrors({});
 
     try {
-      if (!validateForm()) return;
-
-      const payload = {
-        productId: formData.productId,
-        type: formData.type,
-        quantity: parseInt(formData.quantity),
-        reason: formData.reason,
-        reference: formData.reference,
-        createdBy: currentUserId,
-      };
+      if (!validateForm()) {
+        setIsSubmitting(false);
+        return;
+      }
 
       const movement: StockMovement = {
         id: initialMovement?.id || "", // Will be set by the backend for new movements
@@ -148,7 +143,8 @@ export function StockMovementForm({
         createdBy: currentUserId,
         createdAt: initialMovement?.createdAt || new Date().toISOString(),
       };
-      onSubmit(movement);
+
+      await onSubmit(movement);
 
       // Only reset form in create mode
       if (!isEditMode) {
@@ -364,15 +360,24 @@ export function StockMovementForm({
           className="bg-green-600 hover:bg-green-700"
           disabled={isSubmitting}
         >
-          {isSubmitting
-            ? isEditMode
-              ? "Updating..."
-              : "Recording..."
-            : isEditMode
-              ? "Update Movement"
-              : "Record Movement"}
+          {isSubmitting ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              {isEditMode ? "Updating..." : "Recording..."}
+            </>
+          ) : isEditMode ? (
+            "Update Movement"
+          ) : (
+            "Record Movement"
+          )}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="disabled:opacity-50"
+        >
           Cancel
         </Button>
       </div>

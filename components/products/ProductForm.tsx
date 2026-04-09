@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { uploadImage } from "@/lib/cloudinary";
 import { useBusinessConfig } from "@/hooks/useBusinessConfig";
@@ -13,13 +14,12 @@ import {
 } from "@/lib/business-config";
 
 import { useAuth } from "@/context/AuthContext";
-import { on } from "events";
 
 interface ProductFormProps {
   product?: Product;
   suppliers: Supplier[];
   categories?: string[];
-  onSubmit: (product: Product) => void;
+  onSubmit: (product: Product) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -326,7 +326,7 @@ export function ProductForm({
           id: product.id || product._id || "",
           updatedAt: new Date().toISOString(),
         };
-        onSubmit(updatedProduct);
+        await onSubmit(updatedProduct);
       } else {
         // For new products, create the product object
         const newProduct: Product = {
@@ -335,7 +335,7 @@ export function ProductForm({
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        onSubmit(newProduct);
+        await onSubmit(newProduct);
       }
     } catch (error) {
       console.error("Failed to save product:", error);
@@ -393,15 +393,18 @@ export function ProductForm({
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
+            disabled={isSubmitting}
             className="hidden"
             id="product-image-upload"
           />
           <button
             type="button"
             onClick={() =>
+              !isSubmitting &&
               document.getElementById("product-image-upload")?.click()
             }
-            className="inline-flex items-center justify-center rounded-md border border-green-200 px-4 py-2 text-sm font-medium text-green-700 dark:text-teal-100 bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600"
+            disabled={isSubmitting}
+            className="inline-flex items-center justify-center rounded-md border border-green-200 px-4 py-2 text-sm font-medium text-green-700 dark:text-teal-100 bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Choose Image
           </button>
@@ -606,16 +609,22 @@ export function ProductForm({
           disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
-          {isSubmitting
-            ? "Saving Product..."
-            : product
-              ? "Update Product"
-              : "Add Product"}
+          {isSubmitting ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              {product ? "Updating Product..." : "Adding Product..."}
+            </>
+          ) : product ? (
+            "Update Product"
+          ) : (
+            "Add Product"
+          )}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
+          disabled={isSubmitting}
           className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           Cancel
