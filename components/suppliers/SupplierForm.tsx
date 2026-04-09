@@ -212,7 +212,7 @@ export function SupplierForm({
   };
 
   return (
-    <form className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {errors.general && (
         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -542,7 +542,7 @@ export function SupplierForm({
 
       <div className="flex gap-2 pt-4">
         <Button
-          onClick={handleSubmit}
+          type="submit"
           disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
         >
