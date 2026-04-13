@@ -39,22 +39,20 @@ function SuppliersPageContent() {
       supplier.phone?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleAddSupplier = async (supplier: Supplier) => {
+  const handleSaveSupplier = async (supplier: Supplier) => {
     try {
-      if (editingSupplier && (editingSupplier.id || editingSupplier._id)) {
-        const supplierId = editingSupplier.id || editingSupplier._id;
-        if (supplierId) {
-          await updateSupplier(supplierId, supplier);
-          notifyResourceUpdated("Supplier", supplier.name);
-        }
+      const supplierId = supplier.id ?? supplier._id;
+      if (supplierId) {
+        await updateSupplier(supplierId, supplier);
+        notifyResourceUpdated("Supplier", supplier.name);
       } else {
         await addSupplier(supplier);
         notifyResourceCreated("Supplier", supplier.name);
       }
     } catch (error) {
+      console.error("Failed to save supplier:", error);
     } finally {
       setShowDialog(false);
-      setEditingSupplier(undefined);
       setEditingSupplier(undefined);
     }
   };
@@ -84,7 +82,10 @@ function SuppliersPageContent() {
           </p>
         </div>
         <Button
-          onClick={() => setShowDialog(true)}
+          onClick={() => {
+            setEditingSupplier(undefined);
+            setShowDialog(true);
+          }}
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2"
           disabled={user?.role === "accountant"}
         >
@@ -114,9 +115,10 @@ function SuppliersPageContent() {
       />
 
       <SupplierDialog
+        key={editingSupplier?.id || editingSupplier?._id || "new"}
         isOpen={showDialog}
         onOpenChange={setShowDialog}
-        onSubmit={handleAddSupplier}
+        onSubmit={handleSaveSupplier}
         supplier={editingSupplier}
       />
     </div>

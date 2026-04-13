@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -20,15 +20,33 @@ export function SupplierForm({
   onSubmit,
   onCancel,
 }: SupplierFormProps) {
-  const [formData, setFormData] = useState<Partial<Supplier>>(
+  const getInitialFormState = (supplier?: Supplier): Partial<Supplier> =>
     supplier
       ? {
           ...supplier,
+          status: supplier.status || "active",
+          rating: supplier.rating ?? 0,
           address: {
             street: supplier.address?.street || "",
             city: supplier.address?.city || "",
             country: supplier.address?.country || "",
           },
+          contact: {
+            primaryContact: supplier.contact?.primaryContact || "",
+            primaryPhone: supplier.contact?.primaryPhone || "",
+            secondaryContact: supplier.contact?.secondaryContact || "",
+            secondaryPhone: supplier.contact?.secondaryPhone || "",
+          },
+          payment: {
+            bankDetails: supplier.payment?.bankDetails || "",
+            taxId: supplier.payment?.taxId || "",
+          },
+          contract: supplier.contract || {
+            url: supplier.documentUrl || "",
+            public_id: supplier.documentPublicId || "",
+          },
+          documentUrl: supplier.documentUrl || "",
+          documentPublicId: supplier.documentPublicId || "",
         }
       : {
           name: "",
@@ -48,7 +66,13 @@ export function SupplierForm({
           status: "active",
           rating: 0,
           notes: "",
-        },
+          contract: { url: "", public_id: "" },
+          documentUrl: "",
+          documentPublicId: "",
+        };
+
+  const [formData, setFormData] = useState<Partial<Supplier>>(
+    getInitialFormState(supplier),
   );
 
   const [addressText, setAddressText] = useState(
@@ -77,6 +101,26 @@ export function SupplierForm({
     useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setFormData(getInitialFormState(supplier));
+    setAddressText(
+      supplier
+        ? [
+            supplier.address?.street,
+            supplier.address?.city,
+            supplier.address?.country,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : "",
+    );
+    setSupplyContact(supplier?.contact?.primaryContact || "");
+    setDocumentUrl(supplier?.documentUrl || "");
+    setDocumentPublicId(supplier?.documentPublicId || "");
+    setUploadedFile("");
+    setErrors({});
+  }, [supplier]);
 
   const { user } = useAuth();
 
@@ -169,13 +213,26 @@ export function SupplierForm({
           taxId: formData.payment?.taxId || "",
         },
         website: formData.website || "",
-        products: [],
-        status: (formData.status as any) || "active",
-        rating: formData.rating || 0,
-        notes: formData.notes || "",
+        products: formData.products?.length
+          ? formData.products
+          : supplier?.products || [],
+        status:
+          (formData.status as Supplier["status"]) ||
+          supplier?.status ||
+          "active",
+        rating: formData.rating ?? supplier?.rating ?? 0,
+        notes: formData.notes || supplier?.notes || "",
         contract: {
-          url: documentUrl || formData?.contract?.url || "",
-          public_id: documentPublicId || formData?.contract?.public_id || "",
+          url:
+            documentUrl ||
+            formData?.contract?.url ||
+            supplier?.contract?.url ||
+            "",
+          public_id:
+            documentPublicId ||
+            formData?.contract?.public_id ||
+            supplier?.contract?.public_id ||
+            "",
         },
       };
 
