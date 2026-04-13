@@ -3,7 +3,13 @@
 import { Sale, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Printer, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Printer,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
@@ -13,9 +19,15 @@ interface SalesTableProps {
   sales: Sale[];
   products: Product[];
   onDelete: (id: string) => void;
+  onReturn?: (sale: Sale) => void;
 }
 
-export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
+export function SalesTable({
+  sales,
+  products,
+  onDelete,
+  onReturn,
+}: SalesTableProps) {
   const { formatCurrency } = useSettings();
   const { user } = useAuth();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
@@ -224,6 +236,24 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                           </p>
                         </div>
                       )}
+                      {sale.returnStatus && sale.returnStatus !== "none" && (
+                        <div>
+                          <p className="font-medium text-gray-700">
+                            Return Status
+                          </p>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium capitalize ${
+                              sale.returnStatus === "returned"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-orange-100 text-orange-700"
+                            }`}
+                          >
+                            {sale.returnStatus === "returned"
+                              ? "Fully Returned"
+                              : "Partially Returned"}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Items Table */}
@@ -297,7 +327,18 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                         <Printer className="w-4 h-4" />
                         Print
                       </Button>
-                      {user &&
+                      {onReturn && sale.returnStatus !== "returned" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onReturn(sale)}
+                          className="text-orange-600 hover:bg-orange-50 gap-1"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Return
+                        </Button>
+                      )}
+                      {/* {user &&
                         (user.role === "admin" || user.role === "manager") && (
                           <Button
                             size="sm"
@@ -308,7 +349,7 @@ export function SalesTable({ sales, products, onDelete }: SalesTableProps) {
                             <Trash2 className="w-4 h-4" />
                             Delete
                           </Button>
-                        )}
+                        )} */}
                     </div>
                   </div>
                 )}

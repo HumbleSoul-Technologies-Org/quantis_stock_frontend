@@ -1,4 +1,4 @@
-import { AppState, User, Product, Supplier, Sale, StockMovement, AppSettings } from './types';
+import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement, AppSettings } from './types';
 
  
   
@@ -107,6 +107,7 @@ const DEFAULT_STATE: AppState = {
   products: [], // Start with empty array, load from API later
   suppliers: [], // Start with empty array, load from API later
   sales: [],
+  saleReturns: [], // Add sale returns tracking
   stockMovements: [],
   settings: DEFAULT_SETTINGS,
 };
@@ -186,6 +187,7 @@ class StorageService {
         products: parsed.products || [],
         suppliers: parsed.suppliers || [],
         sales: parsed.sales || [],
+        saleReturns: parsed.saleReturns || [], // Add sale returns tracking
         stockMovements: parsed.stockMovements || [],
         settings: {
           ...DEFAULT_SETTINGS,
@@ -200,6 +202,7 @@ class StorageService {
         products: [],
         suppliers: [],
         sales: [],
+        saleReturns: [], // Add sale returns tracking
         stockMovements: [],
         settings: DEFAULT_SETTINGS,
       };
@@ -419,6 +422,68 @@ class StorageService {
   deleteSale(id: string): void {
     const state = this.getState();
     state.sales = state.sales.filter((s) => s.id !== id && s._id !== id);
+    this.saveState(state);
+  }
+
+  // Sale Returns
+  getSaleReturns(): SaleReturn[] {
+    return this.getState().saleReturns;
+  }
+
+  processSaleReturn(saleReturn: SaleReturn): void {
+    const state = this.getState();
+    
+    // Find the original sale to validate return quantities
+    const originalSale = state.sales.find((s) => s.id === saleReturn.saleId || s._id === saleReturn.saleId);
+    if (!originalSale) {
+      throw new Error(`Original sale ${saleReturn.saleId} not found`);
+    }
+
+    // Validate return quantities don't exceed sold quantities
+    saleReturn.items.forEach((returnItem) => {
+      const originalItem = originalSale.items.find((item) => item.productId === returnItem.productId);
+      if (!originalItem) {
+        throw new Error(`Product ${returnItem.productId} was not part of the original sale`);
+      }
+      if (returnItem.quantity > originalItem.quantity) {
+        throw new Error(`Cannot return more than ${originalItem.quantity} units of product ${returnItem.productId}`);
+      }
+    });
+
+    // Add the return record
+    state.saleReturns.push(saleReturn);
+
+    // Update product stock and create stock movements
+    saleReturn.items.forEach((item) => {
+      const product = state.products.find((p:any) => p.id === item.productId || p._id === item.productId);
+      if (product) {
+        product.currentStock += item.quantity;
+
+        // Add stock movement for return
+        const movement: StockMovement = {
+          id: Math.random().toString(36).substr(2, 9),
+          productId: item.productId,
+          type: 'in',
+          quantity: item.quantity,
+          reason: 'Return',
+          reference: saleReturn.reference || originalSale.saleNumber,
+          createdBy: state.currentUser?.id || 'system',
+          createdAt: new Date().toISOString(),
+        };
+        state.stockMovements.push(movement);
+      }
+    });
+
+    // Update sale return status
+    const totalReturnedQuantity = saleReturn.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalSoldQuantity = originalSale.items.reduce((sum, item) => sum + item.quantity, 0);
+    
+    if (totalReturnedQuantity >= totalSoldQuantity) {
+      originalSale.returnStatus = 'returned';
+    } else {
+      originalSale.returnStatus = 'partial';
+    }
+
     this.saveState(state);
   }
 

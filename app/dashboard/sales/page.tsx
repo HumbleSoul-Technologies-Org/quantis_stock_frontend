@@ -8,6 +8,7 @@ import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { ClientOnly } from "@/components/client-only";
 import { SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
+import { SalesReturnDialog } from "@/components/sales/SalesReturnDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 
 function SalesPageContent() {
-  const { products, sales, addSale, deleteSale } = useData();
+  const { products, sales, addSale, deleteSale, processSaleReturn } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
   const { notifyResourceCreated, notifyResourceDeleted, notifySuccess } =
@@ -38,6 +39,10 @@ function SalesPageContent() {
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterProductName, setFilterProductName] = useState("");
   const [filterCustomerName, setFilterCustomerName] = useState("");
+
+  // Return dialog state
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedSaleForReturn, setSelectedSaleForReturn] = useState<any>(null);
 
   const handleAddSale = async (sale: any) => {
     await addSale(sale);
@@ -53,6 +58,19 @@ function SalesPageContent() {
     if (!sale) return;
     deleteSale(id);
     notifyResourceDeleted("Sale", sale.saleNumber || "Unknown");
+  };
+
+  const handleReturnSale = (sale: any) => {
+    setSelectedSaleForReturn(sale);
+    setReturnDialogOpen(true);
+  };
+
+  const handleProcessReturn = async (saleReturn: any) => {
+    await processSaleReturn(saleReturn);
+    notifySuccess(
+      "Return Processed",
+      `Return ${saleReturn.reference} recorded for ${formatCurrency(saleReturn.totalAmount)}`,
+    );
   };
 
   const userSales =
@@ -393,6 +411,19 @@ function SalesPageContent() {
         sales={filteredSales}
         products={safeProducts}
         onDelete={handleDeleteSale}
+        onReturn={handleReturnSale}
+      />
+
+      {/* Return Dialog */}
+      <SalesReturnDialog
+        isOpen={returnDialogOpen}
+        onClose={() => {
+          setReturnDialogOpen(false);
+          setSelectedSaleForReturn(null);
+        }}
+        onSubmit={handleProcessReturn}
+        sale={selectedSaleForReturn}
+        products={safeProducts}
       />
     </div>
   );

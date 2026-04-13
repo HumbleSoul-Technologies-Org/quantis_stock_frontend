@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function Sidebar() {
-  const { user } = useAuth();
+  const { user, business } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -125,7 +125,7 @@ export function Sidebar() {
       >
         <div className="p-4 lg:p-6 mt-14 lg:mt-0">
           <h1 className="text-2xl font-bold text-green-700 dark:text-green-300">
-            StockOS
+            {business ? business?.businessName : "StockOS"}
           </h1>
           <p className="text-sm text-green-600 dark:text-teal-400 mt-1">
             Stock Management

@@ -164,12 +164,38 @@ export interface Sale {
   customerName?: string;
   paymentType?: string;
   txnId?: string;
+  returnStatus?: 'none' | 'partial' | 'returned'; // Track return status
 }
 
 export interface SaleItem {
   productId: string;
   quantity: number;
   unitPrice: number;
+  total: number;
+}
+
+// Sales Return Types
+export interface SaleReturn {
+  id: string;
+  _id?: string; // For backward compatibility with older return objects
+  saleId: string; // Reference to the original sale
+  items: SaleReturnItem[];
+  totalAmount: number;
+  reason?: string; // Reason for return (e.g., "Defective", "Wrong item", "Customer change of mind")
+  notes?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  businessId?: string; // Business isolation (optional during transition)
+  createdBy: string;
+  createdAt: string;
+  reference?: string; // Return reference number
+  refundAmount?: number; // Amount refunded to customer
+  refundMethod?: string; // Payment method used for refund
+}
+
+export interface SaleReturnItem {
+  productId: string;
+  quantity: number;
+  unitPrice: number; // Unit price at time of return (may differ from sale price)
   total: number;
 }
 
@@ -355,6 +381,7 @@ export interface AppState {
   products: Product[] | any;
   suppliers: Supplier[] | any;
   sales: Sale[];
+  saleReturns: SaleReturn[]; // Add sale returns tracking
   stockMovements: StockMovement[];
   settings: AppSettings;
 }

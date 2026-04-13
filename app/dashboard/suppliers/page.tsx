@@ -40,18 +40,23 @@ function SuppliersPageContent() {
   );
 
   const handleAddSupplier = async (supplier: Supplier) => {
-    if (editingSupplier && (editingSupplier.id || editingSupplier._id)) {
-      const supplierId = editingSupplier.id || editingSupplier._id;
-      if (supplierId) {
-        await updateSupplier(supplierId, supplier);
-        notifyResourceUpdated("Supplier", supplier.name);
+    try {
+      if (editingSupplier && (editingSupplier.id || editingSupplier._id)) {
+        const supplierId = editingSupplier.id || editingSupplier._id;
+        if (supplierId) {
+          await updateSupplier(supplierId, supplier);
+          notifyResourceUpdated("Supplier", supplier.name);
+        }
+      } else {
+        await addSupplier(supplier);
+        notifyResourceCreated("Supplier", supplier.name);
       }
-    } else {
-      await addSupplier(supplier);
-      notifyResourceCreated("Supplier", supplier.name);
+    } catch (error) {
+    } finally {
+      setShowDialog(false);
+      setEditingSupplier(undefined);
+      setEditingSupplier(undefined);
     }
-    setShowDialog(false);
-    setEditingSupplier(undefined);
   };
 
   const handleDeleteSupplier = (id: string) => {

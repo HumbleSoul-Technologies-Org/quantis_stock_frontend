@@ -8,7 +8,13 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { Product, Supplier, Sale, StockMovement } from "@/lib/types";
+import {
+  Product,
+  Supplier,
+  Sale,
+  SaleReturn,
+  StockMovement,
+} from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -125,6 +131,7 @@ interface DataContextType {
   addSale: (sale: Sale) => Promise<void>;
   updateSale: (id: string, sale: Partial<Sale>) => void;
   deleteSale: (id: string) => void;
+  processSaleReturn: (saleReturn: SaleReturn) => Promise<void>;
 
   // Stock Movements
   stockMovements: StockMovement[];
@@ -185,7 +192,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiSuppliers(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
-    refetchInterval: 60000, // Poll every 60 seconds instead of 5
+    refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
   // Poll products from API every 60 seconds (reduced from 5s to prevent server overload)
@@ -194,7 +201,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiProducts(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
-    refetchInterval: 60000, // Poll every 60 seconds instead of 5
+    refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
   // Poll inventory movements from API every 60 seconds (reduced from 5s to prevent server overload)
@@ -203,7 +210,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiInventory(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
-    refetchInterval: 60000, // Poll every 60 seconds instead of 5
+    refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
   // Poll sales from API every 60 seconds (reduced from 5s to prevent server overload)
@@ -212,7 +219,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiSales(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 60000, // 60 seconds before data is considered stale
-    refetchInterval: 60000, // Poll every 60 seconds instead of 5
+    refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
   // Update state when API data changes
@@ -525,9 +532,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       try {
         await apiRequest("DELETE", `/suppliers/${id}/delete`, {}, user?.token);
       } catch (error) {
-        console.log("====================================");
-        console.log(error);
-        console.log("====================================");
+        console.warn("Failed to delete supplier from API:", error);
       } finally {
         storage.deleteSupplier(id);
         setSuppliers(
@@ -610,6 +615,64 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSales(sales.filter((s) => s.id !== id || (s as any)._id !== id));
     },
     [sales],
+  );
+
+  // Sale Returns
+  const processSaleReturn = useCallback(
+    async (saleReturn: SaleReturn) => {
+      // Ensure businessId is included
+      const returnWithBusinessId = {
+        ...saleReturn,
+        businessId: saleReturn.businessId || user?.businessId,
+      };
+
+      storage.processSaleReturn(returnWithBusinessId);
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest(
+            "POST",
+            "/sales/return",
+            returnWithBusinessId,
+            user.token,
+          );
+          // Immediately refetch products, sales, and inventory to reflect changes
+          refetchProducts();
+          refetchSales();
+          refetchInventory();
+        } catch (error) {
+          console.warn("Failed to save return to API:", error);
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: "/sales/return",
+              method: "POST",
+              payload: returnWithBusinessId,
+              type: "processSaleReturn",
+            });
+          } else {
+            throw error; // Re-throw so caller can handle it
+          }
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: "/sales/return",
+          method: "POST",
+          payload: returnWithBusinessId,
+          type: "processSaleReturn",
+        });
+      }
+    },
+    [
+      user?.token,
+      user?.businessId,
+      isOnline,
+      enqueueAction,
+      refetchProducts,
+      refetchSales,
+      refetchInventory,
+    ],
   );
 
   // Stock Movements
@@ -711,6 +774,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addSale,
         updateSale,
         deleteSale,
+        processSaleReturn,
         stockMovements,
         addStockMovement,
         getProductById,
