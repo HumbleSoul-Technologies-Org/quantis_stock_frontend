@@ -70,6 +70,13 @@ function SuppliersPageContent() {
     setShowDialog(true);
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowDialog(open);
+    if (!open) {
+      setEditingSupplier(undefined);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -117,7 +124,7 @@ function SuppliersPageContent() {
       <SupplierDialog
         key={editingSupplier?.id || editingSupplier?._id || "new"}
         isOpen={showDialog}
-        onOpenChange={setShowDialog}
+        onOpenChange={handleDialogOpenChange}
         onSubmit={handleSaveSupplier}
         supplier={editingSupplier}
       />

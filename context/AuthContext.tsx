@@ -10,6 +10,7 @@ import {
 import { User, BusinessSetup, Business } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { apiRequest } from "@/lib/queryClient";
+import { set } from "date-fns";
 
 interface AuthContextType {
   user: User | null;
@@ -35,11 +36,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize from storage on mount
   useEffect(() => {
-    const currentUser = storage.getCurrentUser();
-    setUser(currentUser);
+    var savedUser = localStorage.getItem("userData");
 
-    // Also restore business data from localStorage if available
-    setBusiness((currentUser?.business as Business) || null);
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setBusiness(parsedUser.business as Business); // Set business if available
+      } catch (error) {
+        console.error("Failed to parse saved user data:", error);
+      }
+    } else {
+      const currentUser = storage.getCurrentUser();
+      setUser(currentUser);
+      setBusiness(currentUser?.business as Business); // Set business if available
+      localStorage.setItem("userData", JSON.stringify(currentUser));
+    }
 
     setIsLoading(false);
   }, []);
@@ -48,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userData);
     // TODO: Set business if available in userData or fetch separately
     setBusiness((userData.business as Business) || null); // For now, set to null
+    localStorage.setItem("userData", JSON.stringify(userData));
     // Also store in localStorage for persistence
     try {
       const state = JSON.parse(
@@ -63,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = (): void => {
     storage.logout();
     setUser(null);
+    setBusiness(null); // Clear business on logout
   };
   const updateCredentials = (
     newUsername: string,

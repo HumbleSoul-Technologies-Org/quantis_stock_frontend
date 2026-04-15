@@ -49,11 +49,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         "/notifications/all",
         {
           userId: user?._id || user?.id, // Support both _id and id
-          businessId: user?.business
-            ? (user.business as any)._id || (user.business as any).id
-            : undefined,
+          businessId: user?.businessId,
         },
-        undefined, // Pass token if needed for auth
+        user?.token, // Pass token if needed for auth
       );
       if (!res.ok) {
         throw new Error("Failed to fetch notifications");
@@ -67,8 +65,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications(notificationData);
     }
   }, [notificationData]);
-
-  useEffect(() => {}, [user]); // Re-run when user changes to potentially fetch new notifications
 
   const addNotification = useCallback(
     async (
@@ -87,9 +83,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         read: false,
         metadata,
         userId: user?._id || user?.id, // Support both _id and id
-        businessId: user?.business
-          ? (user.business as any)._id || (user.business as any).id
-          : undefined,
+        businessId: user?.businessId,
       };
       let data = null;
 
@@ -98,12 +92,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         "/notifications/new",
         {
           userId: user?._id || user?.id, // Support both _id and id
-          businessId: user?.business
-            ? (user.business as any)._id || (user.business as any).id
-            : undefined,
+          businessId: user?.businessId,
           ...payLoad,
         },
-        undefined, // Pass token if needed for auth
+        user?.token, // Pass token if needed for auth
       );
 
       if (res.ok) {
@@ -119,27 +111,46 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const removeNotification = useCallback(async (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    try {
+      const res = await apiRequest(
+        "DELETE",
+        `/notifications/${id}/delete`,
+        {
+          businessId: user?.businessId,
+        },
+        user?.token, // Pass token if needed for auth
+      );
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.filter((n) => n.id !== id || n._id !== id),
+        );
+      }
+    } catch (error) {
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    }
   }, []);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
+      const credentails = {
+        userId: user?._id || user?.id, // Support both _id and id
+        businessId: user?.businessId,
+      };
       const res = await apiRequest(
         "POST",
         `/notifications/${id}/read`,
-        {
-          userId: user?._id || user?.id, // Support both _id and id
-          businessId: user?.business
-            ? (user.business as any)._id || (user.business as any).id
-            : undefined,
-        },
-        undefined, // Pass token if needed for auth
+        credentails,
+        user?.token, // Pass token if needed for auth
       );
 
       if (res.ok) {
         setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === id || n._id === id ? { ...n, read: true } : n,
+          prev.map((n: any) =>
+            n.id === id || n._id === id
+              ? { ...n, readBy: [...n?.readBy, user?._id] }
+              : n,
           ),
         );
       }
@@ -160,7 +171,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       );
 
       if (res.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        refetch(); // Refetch to get updated read status
       }
     } catch (error) {
       console.log("====================================");
@@ -171,11 +182,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const clearAll = useCallback(async () => {
     try {
+      user?.businessId;
       const res = await apiRequest(
         "DELETE",
-        "/notifications/delete-all",
+        `/notifications/clear/${user?.businessId}`,
         {},
-        undefined, // Pass token if needed for auth
+        user?.token, // Pass token if needed for auth
       );
 
       if (res.ok) {
@@ -189,8 +201,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getUnreadCount = useCallback(() => {
-    return notifications.filter((n) => !n.read).length;
-  }, [notifications]);
+    return notifications.filter(
+      (n: any) => (n.readBy || []).includes(user?._id || user?.id) === false,
+    ).length;
+  }, [notifications, user]);
 
   return (
     <NotificationContext.Provider

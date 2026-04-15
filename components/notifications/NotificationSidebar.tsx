@@ -107,10 +107,10 @@ export function NotificationSidebar({
 
   if (!isOpen) return null;
 
-  // const filterdNotifications = notifications.filter((n) => {
-  //   return !n.readBy?.includes((user?._id as string) || (user?.id as string));
-  // });
-
+  const filteredNotifications = notifications.filter(
+    (n) =>
+      n.userId === (user?._id || user?.id) && n.businessId === user?.businessId,
+  );
   return (
     <>
       {/* Overlay */}
