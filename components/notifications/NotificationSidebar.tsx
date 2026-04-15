@@ -153,15 +153,17 @@ export function NotificationSidebar({
               <CheckCheck className="w-3 h-3 mr-1" />
               Mark All Read
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={clearAll}
-              className="text-xs flex-1 text-red-600 border-red-200"
-            >
-              <Trash2 className="w-3 h-3 mr-1" />
-              Clear All
-            </Button>
+            {((user && user.role === "admin") || user?.role === "manager") && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={clearAll}
+                className="text-xs flex-1 text-red-600 border-red-200"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Clear All
+              </Button>
+            )}
           </div>
         )}
 
@@ -193,19 +195,23 @@ export function NotificationSidebar({
                         <p className="font-semibold text-sm text-gray-900 dark:text-white">
                           {notification.title}
                         </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeNotification(
-                              notification.id || notification._id || "",
-                            );
-                          }}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                        {user &&
+                          (user.role === "admin" ||
+                            user.role === "manager") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeNotification(
+                                  notification.id || notification._id || "",
+                                );
+                              }}
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
                       </div>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                         {notification.message}
