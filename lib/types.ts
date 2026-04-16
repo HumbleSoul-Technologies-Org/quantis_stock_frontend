@@ -176,7 +176,7 @@ export interface SaleItem {
 
 // Sales Return Types
 export interface SaleReturn {
-  id: string;
+  id?: string;
   _id?: string; // For backward compatibility with older return objects
   saleId: string; // Reference to the original sale
   items: SaleReturnItem[];

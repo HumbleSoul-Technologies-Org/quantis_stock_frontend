@@ -17,7 +17,7 @@ import {
 } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isNetworkError } from "@/lib/errors";
 import { useAuth } from "./AuthContext";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
@@ -191,7 +191,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryKey: ["suppliers", user?.businessId],
     queryFn: () => apiSuppliers(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 60000, // 60 seconds before data is considered stale
+    staleTime: 30000, // 30 seconds before data is considered stale
     refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
@@ -200,7 +200,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryKey: ["products", user?.businessId],
     queryFn: () => apiProducts(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 60000, // 60 seconds before data is considered stale
+    staleTime: 30000, // 30 seconds before data is considered stale
     refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
@@ -209,7 +209,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryKey: ["inventory", "movements", user?.businessId],
     queryFn: () => apiInventory(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 60000, // 60 seconds before data is considered stale
+    staleTime: 30000, // 30 seconds before data is considered stale
     refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
@@ -218,7 +218,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryKey: ["sales", user?.businessId],
     queryFn: () => apiSales(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 60000, // 60 seconds before data is considered stale
+    staleTime: 30000, // 30 seconds before data is considered stale
     refetchInterval: 20000, // Poll every 60 seconds instead of 5
   });
 
@@ -692,11 +692,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
             "POST",
             "/inventory/movement",
             movementWithBusinessId,
-            user.token,
+            user?.token,
           );
-          // Immediately refetch products and inventory to reflect stock changes
-          refetchProducts();
-          refetchInventory();
+          // Force cache invalidation to immediately reflect stock changes
+          // This ensures fresh data is fetched and state is updated instantly
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ["products", user?.businessId],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["inventory", "movements", user?.businessId],
+            }),
+          ]);
         } catch (error) {
           console.warn("Failed to save stock movement to API:", error);
           // Only enqueue if it's a network error, not API error
@@ -720,18 +727,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type: "addStockMovement",
         });
       }
-      // Always refetch locally
-      refetchProducts();
-      refetchInventory();
+      // Always try to invalidate locally cached data
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["products", user?.businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["inventory", "movements", user?.businessId],
+        }),
+      ]).catch(() => {
+        // Continue even if invalidation fails
+      });
     },
-    [
-      user?.token,
-      user?.businessId,
-      isOnline,
-      enqueueAction,
-      refetchProducts,
-      refetchInventory,
-    ],
+    [user?.token, user?.businessId, isOnline, enqueueAction],
   );
 
   // Utilities

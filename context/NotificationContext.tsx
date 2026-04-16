@@ -75,6 +75,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       metadata?: Record<string, any>,
     ): Promise<string> => {
       const id = Math.random().toString(36).substr(2, 9);
+
+      // Guard: ensure user is authenticated with valid token
+      if (!user?.token) {
+        console.warn("Cannot add notification: user not authenticated");
+        return id;
+      }
+
       const payLoad: Notification = {
         type,
         title,
@@ -107,59 +114,75 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) => [newNotification, ...prev].slice(0, 50)); // Keep last 50
       return id;
     },
-    [],
+    [user?.token, user?._id, user?.id, user?.businessId],
   );
 
-  const removeNotification = useCallback(async (id: string) => {
-    try {
-      const res = await apiRequest(
-        "DELETE",
-        `/notifications/${id}/delete`,
-        {
+  const removeNotification = useCallback(
+    async (id: string) => {
+      try {
+        if (!user?.token) {
+          console.warn("Cannot remove notification: user not authenticated");
+          return;
+        }
+        const res = await apiRequest(
+          "DELETE",
+          `/notifications/${id}/delete`,
+          {
+            businessId: user?.businessId,
+          },
+          user?.token, // Pass token if needed for auth
+        );
+        if (res.ok) {
+          setNotifications((prev) =>
+            prev.filter((n) => n.id !== id || n._id !== id),
+          );
+        }
+      } catch (error) {
+        console.log("====================================");
+        console.log(error);
+        console.log("====================================");
+      }
+    },
+    [user?.token, user?.businessId],
+  );
+
+  const markAsRead = useCallback(
+    async (id: string) => {
+      try {
+        if (!user?.token) {
+          console.warn(
+            "Cannot mark notification as read: user not authenticated",
+          );
+          return;
+        }
+        const credentails = {
+          userId: user?._id || user?.id, // Support both _id and id
           businessId: user?.businessId,
-        },
-        user?.token, // Pass token if needed for auth
-      );
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.filter((n) => n.id !== id || n._id !== id),
+        };
+        const res = await apiRequest(
+          "POST",
+          `/notifications/${id}/read`,
+          credentails,
+          user?.token, // Pass token if needed for auth
         );
-      }
-    } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
-    }
-  }, []);
 
-  const markAsRead = useCallback(async (id: string) => {
-    try {
-      const credentails = {
-        userId: user?._id || user?.id, // Support both _id and id
-        businessId: user?.businessId,
-      };
-      const res = await apiRequest(
-        "POST",
-        `/notifications/${id}/read`,
-        credentails,
-        user?.token, // Pass token if needed for auth
-      );
-
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n: any) =>
-            n.id === id || n._id === id
-              ? { ...n, readBy: [...n?.readBy, user?._id] }
-              : n,
-          ),
-        );
+        if (res.ok) {
+          setNotifications((prev) =>
+            prev.map((n: any) =>
+              n.id === id || n._id === id
+                ? { ...n, readBy: [...n?.readBy, user?._id] }
+                : n,
+            ),
+          );
+        }
+      } catch (error) {
+        console.log("====================================");
+        console.log(error);
+        console.log("====================================");
       }
-    } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
-    }
-  }, []);
+    },
+    [user?.token, user?._id, user?.id, user?.businessId],
+  );
 
   const markAllAsRead = useCallback(async () => {
     try {
@@ -182,6 +205,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const clearAll = useCallback(async () => {
     try {
+      if (!user?.token) {
+        console.warn("Cannot clear notifications: user not authenticated");
+        return;
+      }
       user?.businessId;
       const res = await apiRequest(
         "DELETE",
@@ -198,7 +225,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.log(error);
       console.log("====================================");
     }
-  }, []);
+  }, [user?.token, user?.businessId]);
 
   const getUnreadCount = useCallback(() => {
     return notifications.filter(

@@ -159,6 +159,7 @@ class StorageService {
         products: [],
         suppliers: [],
         sales: [],
+        saleReturns: [],
         stockMovements: [],
         settings: DEFAULT_SETTINGS,
       };
@@ -174,6 +175,7 @@ class StorageService {
           products: [],
           suppliers: [],
           sales: [],
+          saleReturns: [],
           stockMovements: [],
           settings: DEFAULT_SETTINGS,
         };
