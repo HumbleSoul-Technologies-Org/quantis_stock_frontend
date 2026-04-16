@@ -684,7 +684,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
         businessId: movement.businessId || user?.businessId,
       };
 
+      // Save locally immediately and update UI optimistically
       storage.addStockMovement(movementWithBusinessId);
+      setStockMovements((prev) => [...prev, movementWithBusinessId]);
+      setProducts((prev) =>
+        prev.map((product) => {
+          if (
+            product.id === movementWithBusinessId.productId ||
+            (product as any)._id === movementWithBusinessId.productId
+          ) {
+            const adjustedStock =
+              movementWithBusinessId.type === "in"
+                ? product.currentStock + movementWithBusinessId.quantity
+                : movementWithBusinessId.type === "out"
+                  ? product.currentStock - movementWithBusinessId.quantity
+                  : movementWithBusinessId.quantity;
+
+            return { ...product, currentStock: adjustedStock };
+          }
+          return product;
+        }),
+      );
+
+      queryClient.setQueryData(
+        ["inventory", "movements", user?.businessId],
+        (oldData: StockMovement[] | undefined) =>
+          oldData
+            ? [...oldData, movementWithBusinessId]
+            : [movementWithBusinessId],
+      );
+      queryClient.setQueryData(
+        ["products", user?.businessId],
+        (oldData: Product[] | undefined) =>
+          oldData
+            ? oldData.map((product) => {
+                if (
+                  product.id === movementWithBusinessId.productId ||
+                  (product as any)._id === movementWithBusinessId.productId
+                ) {
+                  const adjustedStock =
+                    movementWithBusinessId.type === "in"
+                      ? product.currentStock + movementWithBusinessId.quantity
+                      : movementWithBusinessId.type === "out"
+                        ? product.currentStock - movementWithBusinessId.quantity
+                        : movementWithBusinessId.quantity;
+
+                  return { ...product, currentStock: adjustedStock };
+                }
+                return product;
+              })
+            : undefined,
+      );
+
       // Send to API if online
       if (isOnline && user?.token) {
         try {
@@ -695,7 +746,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             user?.token,
           );
           // Force cache invalidation to immediately reflect stock changes
-          // This ensures fresh data is fetched and state is updated instantly
           await Promise.all([
             queryClient.invalidateQueries({
               queryKey: ["products", user?.businessId],
@@ -727,7 +777,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type: "addStockMovement",
         });
       }
-      // Always try to invalidate locally cached data
+
+      // Always try to invalidate locally cached data after optimistic update
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["products", user?.businessId],
