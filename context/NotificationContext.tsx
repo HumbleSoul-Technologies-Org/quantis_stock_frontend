@@ -42,7 +42,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { user } = useAuth();
   const { data: notificationData, refetch } = useQuery<Notification[]>({
-    queryKey: ["notifications", "all"],
+    queryKey: ["notifications", "all", user?._id || user?.id],
     queryFn: async () => {
       const res = await apiRequest(
         "GET",
@@ -58,6 +58,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
       return res.json();
     },
+    enabled: !!user?.token && !!user?.id, // Only fetch if user is authenticated
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+    refetchInterval: 25000, // Poll every 25 seconds (important but not critical)
+    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   useEffect(() => {

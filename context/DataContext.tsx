@@ -186,43 +186,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadData();
   }, []);
 
-  // Poll suppliers from API every 20 seconds
+  // Poll suppliers from API every 90 seconds (static data, rarely updated)
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
     queryKey: ["suppliers", user?.businessId],
     queryFn: () => apiSuppliers(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 0, // Mark immediately stale to enable continuous polling
-    refetchInterval: 20000, // Poll every 20 seconds
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+    refetchInterval: 90000, // Poll every 90 seconds (low change frequency)
     refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
-  // Poll products from API every 20 seconds
+  // Poll products from API every 30 seconds (moderate volatility - pricing/stock)
   const { data: productsData, refetch: refetchProducts } = useQuery({
     queryKey: ["products", user?.businessId],
     queryFn: () => apiProducts(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 0, // Mark immediately stale to enable continuous polling
-    refetchInterval: 20000, // Poll every 20 seconds
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+    refetchInterval: 30000, // Poll every 30 seconds (moderate importance)
     refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
-  // Poll inventory movements from API every 20 seconds
+  // Poll inventory movements from API every 20 seconds (critical for stock accuracy)
   const { data: inventoryData, refetch: refetchInventory } = useQuery({
     queryKey: ["inventory", "movements", user?.businessId],
     queryFn: () => apiInventory(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 0, // Mark immediately stale to enable continuous polling
-    refetchInterval: 20000, // Poll every 20 seconds
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+    refetchInterval: 20000, // Poll every 20 seconds (prevent overselling)
     refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
-  // Poll sales from API every 20 seconds
+  // Poll sales from API every 15 seconds (business-critical, revenue tracking)
   const { data: salesData, refetch: refetchSales } = useQuery({
     queryKey: ["sales", user?.businessId],
     queryFn: () => apiSales(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 0, // Mark immediately stale to enable continuous polling
-    refetchInterval: 20000, // Poll every 20 seconds
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+    refetchInterval: 15000, // Poll every 15 seconds (highest priority)
     refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
