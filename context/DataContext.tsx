@@ -398,11 +398,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteProduct = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      // Optimistically update local state
       storage.deleteProduct(id);
-      setProducts(products.filter((p) => p.id !== id));
+      setProducts(products.filter((p) => p.id !== id && (p as any)._id !== id));
+
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest("DELETE", `/products/${id}/delete`, {}, user.token);
+          // Immediately refetch products to ensure consistency
+          refetchProducts();
+        } catch (error) {
+          console.warn("Failed to delete product from API:", error);
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: `/products/${id}/delete`,
+              method: "DELETE",
+              payload: {},
+              type: "deleteProduct",
+            });
+          } else {
+            // Revert optimistic update on API error
+            const state = storage.getState();
+            setProducts(state.products);
+            throw error; // Re-throw so caller can handle it
+          }
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: `/products/${id}/delete`,
+          method: "DELETE",
+          payload: {},
+          type: "deleteProduct",
+        });
+      }
     },
-    [products],
+    [products, isOnline, user?.token, enqueueAction, refetchProducts],
   );
 
   // Suppliers
@@ -529,18 +563,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const deleteSupplier = useCallback(
     async (id: string) => {
-      try {
-        await apiRequest("DELETE", `/suppliers/${id}/delete`, {}, user?.token);
-      } catch (error) {
-        console.warn("Failed to delete supplier from API:", error);
-      } finally {
-        storage.deleteSupplier(id);
-        setSuppliers(
-          suppliers.filter((s) => s.id !== id && (s as any)._id !== id),
-        );
+      // Optimistically update local state
+      storage.deleteSupplier(id);
+      setSuppliers(
+        suppliers.filter((s) => s.id !== id && (s as any)._id !== id),
+      );
+
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest("DELETE", `/suppliers/${id}/delete`, {}, user.token);
+          // Immediately refetch suppliers to ensure consistency
+          refetchSuppliers();
+        } catch (error) {
+          console.warn("Failed to delete supplier from API:", error);
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: `/suppliers/${id}/delete`,
+              method: "DELETE",
+              payload: {},
+              type: "deleteSupplier",
+            });
+          } else {
+            // Revert optimistic update on API error
+            const state = storage.getState();
+            setSuppliers(state.suppliers);
+            throw error; // Re-throw so caller can handle it
+          }
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: `/suppliers/${id}/delete`,
+          method: "DELETE",
+          payload: {},
+          type: "deleteSupplier",
+        });
       }
     },
-    [suppliers],
+    [suppliers, isOnline, user?.token, enqueueAction, refetchSuppliers],
   );
 
   // Sales
@@ -552,7 +614,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
         businessId: sale.businessId || user?.businessId,
       };
 
+      // Save locally immediately and update UI optimistically
       storage.addSale(saleWithBusinessId);
+      setSales((prev) => [...prev, saleWithBusinessId]);
+
+      // Update products stock levels and create stock movements optimistically
+      const updatedProducts = products.map((product) => {
+        const saleItem = saleWithBusinessId.items.find(
+          (item) =>
+            item.productId === product.id ||
+            item.productId === (product as any)._id,
+        );
+        if (saleItem) {
+          return {
+            ...product,
+            currentStock: product.currentStock - saleItem.quantity,
+          };
+        }
+        return product;
+      });
+      setProducts(updatedProducts);
+
+      // Add stock movements optimistically
+      const newMovements: StockMovement[] = saleWithBusinessId.items.map(
+        (item) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          productId: item.productId,
+          type: "out" as const,
+          quantity: item.quantity,
+          reason: "Sale",
+          reference: saleWithBusinessId.saleNumber,
+          createdBy: user?.id || user?._id || "system",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+      setStockMovements((prev) => [...prev, ...newMovements]);
+
+      // Update React Query cache
+      queryClient.setQueryData(
+        ["sales", user?.businessId],
+        (oldData: Sale[] | undefined) =>
+          oldData ? [...oldData, saleWithBusinessId] : [saleWithBusinessId],
+      );
+      queryClient.setQueryData(
+        ["products", user?.businessId],
+        (oldData: Product[] | undefined) => updatedProducts,
+      );
+      queryClient.setQueryData(
+        ["inventory", "movements", user?.businessId],
+        (oldData: StockMovement[] | undefined) =>
+          oldData ? [...oldData, ...newMovements] : newMovements,
+      );
+
       // Send to API if online
       if (isOnline && user?.token) {
         try {
@@ -562,9 +675,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
             saleWithBusinessId,
             user.token,
           );
-          // Immediately refetch products and sales to reflect stock changes
-          refetchProducts();
-          refetchSales();
+          // Force cache invalidation to ensure consistency
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ["products", user?.businessId],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["sales", user?.businessId],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["inventory", "movements", user?.businessId],
+            }),
+          ]);
         } catch (error) {
           console.warn("Failed to save sale to API:", error);
           // Only enqueue if it's a network error, not API error
@@ -588,33 +710,144 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type: "addSale",
         });
       }
+
+      // Always try to invalidate locally cached data after optimistic update
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["products", user?.businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["sales", user?.businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["inventory", "movements", user?.businessId],
+        }),
+      ]).catch(() => {
+        // Continue even if invalidation fails
+      });
     },
     [
       user?.token,
       user?.businessId,
+      user?.id,
+      user?._id,
       isOnline,
       enqueueAction,
-      refetchProducts,
-      refetchSales,
+      products,
+      stockMovements,
     ],
   );
 
   const updateSale = useCallback(
-    (id: string, sale: Partial<Sale>) => {
-      storage.updateSale(id, sale);
+    async (id: string, sale: Partial<Sale>) => {
+      // Ensure businessId is included if updating
+      const saleWithBusinessId = {
+        ...sale,
+        businessId: sale.businessId || user?.businessId,
+      };
+
+      // Optimistically update local state
+      storage.updateSale(id, saleWithBusinessId);
       setSales(
-        sales.map((s) => (s.id === id || s._id === id ? { ...s, ...sale } : s)),
+        sales.map((s) =>
+          s.id === id || (s as any)._id === id
+            ? {
+                ...s,
+                ...saleWithBusinessId,
+                updatedAt: new Date().toISOString(),
+              }
+            : s,
+        ),
       );
+
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest(
+            "PUT",
+            `/sales/${id}/update`,
+            saleWithBusinessId,
+            user.token,
+          );
+          // Immediately refetch sales to ensure consistency
+          refetchSales();
+        } catch (error) {
+          console.warn("Failed to update sale in API:", error);
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: `/sales/${id}/update`,
+              method: "PUT",
+              payload: saleWithBusinessId,
+              type: "updateSale",
+            });
+          } else {
+            // Revert optimistic update on API error
+            const state = storage.getState();
+            setSales(state.sales);
+            throw error; // Re-throw so caller can handle it
+          }
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: `/sales/${id}/update`,
+          method: "PUT",
+          payload: saleWithBusinessId,
+          type: "updateSale",
+        });
+      }
     },
-    [sales],
+    [
+      sales,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      refetchSales,
+    ],
   );
 
   const deleteSale = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      // Optimistically update local state
       storage.deleteSale(id);
-      setSales(sales.filter((s) => s.id !== id || (s as any)._id !== id));
+      setSales(sales.filter((s) => s.id !== id && (s as any)._id !== id));
+
+      // Send to API if online
+      if (isOnline && user?.token) {
+        try {
+          await apiRequest("DELETE", `/sales/${id}/delete`, {}, user.token);
+          // Immediately refetch sales to ensure consistency
+          refetchSales();
+        } catch (error) {
+          console.warn("Failed to delete sale from API:", error);
+          // Only enqueue if it's a network error, not API error
+          if (isNetworkError(error)) {
+            enqueueAction({
+              endpoint: `/sales/${id}/delete`,
+              method: "DELETE",
+              payload: {},
+              type: "deleteSale",
+            });
+          } else {
+            // Revert optimistic update on API error
+            const state = storage.getState();
+            setSales(state.sales);
+            throw error; // Re-throw so caller can handle it
+          }
+        }
+      } else {
+        // Offline: enqueue action
+        enqueueAction({
+          endpoint: `/sales/${id}/delete`,
+          method: "DELETE",
+          payload: {},
+          type: "deleteSale",
+        });
+      }
     },
-    [sales],
+    [sales, isOnline, user?.token, enqueueAction, refetchSales],
   );
 
   // Sale Returns
@@ -626,7 +859,110 @@ export function DataProvider({ children }: { children: ReactNode }) {
         businessId: saleReturn.businessId || user?.businessId,
       };
 
+      // Save locally immediately and update UI optimistically
       storage.processSaleReturn(returnWithBusinessId);
+
+      // Find the original sale to update its return status
+      const originalSale = sales.find(
+        (s) =>
+          s.id === returnWithBusinessId.saleId ||
+          s._id === returnWithBusinessId.saleId,
+      );
+
+      // Update products stock levels optimistically (add back returned quantities)
+      const updatedProducts = products.map((product) => {
+        const returnItem = returnWithBusinessId.items.find(
+          (item) =>
+            item.productId === product.id ||
+            item.productId === (product as any)._id,
+        );
+        if (returnItem) {
+          return {
+            ...product,
+            currentStock: product.currentStock + returnItem.quantity,
+          };
+        }
+        return product;
+      });
+      setProducts(updatedProducts);
+
+      // Add stock movements optimistically
+      const newMovements: StockMovement[] = returnWithBusinessId.items.map(
+        (item) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          productId: item.productId,
+          type: "in" as const,
+          quantity: item.quantity,
+          reason: "Return",
+          reference:
+            returnWithBusinessId.reference || originalSale?.saleNumber || "",
+          createdBy: user?.id || user?._id || "system",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+      setStockMovements((prev) => [...prev, ...newMovements]);
+
+      // Update the original sale's return status optimistically
+      if (originalSale) {
+        const totalReturnedQuantity = returnWithBusinessId.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
+        const totalSoldQuantity = originalSale.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
+        const newReturnStatus =
+          totalReturnedQuantity >= totalSoldQuantity ? "returned" : "partial";
+
+        setSales((prev) =>
+          prev.map((sale) =>
+            sale.id === originalSale.id || sale._id === originalSale._id
+              ? { ...sale, returnStatus: newReturnStatus }
+              : sale,
+          ),
+        );
+      }
+
+      // Update React Query cache
+      queryClient.setQueryData(
+        ["products", user?.businessId],
+        (oldData: Product[] | undefined) => updatedProducts,
+      );
+      queryClient.setQueryData(
+        ["inventory", "movements", user?.businessId],
+        (oldData: StockMovement[] | undefined) =>
+          oldData ? [...oldData, ...newMovements] : newMovements,
+      );
+      if (originalSale) {
+        const totalReturnedQuantity = returnWithBusinessId.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
+        const totalSoldQuantity = originalSale.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
+
+        queryClient.setQueryData(
+          ["sales", user?.businessId],
+          (oldData: Sale[] | undefined) =>
+            oldData
+              ? oldData.map((sale) =>
+                  sale.id === originalSale.id || sale._id === originalSale._id
+                    ? {
+                        ...sale,
+                        returnStatus:
+                          totalReturnedQuantity >= totalSoldQuantity
+                            ? "returned"
+                            : "partial",
+                      }
+                    : sale,
+                )
+              : undefined,
+        );
+      }
+
       // Send to API if online
       if (isOnline && user?.token) {
         try {
@@ -636,10 +972,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
             returnWithBusinessId,
             user.token,
           );
-          // Immediately refetch products, sales, and inventory to reflect changes
-          refetchProducts();
-          refetchSales();
-          refetchInventory();
+          // Force cache invalidation to ensure consistency
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ["products", user?.businessId],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["sales", user?.businessId],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["inventory", "movements", user?.businessId],
+            }),
+          ]);
         } catch (error) {
           console.warn("Failed to save return to API:", error);
           // Only enqueue if it's a network error, not API error
@@ -663,15 +1007,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type: "processSaleReturn",
         });
       }
+
+      // Always try to invalidate locally cached data after optimistic update
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["products", user?.businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["sales", user?.businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["inventory", "movements", user?.businessId],
+        }),
+      ]).catch(() => {
+        // Continue even if invalidation fails
+      });
     },
     [
       user?.token,
       user?.businessId,
+      user?.id,
+      user?._id,
       isOnline,
       enqueueAction,
-      refetchProducts,
-      refetchSales,
-      refetchInventory,
+      products,
+      stockMovements,
+      sales,
     ],
   );
 
