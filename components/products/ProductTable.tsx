@@ -186,7 +186,7 @@ export function ProductTable({
                               variant="destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onDelete(product.id);
+                                onDelete(product.id || product._id || ""); // Handle both id and _id
                               }}
                               className="bg-red-600/90 hover:bg-red-500 shadow-md hover:shadow-lg transition-all duration-200"
                             >
