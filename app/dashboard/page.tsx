@@ -19,7 +19,9 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {user && user.role === "sales" && <QuickNav />}
+      {(user?.role === "sales" ||
+        user?.role === "admin" ||
+        user?.role === "manager") && <QuickNav />}
       <OverviewCards />
       <RecentActivity />
     </div>
