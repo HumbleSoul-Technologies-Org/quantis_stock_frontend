@@ -186,40 +186,44 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadData();
   }, []);
 
-  // Poll suppliers from API every 60 seconds (reduced from 5s to prevent server overload)
+  // Poll suppliers from API every 20 seconds
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
     queryKey: ["suppliers", user?.businessId],
     queryFn: () => apiSuppliers(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 30000, // 30 seconds before data is considered stale
-    refetchInterval: 20000, // Poll every 60 seconds instead of 5
+    staleTime: 0, // Mark immediately stale to enable continuous polling
+    refetchInterval: 20000, // Poll every 20 seconds
+    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
-  // Poll products from API every 60 seconds (reduced from 5s to prevent server overload)
+  // Poll products from API every 20 seconds
   const { data: productsData, refetch: refetchProducts } = useQuery({
     queryKey: ["products", user?.businessId],
     queryFn: () => apiProducts(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 30000, // 30 seconds before data is considered stale
-    refetchInterval: 20000, // Poll every 60 seconds instead of 5
+    staleTime: 0, // Mark immediately stale to enable continuous polling
+    refetchInterval: 20000, // Poll every 20 seconds
+    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
-  // Poll inventory movements from API every 60 seconds (reduced from 5s to prevent server overload)
+  // Poll inventory movements from API every 20 seconds
   const { data: inventoryData, refetch: refetchInventory } = useQuery({
     queryKey: ["inventory", "movements", user?.businessId],
     queryFn: () => apiInventory(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 30000, // 30 seconds before data is considered stale
-    refetchInterval: 20000, // Poll every 60 seconds instead of 5
+    staleTime: 0, // Mark immediately stale to enable continuous polling
+    refetchInterval: 20000, // Poll every 20 seconds
+    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
-  // Poll sales from API every 60 seconds (reduced from 5s to prevent server overload)
+  // Poll sales from API every 20 seconds
   const { data: salesData, refetch: refetchSales } = useQuery({
     queryKey: ["sales", user?.businessId],
     queryFn: () => apiSales(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
-    staleTime: 30000, // 30 seconds before data is considered stale
-    refetchInterval: 20000, // Poll every 60 seconds instead of 5
+    staleTime: 0, // Mark immediately stale to enable continuous polling
+    refetchInterval: 20000, // Poll every 20 seconds
+    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   // Update state when API data changes
@@ -301,8 +305,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             productWithBusinessId,
             user.token,
           );
-          // Immediately refetch products to ensure consistency
-          refetchProducts();
+          // Immediately invalidate products cache for instant refresh
+          await queryClient.invalidateQueries({
+            queryKey: ["products", user?.businessId],
+          });
         } catch (error) {
           console.warn("Failed to save product to API:", error);
           // Only enqueue if it's a network error, not API error
@@ -329,14 +335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [
-      products,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
-      refetchProducts,
-    ],
+    [products, isOnline, user?.token, user?.businessId, enqueueAction],
   );
 
   const updateProduct = useCallback(
@@ -350,7 +349,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       storage.updateProduct(id, productWithBusinessId);
       setProducts(
         products.map((p) =>
-          p.id === id
+          p.id === id || (p as any)._id === id
             ? {
                 ...p,
                 ...productWithBusinessId,
@@ -368,8 +367,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             productWithBusinessId,
             user.token,
           );
-          // Immediately refetch products to ensure consistency
-          refetchProducts();
+          // Immediately invalidate products cache for instant refresh
+          await queryClient.invalidateQueries({
+            queryKey: ["products", user?.businessId],
+          });
         } catch (error) {
           console.warn("Failed to update product in API:", error);
           // Only enqueue if it's a network error, not API error
@@ -394,7 +395,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [products, isOnline, user?.token, enqueueAction, refetchProducts],
+    [products, isOnline, user?.token, user?.businessId, enqueueAction],
   );
 
   const deleteProduct = useCallback(
@@ -407,8 +408,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (isOnline && user?.token) {
         try {
           await apiRequest("DELETE", `/products/${id}/delete`, {}, user.token);
-          // Immediately refetch products to ensure consistency
-          refetchProducts();
+          // Immediately invalidate products cache for instant refresh
+          await queryClient.invalidateQueries({
+            queryKey: ["products", user?.businessId],
+          });
         } catch (error) {
           console.warn("Failed to delete product from API:", error);
           // Only enqueue if it's a network error, not API error
@@ -436,7 +439,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [products, isOnline, user?.token, enqueueAction, refetchProducts],
+    [products, isOnline, user?.token, user?.businessId, enqueueAction],
   );
 
   // Suppliers
@@ -459,8 +462,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             supplierWithBusinessId,
             user.token,
           );
-          // Immediately refetch suppliers to ensure consistency
-          refetchSuppliers();
+          // Immediately invalidate suppliers cache for instant refresh
+          await queryClient.invalidateQueries({
+            queryKey: ["suppliers", user?.businessId],
+          });
         } catch (error) {
           console.warn("Failed to save supplier to API:", error);
           // Only enqueue if it's a network error, not API error
@@ -486,14 +491,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [
-      suppliers,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
-      refetchSuppliers,
-    ],
+    [suppliers, isOnline, user?.token, user?.businessId, enqueueAction],
   );
 
   const updateSupplier = useCallback(
@@ -525,8 +523,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             supplierWithBusinessId,
             user.token,
           );
-          // Immediately refetch suppliers to ensure consistency
-          refetchSuppliers();
+          // Immediately invalidate suppliers cache for instant refresh
+          await queryClient.invalidateQueries({
+            queryKey: ["suppliers", user?.businessId],
+          });
         } catch (error) {
           console.warn("Failed to update supplier in API:", error);
           // Only enqueue if it's a network error, not API error
@@ -551,14 +551,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [
-      suppliers,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
-      refetchSuppliers,
-    ],
+    [suppliers, isOnline, user?.token, user?.businessId, enqueueAction],
   );
 
   const deleteSupplier = useCallback(
@@ -573,8 +566,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (isOnline && user?.token) {
         try {
           await apiRequest("DELETE", `/suppliers/${id}/delete`, {}, user.token);
-          // Immediately refetch suppliers to ensure consistency
-          refetchSuppliers();
+          // Immediately invalidate suppliers cache for instant refresh
+          await queryClient.invalidateQueries({
+            queryKey: ["suppliers", user?.businessId],
+          });
         } catch (error) {
           console.warn("Failed to delete supplier from API:", error);
           // Only enqueue if it's a network error, not API error
@@ -602,7 +597,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [suppliers, isOnline, user?.token, enqueueAction, refetchSuppliers],
+    [suppliers, isOnline, user?.token, user?.businessId, enqueueAction],
   );
 
   // Sales

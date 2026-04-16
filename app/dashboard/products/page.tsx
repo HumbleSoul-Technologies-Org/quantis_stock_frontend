@@ -36,9 +36,9 @@ function ProductsPageContent() {
   ).filter(Boolean);
 
   const handleAddProduct = async (product: Product) => {
-    if (editingProduct) {
+    if ((product && product.id) || product._id) {
       await updateProduct(
-        (editingProduct.id as string) || (editingProduct._id as string),
+        (product.id as string) || (product._id as string),
         product,
       );
       notifyResourceUpdated("Product", product.name);
