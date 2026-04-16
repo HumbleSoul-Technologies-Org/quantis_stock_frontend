@@ -11,47 +11,24 @@ export interface SyncAction {
 }
 
 const SYNC_QUEUE_KEY = 'erp_system_sync_queue';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5353/api';
 
 /**
- * Check if backend API is actually reachable (not just navigator.onLine)
- * Uses an image beacon as a lightweight, CORS-friendly connectivity check
+ * Check if device has internet connectivity
+ * Uses navigator.onLine API which is reliable for most use cases
+ * Avoids depending on backend endpoints that may not exist or have auth issues
  */
 async function checkBackendConnectivity(): Promise<boolean> {
-  try {
-    // First check navigator.onLine - this is the most reliable indicator
-    if (!navigator.onLine) {
-      return false;
-    }
-
-    // For more robust checking, use a simple image beacon ping
-    // This avoids CORS issues and auth requirements
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-    try {
-      // Try a simple ping to the API_BASE_URL
-      const response = await fetch(`${API_BASE_URL}/ping`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-      clearTimeout(timeoutId);
-      // Any successful response means we're online
-      return response.ok;
-    } catch {
-      clearTimeout(timeoutId);
-      // If the specific endpoint fails, fall back to navigator.onLine
-      // This prevents false negatives when endpoints have auth/CORS issues
-      return navigator.onLine;
-    }
-  } catch (error) {
-    console.debug('Connectivity check error:', error);
-    // If anything fails, trust navigator.onLine
-    return navigator.onLine;
+  // navigator.onLine is the most reliable indicator for browser connectivity
+  const isOnline = navigator.onLine;
+  
+  if (!isOnline) {
+    console.debug('🔴 Device is OFFLINE (navigator.onLine = false)');
+  } else {
+    console.debug('🟢 Device is ONLINE (navigator.onLine = true)');
   }
+  
+  return isOnline;
 }
 
 export function useOfflineSync() {

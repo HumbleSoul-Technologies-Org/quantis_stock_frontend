@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { ClientOnly } from "@/components/client-only";
 import { StockMovementForm } from "@/components/inventory/StockMovementForm";
@@ -37,6 +37,7 @@ function InventoryPageContent() {
   const { products, stockMovements, addStockMovement } = useData();
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const {
     notifyLowStock,
     notifyStockOut,
@@ -65,6 +66,11 @@ function InventoryPageContent() {
   const [historyProductFilter, setHistoryProductFilter] = useState("");
   const [historyDateFrom, setHistoryDateFrom] = useState("");
   const [historyDateTo, setHistoryDateTo] = useState("");
+
+  // Clear productId from URL to prevent re-selection on refresh
+  const clearProductIdFromUrl = () => {
+    router.push("/dashboard/inventory", { scroll: false });
+  };
 
   useEffect(() => {
     const productId = searchParams.get("productId");
@@ -385,6 +391,7 @@ function InventoryPageContent() {
             if (!open) {
               setSelectedMovement(null);
               setSelectedProductId("");
+              clearProductIdFromUrl();
             }
             setShowDialog(open);
           }}
@@ -407,11 +414,13 @@ function InventoryPageContent() {
                 setShowDialog(false);
                 setSelectedMovement(null);
                 setSelectedProductId("");
+                clearProductIdFromUrl();
               }}
               onCancel={() => {
                 setShowDialog(false);
                 setSelectedMovement(null);
                 setSelectedProductId("");
+                clearProductIdFromUrl();
               }}
               currentUserId={user.id}
               preselectedProductId={selectedProductId}
