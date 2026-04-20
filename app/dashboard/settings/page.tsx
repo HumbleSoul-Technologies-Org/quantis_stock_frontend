@@ -122,13 +122,6 @@ export default function SettingsPage() {
           <Security />
         </TabsContent>
       </Tabs>
-
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-        <p className="text-sm text-blue-900 dark:text-blue-300">
-          <strong>Note:</strong> All settings are saved automatically. Changes
-          to currency and units will be reflected across the entire system.
-        </p>
-      </div>
     </div>
   );
 }
