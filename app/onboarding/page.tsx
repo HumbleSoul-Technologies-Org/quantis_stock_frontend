@@ -37,7 +37,7 @@ function OnboardingContent() {
     }
   }, [user, business, authLoading, router]);
 
-  const handleSubmit = async (businessSetup: BusinessSetup) => {
+  const handleSubmit = async (businessSetup: any) => {
     setIsLoading(true);
     setError("");
 

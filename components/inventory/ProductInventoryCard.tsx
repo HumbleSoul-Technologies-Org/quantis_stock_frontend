@@ -40,7 +40,7 @@ export function ProductInventoryCard({
   const safeReorderLevel = Math.max(0, product.reorderLevel || 0);
   const maxStock =
     safeReorderLevel > 0
-      ? safeReorderLevel * 3
+      ? safeReorderLevel * 10
       : Math.max(1, product.currentStock, 1);
   const rawPercentage =
     maxStock > 0 ? (product.currentStock / maxStock) * 100 : 0;
