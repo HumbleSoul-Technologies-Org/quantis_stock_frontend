@@ -7,242 +7,307 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { AppSettings } from "@/lib/types";
-import { storage } from "@/lib/storage";
-import { CURRENCIES } from "@/lib/business-config";
+import { BusinessSettings } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 
 interface SettingsContextType {
-  settings: AppSettings;
-  updateSettings: (settings: Partial<AppSettings>) => void;
-  updateBusinessSettings: (settings: Partial<AppSettings>) => Promise<boolean>; // New: update via API
+  settings: BusinessSettings | null;
+  isLoading: boolean;
+  updateCurrency: (currency: BusinessSettings["currency"]) => Promise<boolean>;
+  updateNotifications: (
+    notifications: BusinessSettings["notifications"],
+  ) => Promise<boolean>;
+  updateSyncData: (syncData: BusinessSettings["syncData"]) => Promise<boolean>;
+  updateUnits: (units: BusinessSettings["units"]) => Promise<boolean>;
   formatCurrency: (amount: number) => string;
   getCurrencySymbol: () => string;
   getDecimalPlaces: () => number;
+  refreshSettings: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
   undefined,
 );
 
-const DEFAULT_SETTINGS: AppSettings = {
-  currency: {
-    symbol: "$",
-    code: "USD",
-    decimalPlaces: 2,
-  },
-  units: {
-    weight: "kg",
-    volume: "L",
-    count: "units",
-  },
-  notifications: {
-    emailAlerts: true,
-    smsAlerts: false,
-    lowStockAlerts: true,
-    saleNotifications: true,
-  },
-  general: {
-    companyName: "My Stock Manager",
-    contactEmail: "contact@company.com",
-    theme: "light",
-  },
-  credentials: {
-    teamUsers: [],
-    passwordPolicy: {
-      minLength: 8,
-      requireMixedCase: true,
-      requireNumbers: true,
-      requireSpecialChars: false,
-    },
-    sessionTimeout: 30,
-  },
+const DEFAULT_CURRENCY = {
+  code: "USD",
+  symbol: "$",
+  decimalPlaces: 2,
+};
+
+const DEFAULT_UNITS = {
+  weightUnits: ["kg", "lbs", "oz"],
+  volumeUnits: ["L", "ml", "gallons"],
+  lengthUnits: ["m", "cm", "mm", "ft", "in"],
+  countUnits: ["units", "boxes", "pieces"],
+};
+
+const DEFAULT_SYNC_DATA = {
+  offlineMode: false,
+  syncInterval: "15",
+  lastSyncedAt: undefined,
+};
+
+const DEFAULT_NOTIFICATIONS = {
+  creationNotifications: { email: false, sms: false },
+  SalesNotifications: { email: false, sms: false },
+  stockNotifications: { email: false, sms: false },
+};
+
+const DEFAULT_SETTINGS: BusinessSettings = {
+  businessId: "",
+  currency: DEFAULT_CURRENCY,
+  units: DEFAULT_UNITS,
+  syncData: DEFAULT_SYNC_DATA,
+  notifications: DEFAULT_NOTIFICATIONS,
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const { user, business } = useAuth();
+  const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user, business, updateBusiness } = useAuth();
 
-  // Initialize from storage on mount and sync currency from business
+  // Initialize settings from business data or localStorage
   useEffect(() => {
-    const storedSettings = storage.getSettings() || DEFAULT_SETTINGS;
+    const businessSettings =
+      business?.settings ?? (business as any)?.businessSettings;
 
-    const normalizedSettings: AppSettings = {
-      ...DEFAULT_SETTINGS,
-      ...storedSettings,
-      currency: {
-        ...DEFAULT_SETTINGS.currency,
-        ...(storedSettings.currency || {}),
-      },
-      units: {
-        ...DEFAULT_SETTINGS.units,
-        ...(storedSettings.units || {}),
-      },
-      notifications: {
-        ...DEFAULT_SETTINGS.notifications,
-        ...(storedSettings.notifications || {}),
-      },
-      general: {
-        ...DEFAULT_SETTINGS.general,
-        ...(storedSettings.general || {}),
-      },
-      credentials: {
-        ...DEFAULT_SETTINGS.credentials,
-        ...(storedSettings.credentials || {}),
-        passwordPolicy: {
-          ...DEFAULT_SETTINGS.credentials.passwordPolicy,
-          ...(storedSettings.credentials?.passwordPolicy || {}),
-        } as Required<AppSettings["credentials"]>["passwordPolicy"],
-      },
-    };
-
-    if (business?.currency) {
-      const currencyObj = CURRENCIES.find((c) => c.code === business.currency);
-      if (currencyObj) {
-        normalizedSettings.currency = {
-          code: currencyObj.code,
-          symbol: currencyObj.symbol,
-          decimalPlaces: 2,
-        };
+    if (businessSettings) {
+      // Use settings from business object (from login response)
+      setSettings(businessSettings);
+      // Cache in localStorage for offline access
+      localStorage.setItem(
+        "businessSettings",
+        JSON.stringify(businessSettings),
+      );
+      setIsLoading(false);
+    } else {
+      // Fallback to localStorage
+      const cached = localStorage.getItem("businessSettings");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as BusinessSettings;
+          setSettings(parsed);
+        } catch (error) {
+          console.error("Failed to parse cached settings:", error);
+          setSettings(DEFAULT_SETTINGS);
+        }
+      } else {
+        setSettings(DEFAULT_SETTINGS);
       }
+      setIsLoading(false);
     }
+  }, [business?.settings, (business as any)?.businessSettings]);
 
-    setSettings(normalizedSettings);
-  }, [business?.currency]);
-
-  const updateSettings = (newSettings: Partial<AppSettings>): void => {
-    const merged = {
-      ...settings,
-      ...newSettings,
-      currency: {
-        ...settings.currency,
-        ...(newSettings.currency || {}),
-      },
-      units: {
-        ...settings.units,
-        ...(newSettings.units || {}),
-      },
-      notifications: {
-        ...settings.notifications,
-        ...(newSettings.notifications || {}),
-      },
-      general: {
-        ...settings.general,
-        ...(newSettings.general || {}),
-      },
-      credentials: {
-        ...settings.credentials,
-        ...(newSettings.credentials || {}),
-        passwordPolicy: {
-          ...settings.credentials.passwordPolicy,
-          ...(newSettings.credentials?.passwordPolicy || {}),
-        } as Required<AppSettings["credentials"]>["passwordPolicy"],
-      },
-    };
-    setSettings(merged as AppSettings);
-    storage.updateSettings(newSettings);
+  const refreshSettings = async (): Promise<void> => {
+    // Settings are updated immediately by individual update functions (updateCurrency, updateNotifications, etc.)
+    // Each update function handles API call and state/localStorage updates on res.ok
+    // No need to fetch from backend - this is a no-op now
+    return;
   };
 
-  const updateBusinessSettings = async (
-    newSettings: Partial<AppSettings>,
+  const updateCurrency = async (
+    currency: BusinessSettings["currency"],
   ): Promise<boolean> => {
-    try {
-      // Map AppSettings to business update payload
-      const businessUpdate = {
-        currency: newSettings.currency?.code,
-        lowStockThreshold: business?.lowStockThreshold, // Keep existing
-        emailAlerts:
-          newSettings.notifications?.emailAlerts ?? business?.emailAlerts,
-        smsAlerts: newSettings.notifications?.smsAlerts ?? business?.smsAlerts,
-        lowStockAlerts:
-          newSettings.notifications?.lowStockAlerts ?? business?.lowStockAlerts,
-        saleNotifications:
-          newSettings.notifications?.saleNotifications ??
-          business?.saleNotifications,
-      };
+    if (!user?.token || !user?.businessId || !settings) return false;
 
+    try {
       const response = await apiRequest(
         "PUT",
-        "/business/setup",
-        businessUpdate,
-        user?.token,
+        `/settings/currency/${user?.businessId}`,
+        { currency },
+        user.token,
       );
 
       if (response.ok) {
-        const data = await response.json();
-        // Update business in context if returned
-        if (data.business) {
-          // Note: We'll need to import updateBusiness from AuthContext
-          // For now, just update local settings
+        const updatedSettings = { ...settings, currency };
+        setSettings(updatedSettings);
+        localStorage.setItem(
+          "businessSettings",
+          JSON.stringify(updatedSettings),
+        );
+
+        // Sync AuthContext with updated business settings
+        if (business) {
+          const updatedBusiness = { ...business, settings: updatedSettings };
+          updateBusiness(updatedBusiness);
         }
-        // Update local settings
-        updateSettings(newSettings);
         return true;
       }
       return false;
     } catch (error) {
-      console.error("Failed to update business settings:", error);
+      console.error("Failed to update currency:", error);
+      return false;
+    }
+  };
+
+  const updateNotifications = async (
+    notifications: BusinessSettings["notifications"],
+  ): Promise<boolean> => {
+    if (!user?.token || !user?.businessId || !settings) return false;
+
+    try {
+      const response = await apiRequest(
+        "PUT",
+        `/settings/notifications/${user?.businessId}`,
+        { notifications },
+        user.token,
+      );
+
+      if (response.ok) {
+        const updatedSettings = { ...settings, notifications };
+        setSettings(updatedSettings);
+        localStorage.setItem(
+          "businessSettings",
+          JSON.stringify(updatedSettings),
+        );
+
+        // Sync AuthContext with updated business settings
+        if (business) {
+          const updatedBusiness = { ...business, settings: updatedSettings };
+          updateBusiness(updatedBusiness);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to update notifications:", error);
+      return false;
+    }
+  };
+
+  const updateSyncData = async (
+    syncData: BusinessSettings["syncData"],
+  ): Promise<boolean> => {
+    if (!user?.token || !user?.businessId || !settings) return false;
+
+    try {
+      const response = await apiRequest(
+        "PUT",
+        `/settings/sync/${user?.businessId}`,
+        { syncData },
+        user.token,
+      );
+
+      if (response.ok) {
+        const updatedSettings = { ...settings, syncData };
+        setSettings(updatedSettings);
+        localStorage.setItem(
+          "businessSettings",
+          JSON.stringify(updatedSettings),
+        );
+
+        // Sync AuthContext with updated business settings
+        if (business) {
+          const updatedBusiness = { ...business, settings: updatedSettings };
+          updateBusiness(updatedBusiness);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to update sync data:", error);
+      return false;
+    }
+  };
+
+  const updateUnits = async (
+    units: BusinessSettings["units"],
+  ): Promise<boolean> => {
+    if (!user?.token || !user?.businessId || !settings) return false;
+
+    try {
+      const response = await apiRequest(
+        "PUT",
+        `/settings/units/${user?.businessId}`,
+        { units },
+        user.token,
+      );
+
+      if (response.ok) {
+        const updatedSettings = { ...settings, units };
+        setSettings(updatedSettings);
+        localStorage.setItem(
+          "businessSettings",
+          JSON.stringify(updatedSettings),
+        );
+
+        // Sync AuthContext with updated business settings
+        if (business) {
+          const updatedBusiness = { ...business, settings: updatedSettings };
+          updateBusiness(updatedBusiness);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to update units:", error);
       return false;
     }
   };
 
   const formatCurrency = (amount: number): string => {
-    if (!settings) return amount.toString();
-    const { currency } = settings;
-    const formatted = amount.toFixed(currency.decimalPlaces);
-    return `${currency.symbol} ${formatted}`;
+    if (!settings?.currency) return `$${amount.toFixed(2)}`;
+
+    // Handle both object and string currency formats for backward compatibility
+    const currency = settings.currency;
+    if (typeof currency === "string") {
+      // Fallback for old format - assume USD
+      return `$${amount.toFixed(2)}`;
+    }
+
+    const formatted = amount.toFixed(currency.decimalPlaces || 2);
+    return `${currency.symbol || "$"} ${formatted}`;
   };
 
   const getCurrencySymbol = (): string => {
-    return settings?.currency?.symbol || "USh";
+    if (!settings?.currency) return "$";
+
+    const currency = settings.currency;
+    if (typeof currency === "string") {
+      // For backward compatibility, map common currency codes to symbols
+      const currencyMap: Record<string, string> = {
+        USD: "$",
+        EUR: "€",
+        GBP: "£",
+        KES: "KSh",
+        UGX: "UGX",
+        TZS: "TSh",
+        ETB: "ETB",
+        RWF: "FRw",
+      };
+      return currencyMap[currency] || "$";
+    }
+
+    return currency.symbol || "$";
   };
 
   const getDecimalPlaces = (): number => {
-    return settings?.currency?.decimalPlaces || 2;
+    if (!settings?.currency) return 2;
+
+    const currency = settings.currency;
+    if (typeof currency === "string") {
+      // Default decimal places for common currencies
+      return 2;
+    }
+
+    return currency.decimalPlaces || 2;
   };
 
   return (
     <SettingsContext.Provider
       value={{
-        settings: settings || {
-          currency: {
-            symbol: "$",
-            code: "USD",
-            decimalPlaces: 2,
-          },
-          units: {
-            weight: "kg",
-            volume: "L",
-            count: "units",
-          },
-          notifications: {
-            emailAlerts: true,
-            smsAlerts: false,
-            lowStockAlerts: true,
-            saleNotifications: true,
-          },
-          general: {
-            companyName: "My Stock Manager",
-            contactEmail: "contact@company.com",
-            theme: "light",
-          },
-          credentials: {
-            teamUsers: [],
-            passwordPolicy: {
-              minLength: 8,
-              requireMixedCase: true,
-              requireNumbers: true,
-              requireSpecialChars: false,
-            },
-            sessionTimeout: 30,
-          },
-        },
-        updateSettings,
-        updateBusinessSettings, // New: include updateBusinessSettings
+        settings,
+        isLoading,
+        updateCurrency,
+        updateNotifications,
+        updateSyncData,
+        updateUnits,
         formatCurrency,
         getCurrencySymbol,
         getDecimalPlaces,
+        refreshSettings,
       }}
     >
       {children}

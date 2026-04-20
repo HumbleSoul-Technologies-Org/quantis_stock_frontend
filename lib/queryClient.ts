@@ -1,7 +1,6 @@
  import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios from "axios";
-
-const BASE_URL =  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api";
+import { API_BASE_URL } from "@/lib/config";
 
 // simple in-memory rate limit tracker (requests per window)
 const REQUEST_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_VITE_API_THRESHOLD || "60", 10); // max requests per window
@@ -20,7 +19,7 @@ function checkRateLimit() {
 
 // ✅ Axios instance for GET only
 const axiosClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 // attach rate limit check to every request
@@ -82,7 +81,7 @@ export async function apiRequest(
     body = JSON.stringify(data);
   }
 
-  const res = await fetch(`${BASE_URL}${finalUrl}`, {
+  const res = await fetch(`${API_BASE_URL}${finalUrl}`, {
     method,
     headers,
     ...(body !== undefined && { body }), // Only include body if it's defined

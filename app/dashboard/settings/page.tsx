@@ -4,15 +4,26 @@ import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CurrencySettings } from "@/components/settings/CurrencySettings";
 import { UnitsSettings } from "@/components/settings/UnitsSettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
-import { CredentialsSettings } from "@/components/settings/CredentialsSettings";
-import { CombinedGeneralSettings } from "@/components/settings/CombinedGeneralSettings";
+import { Profile } from "@/components/settings/Profile";
+import { Currency } from "@/components/settings/Currency";
+import { Users } from "@/components/settings/Users";
+import { SyncData } from "@/components/settings/SyncData";
+import { Security } from "@/components/settings/Security";
+import {
+  Building2,
+  DollarSign,
+  Ruler,
+  Users as UsersIcon,
+  RefreshCw,
+  Bell,
+  Shield,
+} from "lucide-react";
 
 export default function SettingsPage() {
-  const { settings, updateSettings } = useSettings();
-  const { user, updateBusinessSetup } = useAuth();
+  const { settings } = useSettings();
+  const { user } = useAuth();
 
   if (!settings || !user) return null;
 
@@ -30,42 +41,86 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 bg-gray-100 dark:bg-slate-700 p-1">
-          <TabsTrigger value="general" className="text-xs md:text-sm">
-            General
+      <Tabs defaultValue="profile" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 gap-1 bg-gray-100 dark:bg-slate-700 p-1">
+          <TabsTrigger
+            value="profile"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <Building2 className="w-4 h-4" />
+            Profile
           </TabsTrigger>
-
-          {/* <TabsTrigger value="units" className="text-xs md:text-sm">
+          <TabsTrigger
+            value="currency"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <DollarSign className="w-4 h-4" />
+            Currency
+          </TabsTrigger>
+          {/* <TabsTrigger
+            value="units"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <Ruler className="w-4 h-4" />
             Units
           </TabsTrigger> */}
-          <TabsTrigger value="notifications" className="text-xs md:text-sm">
+          <TabsTrigger
+            value="users"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <UsersIcon className="w-4 h-4" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger
+            value="sync-data"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Sync Data
+          </TabsTrigger>
+          <TabsTrigger
+            value="notifications"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <Bell className="w-4 h-4" />
             Notifications
           </TabsTrigger>
-          {(isAdmin || isManager) && (
-            <TabsTrigger value="credentials" className="text-xs md:text-sm">
-              Credentials
-            </TabsTrigger>
-          )}
+          <TabsTrigger
+            value="security"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <Shield className="w-4 h-4" />
+            Security
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-4">
-          <CombinedGeneralSettings />
+        <TabsContent value="profile" className="space-y-4">
+          <Profile />
         </TabsContent>
 
-        <TabsContent value="units" className="space-y-4">
+        <TabsContent value="currency" className="space-y-4">
+          <Currency />
+        </TabsContent>
+
+        {/* <TabsContent value="units" className="space-y-4">
           <UnitsSettings settings={settings} onUpdate={updateSettings} />
+        </TabsContent> */}
+
+        <TabsContent value="users" className="space-y-4">
+          <Users />
+        </TabsContent>
+
+        <TabsContent value="sync-data" className="space-y-4">
+          <SyncData />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">
-          <NotificationSettings settings={settings} onUpdate={updateSettings} />
+          <NotificationSettings />
         </TabsContent>
 
-        {(isAdmin || isManager) && (
-          <TabsContent value="credentials" className="space-y-4">
-            <CredentialsSettings role={user.role} />
-          </TabsContent>
-        )}
+        <TabsContent value="security" className="space-y-4">
+          <Security />
+        </TabsContent>
       </Tabs>
 
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">

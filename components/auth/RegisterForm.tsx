@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { clearUserSession } from "@/lib/authStorage";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AlertCircle, CheckCircle, X, ExternalLink } from "lucide-react";
-import { storage } from "@/lib/storage";
 import { apiRequest } from "@/lib/queryClient";
 
 export function RegisterForm() {
@@ -116,16 +116,15 @@ export function RegisterForm() {
         createdAt: data.user.createdAt,
         token: data.token,
         businessId: data.user.businessId, // Include business data if returned by backend
+        business: data.user.business, // Include business data if returned by backend
       };
 
-      // Only initialize local storage after successful API response
-      storage.createUser(newUser);
       setSuccess("Account created successfully! Redirecting...");
 
       // Auto-login after creation
+      loginWithApiData(newUser);
       setTimeout(() => {
         router.push("/onboarding");
-        loginWithApiData(newUser);
       }, 1500);
     } catch (error) {
       const errorMessage =
@@ -146,8 +145,8 @@ export function RegisterForm() {
         {},
         user?.token,
       );
-      // Clear local auth state and redirect to registration page
-      localStorage.removeItem("erp_system_state");
+      // Clear the current auth session and redirect to registration page
+      clearUserSession();
       router.push("/auth/register");
     } catch (error) {
       console.error("Restart registration failed:", error);

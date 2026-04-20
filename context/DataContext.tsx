@@ -21,6 +21,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isNetworkError } from "@/lib/errors";
 import { useAuth } from "./AuthContext";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { useSettings } from "@/context/SettingsContext";
 
 // API functions for polling
 const apiSuppliers = async (token?: string, businessId?: string) => {
@@ -152,7 +153,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { isOnline, enqueueAction } = useOfflineSync();
+  const { settings } = useSettings();
+  const { isOnline, enqueueAction } = useOfflineSync(settings?.syncData);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -163,23 +165,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Initialize from storage on mount - only if storage has been initialized
   useEffect(() => {
     const loadData = () => {
-      // Check if local storage has been initialized (has erp_system_state key)
-      const hasStorage =
-        typeof window !== "undefined" &&
-        localStorage.getItem("erp_system_state") !== null;
+      const state = storage.getState();
 
-      if (hasStorage) {
-        if (storage.getProducts() && Array.isArray(storage.getProducts())) {
-          setProducts(storage.getProducts());
-        } else {
-          setProducts([]);
-        }
-
-        setSales(storage.getSales());
-        setStockMovements(storage.getStockMovements());
-        setSuppliers(storage.getSuppliers() || []);
-      }
-
+      setProducts(Array.isArray(state.products) ? state.products : []);
+      setSales(Array.isArray(state.sales) ? state.sales : []);
+      setStockMovements(
+        Array.isArray(state.stockMovements) ? state.stockMovements : [],
+      );
+      setSuppliers(Array.isArray(state.suppliers) ? state.suppliers : []);
       setIsInitialized(true);
     };
 

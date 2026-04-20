@@ -66,6 +66,7 @@ export default function DashboardLayout({
       <SyncModal
         isOpen={showSyncModal}
         onClose={() => setShowSyncModal(false)}
+        autoStartSync={true}
       />
     </div>
   );

@@ -8,9 +8,11 @@ import {
   ReactNode,
 } from "react";
 import { User, BusinessSetup, Business } from "@/lib/types";
-import { storage } from "@/lib/storage";
-import { apiRequest } from "@/lib/queryClient";
-import { set } from "date-fns";
+import {
+  getUserSession,
+  saveUserSession,
+  clearUserSession,
+} from "@/lib/authStorage";
 
 interface AuthContextType {
   user: User | null;
@@ -29,106 +31,79 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const normalizeBusiness = (businessData: any): Business | null => {
+  if (!businessData) return null;
+  const settings = businessData.settings ?? businessData.businessSettings;
+  return { ...businessData, settings } as Business;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [business, setBusiness] = useState<Business | null>(null); // New: business state
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize from storage on mount
+  // Initialize from user session on mount
   useEffect(() => {
-    var savedUser = localStorage.getItem("userData");
-
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setBusiness(parsedUser.business as Business); // Set business if available
-      } catch (error) {
-        console.error("Failed to parse saved user data:", error);
-      }
+    const cachedUserdata = localStorage.getItem("userData");
+    if (cachedUserdata) {
+      const parsed = JSON.parse(cachedUserdata) as User;
+      setUser(parsed);
+      setBusiness(normalizeBusiness(parsed.business));
+      setIsLoading(false);
     } else {
-      const currentUser = storage.getCurrentUser();
-      setUser(currentUser);
-      setBusiness(currentUser?.business as Business); // Set business if available
-      localStorage.setItem("userData", JSON.stringify(currentUser));
+      const currentUser = getUserSession();
+
+      if (currentUser) {
+        setUser(currentUser);
+        setBusiness(normalizeBusiness(currentUser.business));
+        localStorage.setItem("userData", JSON.stringify(currentUser));
+      }
     }
 
     setIsLoading(false);
   }, []);
 
   const loginWithApiData = (userData: User): void => {
-    setUser(userData);
-    // TODO: Set business if available in userData or fetch separately
-    setBusiness((userData.business as Business) || null); // For now, set to null
-    localStorage.setItem("userData", JSON.stringify(userData));
-    // Also store in localStorage for persistence
-    try {
-      const state = JSON.parse(
-        localStorage.getItem("erp_system_state") || "{}",
-      );
-      state.currentUser = userData;
-      localStorage.setItem("erp_system_state", JSON.stringify(state));
-    } catch (error) {
-      console.error("Failed to save user to localStorage:", error);
-      // Continue without localStorage - user is still logged in via state
-    }
+    const sanitizedUserData = { ...userData } as User;
+    delete (sanitizedUserData as Partial<User>).password;
+
+    setUser(sanitizedUserData);
+    setBusiness(normalizeBusiness(sanitizedUserData.business));
+    saveUserSession(sanitizedUserData);
+    localStorage.setItem("userData", JSON.stringify(sanitizedUserData));
   };
   const logout = (): void => {
-    storage.logout();
+    clearUserSession();
     setUser(null);
     setBusiness(null); // Clear business on logout
   };
+
   const updateCredentials = (
     newUsername: string,
     newPassword: string,
     oldPassword: string,
   ): boolean => {
-    if (!user || user.password !== oldPassword) {
-      return false;
-    }
-
-    const success = storage.updateUserCredentials(
-      user.id,
-      newUsername,
-      newPassword,
+    console.warn(
+      "updateCredentials is not supported in API-only auth mode. Implement this using a backend endpoint.",
     );
-    if (success) {
-      // Update local user
-      const updatedUser = {
-        ...user,
-        username: newUsername,
-        password: newPassword,
-      };
-      setUser(updatedUser);
-      return true;
-    }
     return false;
   };
 
   const updateBusinessSetup = (businessSetup: BusinessSetup): boolean => {
     if (!user) return false;
-    const success = storage.updateBusinessSetup(user.id, businessSetup);
-    if (success) {
-      const updatedUser = { ...user, business: businessSetup };
-      setUser(updatedUser);
-      return true;
-    }
-    return false;
+    const updatedUser = { ...user, business: businessSetup };
+    setUser(updatedUser);
+    setBusiness(businessSetup as unknown as Business);
+    saveUserSession(updatedUser);
+    return true;
   };
 
   const updateBusiness = (newBusiness: Business | null): void => {
     setBusiness(newBusiness);
-
-    // Persist business data to localStorage
-    try {
-      const state = JSON.parse(
-        localStorage.getItem("erp_system_state") || "{}",
-      );
-      state.currentBusiness = newBusiness;
-      localStorage.setItem("erp_system_state", JSON.stringify(state));
-    } catch (error) {
-      console.error("Failed to save business to localStorage:", error);
-      // Continue - business is still in state
+    const updatedUser = user ? { ...user, business: newBusiness as any } : null;
+    if (updatedUser) {
+      setUser(updatedUser);
+      saveUserSession(updatedUser);
     }
   };
 

@@ -1,106 +1,11 @@
-import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement, AppSettings } from './types';
-
- 
-  
+import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement } from './types';
 
 const STORAGE_KEY = 'erp_system_state';
-const DEFAULT_SETTINGS: AppSettings = {
-  currency: {
-    symbol: '$',
-    code: 'USD',
-    decimalPlaces: 2,
-  },
-  units: {
-    weight: 'kg',
-    volume: 'L',
-    count: 'units',
-  },
-  notifications: {
-    emailAlerts: true,
-    smsAlerts: false,
-    lowStockAlerts: true,
-    saleNotifications: true,
-  },
-  general: {
-    companyName: 'My Stock Manager',
-    contactEmail: 'contact@company.com',
-    theme: 'light',
-  },
-  credentials: {
-    teamUsers: [],
-    passwordPolicy: {
-      minLength: 8,
-      requireMixedCase: true,
-      requireNumbers: true,
-      requireSpecialChars: false,
-    },
-    sessionTimeout: 30,
-  },
-};
 
 const DEFAULT_USERS: User[] = [
   // Removed hardcoded demo users - authentication now handled by API
 ];
-
-const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Laptop Computer',
-    sku: 'LAP-001',
-    category: 'Electronics',
-    unitPrice: 1200,
-    costPrice: 800,
-    unit: 'units',
-    supplierId: '1',
-    reorderLevel: 5,
-    currentStock: 15,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Wireless Mouse',
-    sku: 'MOU-001',
-    category: 'Accessories',
-    unitPrice: 25,
-    costPrice: 12,
-    unit: 'units',
-    supplierId: '1',
-    reorderLevel: 50,
-    currentStock: 120,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'USB-C Cable',
-    sku: 'CAB-001',
-    category: 'Cables',
-    unitPrice: 15,
-    costPrice: 5,
-    unit: 'units',
-    supplierId: '2',
-    reorderLevel: 100,
-    currentStock: 250,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Mechanical Keyboard',
-    sku: 'KEY-001',
-    category: 'Accessories',
-    unitPrice: 150,
-    costPrice: 75,
-    unit: 'units',
-    supplierId: '1',
-    reorderLevel: 10,
-    currentStock: 32,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
+ 
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
   currentUser: null,
@@ -109,7 +14,7 @@ const DEFAULT_STATE: AppState = {
   sales: [],
   saleReturns: [], // Add sale returns tracking
   stockMovements: [],
-  settings: DEFAULT_SETTINGS,
+  // settings removed - now handled by SettingsContext
 };
 
 class StorageService {
@@ -161,7 +66,7 @@ class StorageService {
         sales: [],
         saleReturns: [],
         stockMovements: [],
-        settings: DEFAULT_SETTINGS,
+        // settings removed - now handled by SettingsContext
       };
     }
 
@@ -177,7 +82,7 @@ class StorageService {
           sales: [],
           saleReturns: [],
           stockMovements: [],
-          settings: DEFAULT_SETTINGS,
+          // settings removed - now handled by SettingsContext
         };
       }
 
@@ -191,10 +96,7 @@ class StorageService {
         sales: parsed.sales || [],
         saleReturns: parsed.saleReturns || [], // Add sale returns tracking
         stockMovements: parsed.stockMovements || [],
-        settings: {
-          ...DEFAULT_SETTINGS,
-          ...parsed.settings,
-        },
+        // settings removed - now handled by SettingsContext
       };
     } catch (error) {
       console.error('Error reading from localStorage:', error);
@@ -206,7 +108,7 @@ class StorageService {
         sales: [],
         saleReturns: [], // Add sale returns tracking
         stockMovements: [],
-        settings: DEFAULT_SETTINGS,
+        // settings removed - now handled by SettingsContext
       };
     }
   }
@@ -241,7 +143,7 @@ class StorageService {
     const state = this.getState();
 
     // Only check team users created in Settings (for backward compatibility)
-    const teamUsers = state.settings?.credentials?.teamUsers || [];
+    const teamUsers: any[] = []; // Settings moved to separate context
     const teamUser = teamUsers.find((u: any) => u.email === username && u.password === password);
 
     if (teamUser) {
@@ -266,7 +168,6 @@ class StorageService {
     state.currentUser = null;
     this.saveState(state);
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('userData'); // Clear user data on logout
     // localStorage.removeItem('erp_system_sync_queue');  
   }
 
@@ -513,36 +414,6 @@ class StorageService {
       }
     }
 
-    this.saveState(state);
-  }
-
-  // Settings
-  getSettings(): AppSettings {
-    return this.getState().settings;
-  }
-
-  updateSettings(settings: Partial<AppSettings>): void {
-    const state = this.getState();
-    // Deep merge for nested objects
-    const updatedCredentials = settings.credentials
-      ? {
-          ...state.settings.credentials,
-          ...settings.credentials,
-          passwordPolicy: settings.credentials.passwordPolicy
-            ? { ...state.settings.credentials.passwordPolicy, ...settings.credentials.passwordPolicy }
-            : state.settings.credentials.passwordPolicy,
-        }
-      : state.settings.credentials;
-
-    state.settings = {
-      ...state.settings,
-      ...settings,
-      currency: { ...state.settings.currency, ...settings.currency },
-      units: { ...state.settings.units, ...settings.units },
-      notifications: { ...state.settings.notifications, ...settings.notifications },
-      general: { ...state.settings.general, ...settings.general },
-      credentials: updatedCredentials,
-    };
     this.saveState(state);
   }
 

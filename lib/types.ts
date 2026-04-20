@@ -1,6 +1,6 @@
 // Auth Types
 export type UserRole = 'admin' | 'manager' | 'sales' | 'accountant';
-export type BusinessType = 'retail';
+export type BusinessType = 'retail' | 'other';
 export type RetailSubType = 'electronics' | 'clothing' | 'food_beverage' | 'beauty' | 'home_hardware' | 'general';
 
 export interface BusinessSetup {
@@ -22,14 +22,9 @@ export interface Business {
   ownerId: string; // Reference to admin user who owns the business
   businessName: string;
   businessType: BusinessType;
-  retailSubType?: RetailSubType;
-  currency: string;
-  lowStockThreshold: number;
-  emailAlerts: boolean;
-  smsAlerts: boolean;
-  lowStockAlerts: boolean;
-  saleNotifications: boolean;
   setupCompletedAt: string;
+  settings: BusinessSettings; // New: embedded business settings
+  user?: any; // Array of user IDs associated with this business
 }
 
 export interface User {
@@ -39,7 +34,7 @@ export interface User {
   password?: string; // hashed in production
   role: UserRole;
   businessId?: string; // Reference to Business model (optional during transition)
-  business?: BusinessSetup; // Keep for backward compatibility during transition
+  business?: Business | BusinessSetup; // Updated: can be either Business (with settings) or BusinessSetup
   createdAt?: string;
   token?: string; // For session management
 }
@@ -298,6 +293,40 @@ export interface TeamUser {
 }
 
 // Settings Types
+export interface BusinessSettings {
+  businessId: string;
+  currency: {
+    code: string;
+    symbol: string;
+    decimalPlaces: number;
+  };
+  units: {
+    weightUnits: string[];
+    volumeUnits: string[];
+    lengthUnits: string[];
+    countUnits: string[];
+  };
+  syncData: {
+    offlineMode: boolean;
+    syncInterval: string;
+    lastSyncedAt?: string;
+  };
+  notifications: {
+    creationNotifications: {
+      email: boolean;
+      sms: boolean;
+    };
+    SalesNotifications: {
+      email: boolean;
+      sms: boolean;
+    };
+    stockNotifications: {
+      email: boolean;
+      sms: boolean;
+    };
+  };
+}
+
 export interface AppSettings {
   currency: {
     symbol: string;
@@ -308,12 +337,22 @@ export interface AppSettings {
     weight: string; // kg, lbs, oz
     volume: string; // L, ml, gallons
     count: string; // units, boxes
+    customUnits?: string[]; // User-defined custom units
+    deletedDefaults?: string[]; // Default units the user has deleted
   };
   notifications: {
-    emailAlerts: boolean;
-    smsAlerts: boolean;
-    lowStockAlerts: boolean;
-    saleNotifications: boolean;
+    creationNotifications: {
+      email: boolean;
+      sms: boolean;
+    };
+    SalesNotifications: {
+      email: boolean;
+      sms: boolean;
+    };
+    stockNotifications: {
+      email: boolean;
+      sms: boolean;
+    };
   };
   general: {
     companyName: string;
@@ -329,6 +368,10 @@ export interface AppSettings {
       requireSpecialChars: boolean;
     };
     sessionTimeout?: number; // minutes
+  };
+  sync?: {
+    offlineEnabled: boolean;
+    syncInterval: string;
   };
 }
 
@@ -383,5 +426,5 @@ export interface AppState {
   sales: Sale[];
   saleReturns: SaleReturn[]; // Add sale returns tracking
   stockMovements: StockMovement[];
-  settings: AppSettings;
+  // settings removed - now handled by SettingsContext
 }
