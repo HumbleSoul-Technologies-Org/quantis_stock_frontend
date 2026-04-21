@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { DataProvider } from "@/context/DataContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { InactivityTimer } from "@/components/InactivityTimer";
 import ThemeProvider from "@/components/theme-provider";
 
 interface ProvidersProps {
@@ -20,6 +21,7 @@ export function Providers({ children }: ProvidersProps) {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <SettingsProvider>
+            <InactivityTimer />
             <DataProvider>
               <NotificationProvider>{children}</NotificationProvider>
             </DataProvider>

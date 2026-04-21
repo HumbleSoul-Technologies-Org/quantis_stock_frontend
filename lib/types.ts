@@ -151,7 +151,7 @@ export interface Sale {
   date: string;
   items: SaleItem[];
   totalAmount: number;
-  status: 'pending' | 'completed' | 'cancelled';
+  status:  'completed' | 'returned';
   notes: string;
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
@@ -159,7 +159,7 @@ export interface Sale {
   customerName?: string;
   paymentType?: string;
   txnId?: string;
-  returnStatus?: 'none' | 'partial' | 'returned'; // Track return status
+  // returnStatus?: 'none' | 'partial' | ''; // Track return status
 }
 
 export interface SaleItem {
@@ -181,7 +181,7 @@ export interface SaleReturn {
   status: 'pending' | 'completed' | 'cancelled';
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
-  createdAt: string;
+  createdAt?: string;
   reference?: string; // Return reference number
   refundAmount?: number; // Amount refunded to customer
   refundMethod?: string; // Payment method used for refund
@@ -324,6 +324,9 @@ export interface BusinessSettings {
       email: boolean;
       sms: boolean;
     };
+  };
+  security?: {
+    autoLogoutTimeout: number; // In milliseconds: 60000, 300000, 600000, etc. 0 = disabled
   };
 }
 

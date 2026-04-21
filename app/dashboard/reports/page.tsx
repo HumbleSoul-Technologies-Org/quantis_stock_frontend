@@ -2,6 +2,7 @@
 
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { ClientOnly } from "@/components/client-only";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 function ReportsPageContent() {
   const { products, sales, stockMovements } = useData();
   const { formatCurrency } = useSettings();
+  const formatCurrencyShort = useFormatCurrencyShort();
   const [selectedReport, setSelectedReport] = useState("inventory");
   const { user } = useAuth();
 
@@ -322,7 +324,7 @@ function ReportsPageContent() {
                   Total Revenue
                 </p>
                 <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                  {formatCurrency(totalRevenue)}
+                  {formatCurrencyShort(totalRevenue)}
                 </p>
               </div>
               <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700">
@@ -330,7 +332,7 @@ function ReportsPageContent() {
                   Average Order Value
                 </p>
                 <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
-                  {formatCurrency(avgOrderValue)}
+                  {formatCurrencyShort(avgOrderValue)}
                 </p>
               </div>
             </div>

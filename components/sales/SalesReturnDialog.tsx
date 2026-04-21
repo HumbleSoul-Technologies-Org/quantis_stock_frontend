@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 
 interface SalesReturnDialogProps {
   isOpen: boolean;
@@ -35,11 +36,12 @@ export function SalesReturnDialog({
   products,
 }: SalesReturnDialogProps) {
   const { formatCurrency } = useSettings();
+  const formatCurrencyShort = useFormatCurrencyShort();
   const { user } = useAuth();
   const [returnItems, setReturnItems] = useState<SaleReturnItem[]>([]);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
-  const [refundAmount, setRefundAmount] = useState(0);
+  const [refundAmount, setRefundAmount] = useState<number | undefined>();
   const [refundMethod, setRefundMethod] = useState("");
 
   // Initialize return items when sale changes
@@ -54,7 +56,7 @@ export function SalesReturnDialog({
       setReturnItems(initialItems);
       setReason("");
       setNotes("");
-      setRefundAmount(0);
+      setRefundAmount(undefined);
       setRefundMethod(sale.paymentType || "");
     }
   }, [sale, isOpen]);
@@ -96,7 +98,6 @@ export function SalesReturnDialog({
     if (!sale || !user || !hasReturnItems) return;
 
     const returnRecord: SaleReturn = {
-      id: Math.random().toString(36).substr(2, 9),
       saleId: sale.id || sale._id || "",
       items: returnItems.filter((item) => item.quantity > 0),
       totalAmount: totalReturnAmount,
@@ -105,9 +106,9 @@ export function SalesReturnDialog({
       status: "completed",
       businessId: sale.businessId,
       createdBy: user.id,
-      createdAt: new Date().toISOString(),
+
       reference: `RTN-${sale.saleNumber}-${Date.now()}`,
-      refundAmount: refundAmount || totalReturnAmount,
+      refundAmount: refundAmount ?? totalReturnAmount,
       refundMethod: refundMethod || undefined,
     };
 
@@ -147,7 +148,8 @@ export function SalesReturnDialog({
                   <strong>Payment:</strong> {sale.paymentType || "N/A"}
                 </div>
                 <div>
-                  <strong>Total:</strong> {formatCurrency(sale.totalAmount)}
+                  <strong>Total:</strong>{" "}
+                  {formatCurrencyShort(sale.totalAmount)}
                 </div>
               </div>
             </CardContent>
@@ -173,7 +175,7 @@ export function SalesReturnDialog({
                         </div>
                         <div className="text-sm text-gray-600">
                           Sold: {soldQuantity} | Unit Price:{" "}
-                          {formatCurrency(item.unitPrice)}
+                          {formatCurrencyShort(item.unitPrice)}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -199,10 +201,10 @@ export function SalesReturnDialog({
                             className="w-20 mt-1"
                           />
                         </div>
-                        <div className="text-right min-w-[100px]">
+                        <div className="text-right min-w-25">
                           <div className="text-sm text-gray-600">Total</div>
                           <div className="font-medium">
-                            {formatCurrency(item.total)}
+                            {formatCurrencyShort(item.total)}
                           </div>
                         </div>
                       </div>
@@ -235,11 +237,16 @@ export function SalesReturnDialog({
                     id="refundAmount"
                     type="number"
                     step="0.01"
-                    value={refundAmount}
+                    min="0"
+                    value={refundAmount ?? ""}
                     onChange={(e) =>
-                      setRefundAmount(parseFloat(e.target.value) || 0)
+                      setRefundAmount(
+                        e.target.value === ""
+                          ? undefined
+                          : Number(e.target.value),
+                      )
                     }
-                    placeholder="Leave empty to use calculated amount"
+                    placeholder={`Suggested: ${formatCurrencyShort(totalReturnAmount)}`}
                   />
                 </div>
               </div>
@@ -280,13 +287,14 @@ export function SalesReturnDialog({
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(totalReturnAmount)}
+                    {formatCurrencyShort(refundAmount ?? totalReturnAmount)}
                   </div>
-                  {refundAmount > 0 && refundAmount !== totalReturnAmount && (
-                    <div className="text-sm text-gray-600">
-                      Refund: {formatCurrency(refundAmount)}
-                    </div>
-                  )}
+                  {/* {refundAmount !== undefined &&
+                    refundAmount !== totalReturnAmount && (
+                      <div className="text-sm text-gray-600">
+                        Calculated: {formatCurrencyShort(totalReturnAmount)}
+                      </div>
+                    )} */}
                 </div>
               </div>
             </CardContent>

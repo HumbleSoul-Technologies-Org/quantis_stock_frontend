@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { ClientOnly } from "@/components/client-only";
 import { SalesForm } from "@/components/sales/SalesForm";
@@ -20,6 +21,7 @@ import {
   BarChart3,
   Calendar,
   Filter,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
@@ -28,6 +30,7 @@ function SalesPageContent() {
   const { products, sales, addSale, deleteSale, processSaleReturn } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
+  const formatCurrencyShort = useFormatCurrencyShort();
   const { notifyResourceCreated, notifyResourceDeleted, notifySuccess } =
     useNotificationActions();
 
@@ -75,7 +78,9 @@ function SalesPageContent() {
 
   const userSales =
     user?.role === "sales"
-      ? safeSales.filter((s: any) => s?.createdBy === user.id)
+      ? safeSales.filter(
+          (s: any) => s?.createdBy === user.id || s?.createdBy === user._id,
+        )
       : safeSales;
 
   // Calculate today's sales
@@ -84,7 +89,9 @@ function SalesPageContent() {
     return userSales.filter((s: any) => {
       const saleDate = new Date(s?.date);
       return (
-        Number.isFinite(saleDate.getTime()) && saleDate.toDateString() === today
+        Number.isFinite(saleDate.getTime()) &&
+        saleDate.toDateString() === today &&
+        s?.status === "completed"
       );
     });
   }, [userSales]);
@@ -112,6 +119,13 @@ function SalesPageContent() {
     const lastSale = sorted[0];
     const date = new Date(lastSale?.createdAt);
     return Number.isFinite(date.getTime()) ? date : null;
+  }, [todaysSales]);
+
+  // Calculate today's returns
+  const todaysReturns = useMemo(() => {
+    return todaysSales.filter(
+      (s: any) => s?.status === "returned" || s?.status === "partial",
+    ).length;
   }, [todaysSales]);
 
   // Filter sales based on search and filters
@@ -208,7 +222,7 @@ function SalesPageContent() {
   return (
     <div className="space-y-8">
       {/* Header Section with Gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-teal-600 dark:from-blue-800 dark:to-teal-800 rounded-xl p-8 text-white shadow-lg">
+      <div className="bg-linear-to-r from-blue-600 to-teal-600 dark:from-blue-800 dark:to-teal-800 rounded-xl p-8 text-white shadow-lg">
         <div className="flex items-center gap-3 mb-2">
           <DollarSign className="w-8 h-8" />
           <h1 className="text-3xl sm:text-4xl font-bold">Sales Management</h1>
@@ -219,7 +233,7 @@ function SalesPageContent() {
       </div>
       {/* Sales Form Card */}
       <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
+        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             <CardTitle className="text-gray-900 dark:text-blue-100">
@@ -233,51 +247,17 @@ function SalesPageContent() {
               products={products}
               onSubmit={handleAddSale}
               onCancel={() => {}}
-              currentUserId={user.id}
+              currentUserId={user.id || user._id}
               currentUsername={user.username}
             />
           )}
         </CardContent>
       </Card>
       {/* Stats Section: Daily Sales & Last Transaction */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Today's Sales Card */}
-        <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-200 dark:bg-blue-900/40 p-3 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <CardTitle className="text-gray-900 dark:text-blue-100">
-                  Today's Sales
-                </CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
-                  Total Amount
-                </p>
-                <p className="text-4xl font-bold text-blue-700 dark:text-blue-300">
-                  {formatCurrency(totalSalesToday)}
-                </p>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-blue-200 dark:border-blue-700 pt-3">
-                <span className="font-semibold text-blue-600 dark:text-blue-400">
-                  {todaysSales.length}
-                </span>{" "}
-                transaction{todaysSales.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Last Sale Card */}
         <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
+          <CardHeader className="bg-linear-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">
               <div className="bg-teal-200 dark:bg-teal-900/40 p-3 rounded-lg">
                 <Clock className="w-6 h-6 text-teal-600 dark:text-teal-400" />
@@ -305,11 +285,83 @@ function SalesPageContent() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Today's Sales Card */}
+        <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-200 dark:bg-blue-900/40 p-3 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900 dark:text-blue-100">
+                  Today's Sales
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Total Amount
+                </p>
+                <p className="text-4xl font-bold text-blue-700 dark:text-blue-300">
+                  {formatCurrencyShort(totalSalesToday)}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-blue-200 dark:border-blue-700 pt-3">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  {todaysSales.length}
+                </span>{" "}
+                transaction{todaysSales.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Today's Returns Card */}
+        <Card className="border-2 border-amber-200 dark:border-amber-700 shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-200 dark:bg-amber-900/40 p-3 rounded-lg">
+                <RotateCcw className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900 dark:text-amber-100">
+                  Today's Returns
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Total Returns
+                </p>
+                <p className="text-4xl font-bold text-amber-700 dark:text-amber-300">
+                  {todaysReturns}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-amber-200 dark:border-amber-700 pt-3">
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  {(
+                    (todaysReturns / Math.max(todaysSales.length, 1)) *
+                    100
+                  ).toFixed(1)}
+                  %
+                </span>{" "}
+                of sales
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search and Filter Section */}
       <Card className="border-2 border-gray-200 dark:border-slate-700 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
+        <CardHeader className="bg-linear-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-gray-600 dark:text-slate-400" />

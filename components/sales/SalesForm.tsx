@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { X, Plus, Trash2 } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
 import { set } from "date-fns";
@@ -30,6 +31,7 @@ export function SalesForm({
   currentUsername,
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
+  const formatCurrencyShort = useFormatCurrencyShort();
   const { user } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
 
@@ -380,8 +382,8 @@ export function SalesForm({
                       {product?.name}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-slate-400">
-                      {item.quantity} × {formatCurrency(item.unitPrice)} ={" "}
-                      {formatCurrency(item.total)}
+                      {item.quantity} × {formatCurrencyShort(item.unitPrice)} ={" "}
+                      {formatCurrencyShort(item.total)}
                     </p>
                   </div>
                   <Button
@@ -398,7 +400,7 @@ export function SalesForm({
             })}
             <div className="border-t border-gray-200 dark:border-teal-700 pt-2 mt-2">
               <p className="text-sm font-bold text-gray-900 dark:text-teal-100">
-                Total: {formatCurrency(totalAmount)}
+                Total: {formatCurrencyShort(totalAmount)}
               </p>
             </div>
           </CardContent>

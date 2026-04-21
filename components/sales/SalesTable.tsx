@@ -14,6 +14,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -29,6 +30,7 @@ export function SalesTable({
   onReturn,
 }: SalesTableProps) {
   const { formatCurrency } = useSettings();
+  const formatCurrencyShort = useFormatCurrencyShort();
   const { user } = useAuth();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
 
@@ -61,8 +63,8 @@ export function SalesTable({
           `<tr style="border-bottom: 1px solid #ddd;">
             <td style="padding: 8px;">${getProductName(item.productId)}</td>
             <td style="padding: 8px; text-align: center;">${item.quantity}</td>
-            <td style="padding: 8px; text-align: right;">${formatCurrency(item.unitPrice)}</td>
-            <td style="padding: 8px; text-align: right;">${formatCurrency(item.total)}</td>
+            <td style="padding: 8px; text-align: right;">${formatCurrencyShort(item.unitPrice)}</td>
+            <td style="padding: 8px; text-align: right;">${formatCurrencyShort(item.total)}</td>
           </tr>`,
       )
       .join("");
@@ -130,7 +132,7 @@ export function SalesTable({
           <div class="summary">
             <div class="summary-box">
               <div>Total Items: <strong>${totalQty}</strong></div>
-              <div class="total-row">Amount: ${formatCurrency(sale.totalAmount)}</div>
+              <div class="total-row">Amount: ${formatCurrencyShort(sale.totalAmount)}</div>
             </div>
           </div>
 
@@ -171,14 +173,14 @@ export function SalesTable({
           </p>
         ) : (
           <div className="space-y-2">
-            {sorted.map((sale) => (
+            {sorted.map((sale: any) => (
               <div
                 key={sale.id || sale._id} // Handle both id and _id for backward compatibility
                 className="border border-gray-200 dark:border-slate-700 dark:bg-slate-700 rounded-lg"
               >
                 <div
                   className="p-3 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer flex items-center justify-between"
-                  onClick={() => toggleExpand(sale.id)}
+                  onClick={() => toggleExpand(sale.id || sale?._id)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -203,14 +205,16 @@ export function SalesTable({
                     </p>
                     <p className="ml-6">
                       Status:{" "}
-                      <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-medium capitalize">
+                      <span
+                        className={`${sale.status === "completed" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-medium capitalize" : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded text-xs font-medium capitalize"}`}
+                      >
                         {sale.status}
                       </span>
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-gray-900">
-                      {formatCurrency(sale.totalAmount)}
+                      {formatCurrencyShort(sale.totalAmount)}
                     </p>
                     <p className="text-xs text-gray-600">
                       {format(new Date(sale.createdAt), "MMM d, yyyy")}
@@ -218,7 +222,7 @@ export function SalesTable({
                   </div>
                 </div>
 
-                {expandedSales.has(sale.id) && (
+                {expandedSales.has(sale.id || sale._id) && (
                   <div className="border-t border-gray-200 bg-gray-50 p-3 space-y-3">
                     {/* Sale Details */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -272,7 +276,7 @@ export function SalesTable({
                             </tr>
                           </thead>
                           <tbody>
-                            {sale.items.map((item, idx) => (
+                            {sale.items.map((item: any, idx: number) => (
                               <tr
                                 key={idx}
                                 className="border-b border-gray-200 hover:bg-gray-50"
@@ -284,10 +288,10 @@ export function SalesTable({
                                   {item.quantity}
                                 </td>
                                 <td className="p-2 text-right">
-                                  {formatCurrency(item.unitPrice)}
+                                  {formatCurrencyShort(item.unitPrice)}
                                 </td>
                                 <td className="p-2 text-right font-medium">
-                                  {formatCurrency(item.total)}
+                                  {formatCurrencyShort(item.total)}
                                 </td>
                               </tr>
                             ))}
@@ -303,7 +307,7 @@ export function SalesTable({
                           Total Items: <strong>{getTotalQuantity(sale)}</strong>
                         </p>
                         <p className="text-lg font-bold text-gray-900">
-                          {formatCurrency(sale.totalAmount)}
+                          {formatCurrencyShort(sale.totalAmount)}
                         </p>
                       </div>
                     </div>
@@ -327,7 +331,7 @@ export function SalesTable({
                         <Printer className="w-4 h-4" />
                         Print
                       </Button>
-                      {onReturn && sale.returnStatus !== "returned" && (
+                      {onReturn && sale?.status !== "returned" && (
                         <Button
                           size="sm"
                           variant="outline"

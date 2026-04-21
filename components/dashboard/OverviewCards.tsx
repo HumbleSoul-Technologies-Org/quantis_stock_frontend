@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingCart, AlertCircle, TrendingUp } from "lucide-react";
 
 function OverviewCardsContent() {
   const { products, sales } = useData();
   const { formatCurrency } = useSettings();
+  const formatCurrencyShort = useFormatCurrencyShort();
 
   const safeProducts = Array.isArray(products) ? products : [];
   const safeSales = Array.isArray(sales) ? sales : [];
@@ -52,7 +54,7 @@ function OverviewCardsContent() {
     },
     {
       title: "Total Sales",
-      value: currencyFormatter(totalSales),
+      value: formatCurrencyShort(totalSales),
       icon: ShoppingCart,
       color: "bg-green-50",
       iconColor: "text-green-600",
@@ -60,7 +62,7 @@ function OverviewCardsContent() {
     },
     {
       title: "Inventory Value",
-      value: currencyFormatter(totalInventoryValue),
+      value: formatCurrencyShort(totalInventoryValue),
       icon: TrendingUp,
       color: "bg-purple-50",
       iconColor: "text-purple-600",

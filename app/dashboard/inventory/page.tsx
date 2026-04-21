@@ -225,6 +225,45 @@ function InventoryPageContent() {
     });
   }, [sortedMovements, historyProductFilter, historyDateFrom, historyDateTo]);
 
+  // Filter ALL movement history (stock in, out, and adjustments)
+  const filteredAllHistory = useMemo(() => {
+    return sortedMovements.filter((movement: StockMovement) => {
+      const matchesProduct =
+        !historyProductFilter || movement.productId === historyProductFilter;
+
+      let matchesDateRange = true;
+      if (historyDateFrom || historyDateTo) {
+        const movementDateValue = new Date(movement.createdAt);
+        const movementDate = Number.isFinite(movementDateValue.getTime())
+          ? movementDateValue.toDateString()
+          : null;
+
+        if (!movementDate) return false;
+
+        if (historyDateFrom) {
+          const fromDateValue = new Date(historyDateFrom);
+          const fromDate = Number.isFinite(fromDateValue.getTime())
+            ? fromDateValue.toDateString()
+            : null;
+          if (fromDate) {
+            matchesDateRange = matchesDateRange && movementDate >= fromDate;
+          }
+        }
+        if (historyDateTo) {
+          const toDateValue = new Date(historyDateTo);
+          const toDate = Number.isFinite(toDateValue.getTime())
+            ? toDateValue.toDateString()
+            : null;
+          if (toDate) {
+            matchesDateRange = matchesDateRange && movementDate <= toDate;
+          }
+        }
+      }
+
+      return matchesProduct && matchesDateRange;
+    });
+  }, [sortedMovements, historyProductFilter, historyDateFrom, historyDateTo]);
+
   // Calculate stock in summary stats
   const totalUnitsStockedIn = filteredStockInHistory.reduce(
     (sum: number, m: any) => sum + m.quantity,
@@ -670,7 +709,7 @@ function InventoryPageContent() {
                 Clear Filters
               </Button>
               <p className="text-xs font-medium text-gray-600 dark:text-slate-400">
-                {filteredStockInHistory.length} record(s) found
+                {filteredAllHistory.length} record(s) found
               </p>
             </div>
           </CardContent>
@@ -678,7 +717,7 @@ function InventoryPageContent() {
 
         {/* Stock History Table */}
         <StockHistoryTable
-          movements={filteredStockInHistory}
+          movements={filteredAllHistory}
           products={products}
           onEdit={handleEditMovement}
         />

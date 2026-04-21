@@ -37,7 +37,9 @@ export function StockHistoryTable({
     .filter((product) => product.currentStock <= 0)
     .filter((product) => {
       if (selectedProductId) {
-        const idMatch = product.id === selectedProductId;
+        const idMatch =
+          product.id === selectedProductId ||
+          (product as any)._id === selectedProductId;
         const oidMatch = (product as any)._id === selectedProductId;
         if (!idMatch && !oidMatch) return false;
       }

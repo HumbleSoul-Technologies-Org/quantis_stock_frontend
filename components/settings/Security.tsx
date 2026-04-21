@@ -12,6 +12,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Shield,
   AlertCircle,
   Clock,
@@ -19,17 +26,32 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "sonner";
 
+// Auto-logout timeout options (in milliseconds)
+const AUTO_LOGOUT_OPTIONS = [
+  { value: 0, label: "Never" },
+  { value: 60000, label: "60 seconds" },
+  { value: 300000, label: "5 minutes" },
+  { value: 600000, label: "10 minutes" },
+  { value: 900000, label: "15 minutes" },
+  { value: 1800000, label: "30 minutes" },
+  { value: 3600000, label: "1 hour" },
+];
+
 export function Security() {
   const { user, updateCredentials } = useAuth();
+  const { settings, updateSecurity } = useSettings();
   const [formData, setFormData] = useState({
     currentPassword: "",
     newUsername: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [autoLogoutTimeout, setAutoLogoutTimeout] = useState<number>(0);
+  const [isUpdatingTimeout, setIsUpdatingTimeout] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -43,6 +65,43 @@ export function Security() {
   const [countdownValue, setCountdownValue] = useState(5);
 
   const isAdmin = user?.role === "admin";
+
+  // Initialize auto-logout timeout from settings
+  useEffect(() => {
+    if (settings?.security?.autoLogoutTimeout !== undefined) {
+      setAutoLogoutTimeout(settings.security.autoLogoutTimeout);
+    }
+  }, [settings?.security?.autoLogoutTimeout]);
+
+  const handleAutoLogoutChange = async (value: string) => {
+    const timeoutValue = parseInt(value, 10);
+    setAutoLogoutTimeout(timeoutValue);
+    setIsUpdatingTimeout(true);
+
+    try {
+      const success = await updateSecurity({
+        autoLogoutTimeout: timeoutValue,
+      });
+
+      if (success) {
+        const option = AUTO_LOGOUT_OPTIONS.find(
+          (o) => o.value === timeoutValue,
+        );
+        toast.success(
+          `Auto-logout timeout set to ${option?.label || "disabled"}`,
+        );
+      } else {
+        toast.error("Failed to update auto-logout timeout");
+        // Revert on failure
+        setAutoLogoutTimeout(settings?.security?.autoLogoutTimeout ?? 0);
+      }
+    } catch (error) {
+      toast.error("Failed to update auto-logout timeout");
+      setAutoLogoutTimeout(settings?.security?.autoLogoutTimeout ?? 0);
+    } finally {
+      setIsUpdatingTimeout(false);
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -361,6 +420,56 @@ export function Security() {
               </li>
               <li>• Change your password regularly for better security</li>
             </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Auto-Logout Settings */}
+      <Card className="border-purple-200 border-2 dark:bg-slate-800 dark:border-purple-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 dark:text-purple-100">
+            <Clock className="w-5 h-5" />
+            Session Timeout
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300">
+            <p className="font-medium mb-1">🔒 Auto-Logout</p>
+            <p>
+              Automatically log out inactive sessions after a specified period
+              of inactivity to enhance security. Select a timeout interval or
+              disable this feature.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Inactivity Timeout
+            </label>
+            <Select
+              value={autoLogoutTimeout.toString()}
+              onValueChange={handleAutoLogoutChange}
+              disabled={isUpdatingTimeout}
+            >
+              <SelectTrigger className="border-purple-200 dark:border-purple-700 dark:bg-slate-700 dark:text-slate-50">
+                <SelectValue placeholder="Select timeout" />
+              </SelectTrigger>
+              <SelectContent>
+                {AUTO_LOGOUT_OPTIONS.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value.toString()}
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+              {autoLogoutTimeout === 0
+                ? "Auto-logout is currently disabled."
+                : `You will be automatically logged out after ${AUTO_LOGOUT_OPTIONS.find((o) => o.value === autoLogoutTimeout)?.label.toLowerCase() || "inactivity"}.`}
+            </p>
           </div>
         </CardContent>
       </Card>
