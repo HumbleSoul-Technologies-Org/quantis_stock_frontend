@@ -24,6 +24,7 @@ import {
   Clock,
   Trash2,
   AlertTriangle,
+  Loader,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -42,7 +43,7 @@ const AUTO_LOGOUT_OPTIONS = [
 ];
 
 export function Security() {
-  const { user, updateCredentials } = useAuth();
+  const { user, updateCredentials, logout } = useAuth();
   const { settings, updateSecurity } = useSettings();
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -62,6 +63,7 @@ export function Security() {
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCountingDown, setIsCountingDown] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [countdownValue, setCountdownValue] = useState(5);
 
   const isAdmin = user?.role === "admin";
@@ -138,14 +140,23 @@ export function Security() {
       return;
     }
 
+    setProcessing(true);
+
     try {
-      const success = await updateCredentials(
-        formData.newUsername,
-        formData.newPassword,
-        formData.currentPassword,
+      const payLoad = {
+        currentPassword: formData.currentPassword.trim(),
+        newUsername: formData.newUsername.trim(),
+        newPassword: formData.newPassword.trim(),
+      };
+
+      const res = await apiRequest(
+        "PUT",
+        `/users/${user?.id}/admin/update`,
+        payLoad,
+        user?.token,
       );
 
-      if (success) {
+      if (res.ok) {
         toast.success("Credentials updated successfully");
         setMessage({
           type: "success",
@@ -158,17 +169,18 @@ export function Security() {
           confirmPassword: "",
         });
         setTimeout(() => setMessage(null), 3000);
-      } else {
-        setMessage({
-          type: "error",
-          text: "Current password is incorrect",
-        });
+        logout();
       }
     } catch (error) {
       setMessage({
         type: "error",
         text: error instanceof Error ? error.message : "Update failed",
       });
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -402,10 +414,16 @@ export function Security() {
 
             <Button
               type="submit"
-              disabled={!isAdmin}
+              disabled={!isAdmin || processing}
               className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
             >
-              Update Credentials
+              {processing ? (
+                <>
+                  Updating... <Loader className="animate-spin" />
+                </>
+              ) : (
+                "Update Credentials"
+              )}
             </Button>
           </form>
 

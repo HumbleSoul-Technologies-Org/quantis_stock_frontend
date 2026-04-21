@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -281,8 +281,8 @@ export function Users() {
       };
 
       const res = await apiRequest(
-        "PUT",
-        `/users/${resetPasswordUserId}/reset-password`,
+        "POST",
+        `/users/${resetPasswordUserId}/user-password/change`,
         payLoad,
         user?.token,
       );
@@ -323,8 +323,8 @@ export function Users() {
       const newBannedStatus = !teamUser.isBanned;
 
       const res = await apiRequest(
-        "PUT",
-        `/users/${userId}/ban`,
+        "POST",
+        `/users/${userId}/toggle-ban`,
         { banned: newBannedStatus },
         user?.token,
       );
@@ -361,7 +361,7 @@ export function Users() {
     try {
       const res = await apiRequest(
         "DELETE",
-        `/users/${userId}`,
+        `/users/${userId}/delete`,
         {},
         user?.token,
       );
@@ -863,7 +863,9 @@ export function Users() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleOpenResetPassword(teamUser.id)
+                                  handleOpenResetPassword(
+                                    teamUser.id || teamUser._id || "",
+                                  )
                                 }
                                 className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
                               >
@@ -871,7 +873,11 @@ export function Users() {
                                 Reset Password
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleDeleteUser(teamUser.id)}
+                                onClick={() =>
+                                  handleDeleteUser(
+                                    teamUser.id || teamUser._id || "",
+                                  )
+                                }
                                 className="text-red-600 dark:text-red-400 dark:focus:bg-red-900/20 cursor-pointer"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
