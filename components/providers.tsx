@@ -29,7 +29,7 @@ export function Providers({ children }: ProvidersProps) {
         </AuthProvider>
       </QueryClientProvider>
       <Toaster
-        position="top-right"
+        position="bottom-right"
         richColors
         closeButton
         theme="light"

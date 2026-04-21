@@ -78,9 +78,7 @@ function SalesPageContent() {
 
   const userSales =
     user?.role === "sales"
-      ? safeSales.filter(
-          (s: any) => s?.createdBy === user.id || s?.createdBy === user._id,
-        )
+      ? safeSales.filter((s: any) => s?.createdBy === (user?.id || user?._id))
       : safeSales;
 
   // Calculate today's sales
@@ -247,7 +245,7 @@ function SalesPageContent() {
               products={products}
               onSubmit={handleAddSale}
               onCancel={() => {}}
-              currentUserId={user.id || user._id}
+              currentUserId={user.id || user._id || ""}
               currentUsername={user.username}
             />
           )}

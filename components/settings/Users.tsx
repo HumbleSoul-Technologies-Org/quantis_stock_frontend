@@ -75,11 +75,11 @@ export function Users() {
   const isAdmin = user?.role === "admin";
 
   const { data: usersData, refetch: refetchUsers } = useQuery({
-    queryKey: ["users", user?.businessId],
+    queryKey: ["users"],
     queryFn: async () => {
       const res = await apiRequest(
         "GET",
-        `/users/${user?.businessId}`,
+        `/users/${business?._id || user?.businessId}`,
         {},
         user?.token,
       );
@@ -89,6 +89,7 @@ export function Users() {
       return res.json();
     },
     enabled: !!user?.token,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes to keep user list up-to-date
   });
 
   useEffect(() => {
@@ -99,8 +100,15 @@ export function Users() {
           id: (user as any).id || (user as any)._id,
         })),
       );
+
+      localStorage.setItem("teamUsers", JSON.stringify(usersData));
     } else {
-      setTeamUsers([]);
+      const storedUsers = localStorage.getItem("teamUsers");
+      if (storedUsers) {
+        setTeamUsers(JSON.parse(storedUsers));
+      } else {
+        setTeamUsers([]);
+      }
     }
   }, [usersData]);
 

@@ -159,7 +159,7 @@ export interface Sale {
   customerName?: string;
   paymentType?: string;
   txnId?: string;
-  // returnStatus?: 'none' | 'partial' | ''; // Track return status
+  returnStatus?: 'none' | 'partial' | 'returned'; // Track return status
 }
 
 export interface SaleItem {
@@ -326,6 +326,7 @@ export interface BusinessSettings {
     };
   };
   security?: {
+    
     autoLogoutTimeout: number; // In milliseconds: 60000, 300000, 600000, etc. 0 = disabled
   };
 }
