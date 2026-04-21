@@ -116,34 +116,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [lastRateUpdate, setLastRateUpdate] = useState<string | null>(null);
   const { user, business, updateBusiness } = useAuth();
-  const { data: settingsData, refetch: refetchSettings } = useQuery<any[]>({
-    queryKey: [`settings/${user?.businessId}`],
-    queryFn: async () => {
-      const res = await apiRequest(
-        "GET",
-        `/settings/${user?.businessId}`,
-        {},
-        user?.token,
-      );
-      if (!res.ok) {
-        throw new Error("Failed to fetch settings");
-      }
-      return res.json();
-    },
-    enabled: !!user?.token,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes to keep settings up-to-date
-  });
 
   // Initialize settings from business data or localStorage
   useEffect(() => {
     const businessSettings =
       business?.settings ?? (business as any)?.businessSettings;
 
-    if (businessSettings && settingsData && businessSettings !== settingsData) {
+    if (businessSettings) {
       // Use settings from business object (from login response)
-      setSettings(settingsData as any);
+      setSettings(businessSettings as any);
       // Cache in localStorage for offline access
-      localStorage.setItem("businessSettings", JSON.stringify(settingsData));
+      localStorage.setItem(
+        "businessSettings",
+        JSON.stringify(businessSettings),
+      );
       setIsLoading(false);
     } else {
       // Fallback to localStorage
@@ -227,9 +213,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           updateBusiness(updatedBusiness);
         }
 
-        // Refetch settings to ensure cache is fresh
-        await refetchSettings();
-
         // Clear old exchange rates and fetch new ones for the new currency
         if (typeof currency === "object" && currency.code) {
           clearCachedRates(currency.code);
@@ -272,9 +255,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           updateBusiness(updatedBusiness);
         }
 
-        // Refetch settings to ensure cache is fresh
-        await refetchSettings();
-
         return true;
       }
       return false;
@@ -310,9 +290,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const updatedBusiness = { ...business, settings: updatedSettings };
           updateBusiness(updatedBusiness);
         }
-
-        // Refetch settings to ensure cache is fresh
-        await refetchSettings();
 
         return true;
       }
@@ -350,9 +327,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           updateBusiness(updatedBusiness);
         }
 
-        // Refetch settings to ensure cache is fresh
-        await refetchSettings();
-
         return true;
       }
       return false;
@@ -388,9 +362,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const updatedBusiness = { ...business, settings: updatedSettings };
           updateBusiness(updatedBusiness);
         }
-
-        // Refetch settings to ensure cache is fresh
-        await refetchSettings();
 
         return true;
       }
