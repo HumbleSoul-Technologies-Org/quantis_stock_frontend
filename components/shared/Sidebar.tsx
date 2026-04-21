@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function Sidebar() {
-  const { user, business } = useAuth();
+  const { user, business, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -83,7 +83,7 @@ export function Sidebar() {
   );
 
   const handleLogout = () => {
-    // logout handled in top nav
+    logout();
     router.push("/auth/login");
   };
 
@@ -119,7 +119,7 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:relative w-64 bg-gradient-to-b from-green-50 to-white dark:from-slate-800 dark:to-slate-900 border-r border-green-200 dark:border-teal-700 h-screen overflow-y-auto transition-transform duration-300 z-40 lg:translate-x-0 ${
+        className={`fixed lg:relative w-64 bg-linear-to-b from-green-50 to-white dark:from-slate-800 dark:to-slate-900 border-r border-green-200 dark:border-teal-700 h-screen overflow-y-auto transition-transform duration-300 z-40 lg:translate-x-0 ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -150,7 +150,7 @@ export function Sidebar() {
                       : "hover:bg-green-100 dark:hover:bg-teal-800 hover:text-green-700 dark:hover:text-teal-300 text-gray-700 dark:text-gray-300"
                   }`}
                 >
-                  <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                  <Icon className="w-5 h-5 mr-3 shrink-0" />
                   <span className="truncate">{item.label}</span>
                 </Button>
               </Link>
@@ -170,6 +170,13 @@ export function Sidebar() {
               {user.role}
             </p>
           </div>
+          <Button
+            onClick={handleLogout}
+            className="w-full lg:hidden   justify-start text-left bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800"
+          >
+            <LogOut className="w-5 h-5 mr-3 shrink-0" />
+            <span>Logout</span>
+          </Button>
         </div>
       </aside>
     </>
