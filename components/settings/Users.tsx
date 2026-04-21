@@ -756,11 +756,9 @@ export function Users() {
                     <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                       Name
                     </th>
-                    {user?.role !== "admin" && (
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
-                        Email
-                      </th>
-                    )}
+                    <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                      Email
+                    </th>
                     <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                       Role
                     </th>
@@ -773,23 +771,21 @@ export function Users() {
                     <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
                       Status
                     </th>
-                    {user?.role !== "admin" && (
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
-                        Actions
-                      </th>
-                    )}
+                    <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                  {teamUsers.map((teamUser) => (
+                  {teamUsers.map((teamUser: any, index) => (
                     <tr
-                      key={teamUser.id}
+                      key={teamUser.id || index}
                       className="hover:bg-gray-50 dark:hover:bg-slate-700"
                     >
                       <td className="px-4 py-2 dark:text-slate-100">
                         {teamUser.username || teamUser.name}
                       </td>
-                      {user?.role !== "admin" && (
+                      {teamUser?.role !== "admin" && (
                         <td className="px-4 py-2">{teamUser.email}</td>
                       )}
                       <td className="px-4 py-2">
@@ -817,7 +813,7 @@ export function Users() {
                           "Active"
                         )}
                       </td>
-                      {user?.role !== "admin" && (
+                      {teamUser?.role !== "admin" && (
                         <td className="px-4 py-2">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -846,7 +842,11 @@ export function Users() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleBanUser(teamUser.id)}
+                                onClick={() =>
+                                  handleBanUser(
+                                    teamUser.id || teamUser._id || "",
+                                  )
+                                }
                                 className={`dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer ${teamUser.isBanned ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"} `}
                               >
                                 {teamUser.isBanned ? (
