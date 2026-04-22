@@ -708,7 +708,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type: "out" as const,
           quantity: item.quantity,
           reason: "Sale",
-          reference: saleWithBusinessId.saleNumber,
+          reference: `SALE-${saleWithBusinessId.saleNumber}`,
           createdBy: user?.id || user?._id || "system",
           createdAt: new Date().toISOString(),
         }),
@@ -740,15 +740,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             saleWithBusinessId,
             user.token,
           );
-          // Force cache invalidation to ensure consistency
+          // Force immediate cache refresh to ensure consistency
           await Promise.all([
-            queryClient.invalidateQueries({
+            queryClient.refetchQueries({
               queryKey: ["products", user?.businessId],
             }),
-            queryClient.invalidateQueries({
+            queryClient.refetchQueries({
               queryKey: ["sales", user?.businessId],
             }),
-            queryClient.invalidateQueries({
+            queryClient.refetchQueries({
               queryKey: ["inventory", "movements", user?.businessId],
             }),
           ]);
@@ -884,7 +884,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Find and delete old stock movements for this sale
       const oldMovements = stockMovements.filter(
-        (m) => m.reference === originalSale.saleNumber,
+        (m) => m.reference === `SALE-${originalSale.saleNumber}`,
       );
 
       // Reverse stock adjustments from old movements
@@ -918,7 +918,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         type: delta.type,
         quantity: delta.quantity,
         reason: delta.reason,
-        reference: `SUP-${originalSale.saleNumber}`,
+        reference: `SALE-${originalSale.saleNumber}`,
         createdBy: user?.id || user?._id || "system",
         createdAt: new Date().toISOString(),
       }));
@@ -952,7 +952,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Remove old stock movements and add new ones
       const updatedStockMovements = stockMovements.filter(
-        (m) => m.reference !== originalSale.saleNumber,
+        (m) => m.reference !== `SALE-${originalSale.saleNumber}`,
       );
 
       // Optimistically update local state
@@ -987,12 +987,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
               )
             : undefined,
       );
-      queryClient.invalidateQueries({
-        queryKey: ["products", user?.businessId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["inventory", "movements", user?.businessId],
-      });
 
       // Send to API if online
       if (isOnline && user?.token) {
@@ -1003,6 +997,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             saleWithBusinessId,
             user.token,
           );
+          // Force immediate cache refresh to ensure consistency
+          await Promise.all([
+            queryClient.refetchQueries({
+              queryKey: ["products", user?.businessId],
+            }),
+            queryClient.refetchQueries({
+              queryKey: ["inventory", "movements", user?.businessId],
+            }),
+          ]);
           // Immediately refetch sales to ensure consistency
           refetchSales();
         } catch (error) {
@@ -1135,7 +1138,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
           quantity: item.quantity,
           reason: "Return",
           reference:
-            returnWithBusinessId.reference || originalSale?.saleNumber || "",
+            returnWithBusinessId.reference ||
+            `SALE-${originalSale?.saleNumber}` ||
+            "",
           createdBy: user?.id || user?._id || "system",
           createdAt: new Date().toISOString(),
         }),
