@@ -6,6 +6,7 @@ import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { Product } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
 import { ProductDialog } from "@/components/products/ProductDialog";
+import { ProductDetailsDialog } from "@/components/products/ProductDetailsDialog";
 import { ProductTable } from "@/components/products/ProductTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ function ProductsPageContent() {
 
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [viewingProduct, setViewingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -68,6 +71,11 @@ function ProductsPageContent() {
     window.location.href = `/dashboard/inventory?productId=${product.id || product._id}`;
   };
 
+  const handleViewProduct = (product: Product) => {
+    setViewingProduct(product);
+    setShowViewDialog(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 px-2 sm:px-0">
@@ -104,6 +112,18 @@ function ProductsPageContent() {
         }}
       />
 
+      <ProductDetailsDialog
+        isOpen={showViewDialog}
+        product={viewingProduct}
+        suppliers={safeSuppliers}
+        onOpenChange={(open) => {
+          setShowViewDialog(open);
+          if (!open) {
+            setViewingProduct(undefined);
+          }
+        }}
+      />
+
       <div className="flex gap-4 flex-col sm:flex-row">
         <Input
           placeholder="Search by name or SKU..."
@@ -131,6 +151,7 @@ function ProductsPageContent() {
         onEdit={handleEditProduct}
         onDelete={handleDeleteProduct}
         onStockIn={handleStockIn}
+        onView={handleViewProduct}
         searchTerm={searchTerm}
         categoryFilter={categoryFilter}
       />

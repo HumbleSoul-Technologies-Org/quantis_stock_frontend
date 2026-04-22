@@ -3,7 +3,14 @@
 import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, MoreVertical, Edit2, Plus, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  MoreVertical,
+  Edit2,
+  Plus,
+  Trash2,
+  Eye,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
@@ -14,6 +21,7 @@ interface ProductTableProps {
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
   onStockIn: (product: Product) => void;
+  onView: (product: Product) => void;
   searchTerm?: string;
   categoryFilter?: string;
 }
@@ -24,6 +32,7 @@ export function ProductTable({
   onEdit,
   onDelete,
   onStockIn,
+  onView,
   searchTerm = "",
   categoryFilter = "",
 }: ProductTableProps) {
@@ -72,7 +81,7 @@ export function ProductTable({
               const backgroundImage =
                 product.image?.url || product.imageUrl
                   ? `url(${product.image?.url || product.imageUrl})`
-                  : "url(https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg)";
+                  : "url(/no-image.png)";
 
               return (
                 <div
@@ -89,7 +98,7 @@ export function ProductTable({
                         : "#1f2937",
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/70 group-hover:via-black/10 transition-all duration-300" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/70 group-hover:via-black/10 transition-all duration-300" />
                   {!product.image?.url ||
                     (product.imageUrl === "" && (
                       <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white/80">
@@ -177,9 +186,19 @@ export function ProductTable({
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                onView(product);
+                              }}
+                              className="bg-green-600/90 cursor-pointer hover:bg-green-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 onStockIn(product);
                               }}
-                              className="bg-green-600/90 hover:bg-green-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                              className="bg-green-600/90 cursor-pointer hover:bg-green-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
                             >
                               <Plus className="w-4 h-4" />
                             </Button>
@@ -190,7 +209,7 @@ export function ProductTable({
                                 e.stopPropagation();
                                 onDelete(product.id || product._id || ""); // Handle both id and _id
                               }}
-                              className="bg-red-600/90 hover:bg-red-500 shadow-md hover:shadow-lg transition-all duration-200"
+                              className="bg-red-600/90 cursor-pointer hover:bg-red-500 shadow-md hover:shadow-lg transition-all duration-200"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

@@ -150,7 +150,7 @@ export function Profile() {
                   Edit Business Profile
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md dark:bg-slate-800">
                 <DialogHeader>
                   <DialogTitle>Edit Business Profile</DialogTitle>
                   <DialogDescription>
@@ -169,7 +169,7 @@ export function Profile() {
                           businessName: e.target.value,
                         })
                       }
-                      className={errors.businessName ? "border-red-500" : ""}
+                      className={`${errors.businessName ? "border-red-500" : ""} w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50`}
                     />
                     {errors.businessName && (
                       <p className="text-red-500 text-xs mt-1">
@@ -188,7 +188,7 @@ export function Profile() {
                           businessType: e.target.value as "retail" | "other",
                         })
                       }
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-700 dark:text-slate-50"
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
                     >
                       <option value="retail">Retail</option>
                       <option value="other">Other</option>

@@ -175,7 +175,7 @@ export function StockMovementForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium dark:text-slate-300 mb-1">
             Product *
           </label>
           <Select
@@ -252,7 +252,7 @@ export function StockMovementForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium dark:text-slate-300 mb-1">
             Movement Type *
           </label>
           <select
@@ -267,7 +267,7 @@ export function StockMovementForm({
                   : generateReference(newType),
               });
             }}
-            className="w-full px-3 py-2 border border-green-200 rounded-md text-sm"
+            className="w-full px-3 py-2 border dark:bg-slate-900 border-green-200 rounded-md text-sm"
           >
             <option value="in">Stock In</option>
             <option value="out">Stock Out</option>
@@ -276,7 +276,7 @@ export function StockMovementForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium dark:text-slate-300 mb-1">
             Quantity *
           </label>
           <Input
@@ -286,7 +286,7 @@ export function StockMovementForm({
               setFormData({ ...formData, quantity: e.target.value })
             }
             placeholder="0"
-            className={errors.quantity ? "border-red-500" : "border-green-200"}
+            className={`${errors.quantity ? "border-red-500" : "border-green-200"} dark:bg-slate-900 border rounded-md text-sm`}
           />
           {errors.quantity && (
             <p className="text-red-500 text-xs mt-1">{errors.quantity}</p>
@@ -294,7 +294,7 @@ export function StockMovementForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium dark:text-slate-300 mb-1">
             Reason *
           </label>
           <select
@@ -302,7 +302,7 @@ export function StockMovementForm({
             onChange={(e) =>
               setFormData({ ...formData, reason: e.target.value })
             }
-            className={`w-full px-3 py-2 border rounded-md text-sm ${
+            className={`w-full px-3 py-2 border rounded-md dark:bg-slate-900 text-sm ${
               errors.reason ? "border-red-500" : "border-green-200"
             }`}
           >
@@ -319,7 +319,7 @@ export function StockMovementForm({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium dark:text-slate-300 mb-1">
             Reference Number *
           </label>
           <div className="flex gap-2">
@@ -333,11 +333,11 @@ export function StockMovementForm({
               }}
               readOnly={!isEditMode}
               placeholder="Auto-generated"
-              className={
+              className={`${
                 isEditMode
                   ? "border-green-200"
                   : "border-green-200 bg-green-50 cursor-not-allowed"
-              }
+              } dark:bg-slate-900 border rounded-md text-sm flex-1 ${errors.reference ? "border-red-500" : ""}`}
             />
           </div>
           {!isEditMode && (

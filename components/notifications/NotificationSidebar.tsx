@@ -123,14 +123,20 @@ export function NotificationSidebar({
       <div className="fixed right-0 top-0 h-screen w-96 bg-white dark:bg-slate-800 shadow-lg z-50 flex flex-col border-l border-gray-200 dark:border-slate-700">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-          <h2 className="text-lg flex items-center justify-center gap-2 font-bold text-gray-900 dark:text-white">
-            Notifications
-            {getUnreadCount() > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {getUnreadCount()}
-              </span>
-            )}
-          </h2>
+          <span className="text-left">
+            <h2 className="text-lg flex items-center justify-center gap-2 font-bold text-gray-900 dark:text-white">
+              Notifications
+              {getUnreadCount() > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {getUnreadCount()}
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-slate-400">
+              Click the notification to mark as read
+            </p>
+          </span>
+
           <Button
             variant="ghost"
             size="sm"
@@ -176,58 +182,121 @@ export function NotificationSidebar({
             </div>
           ) : (
             <div className="space-y-2 p-4">
-              {notifications.map((notification, index) => (
-                <Card
-                  key={index} // Fallback to index if id is missing
-                  className={`border p-3 cursor-pointer transition-all ${getNotificationColor(
-                    notification.type,
-                  )} ${notification.readBy?.includes((user?._id as string) || (user?.id as string)) ? "opacity-60" : "opacity-100"}`}
-                  onClick={() =>
-                    markAsRead(notification.id || notification._id || "")
-                  }
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 mt-0.5">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white">
-                          {notification.title}
-                        </p>
-                        {user &&
-                          (user.role === "admin" ||
-                            user.role === "manager") && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeNotification(
-                                  notification.id || notification._id || "",
-                                );
-                              }}
-                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
+              {/* Unread Notifications First */}
+              {notifications
+                .filter(
+                  (n) =>
+                    !n.readBy?.includes(
+                      (user?._id as string) || (user?.id as string),
+                    ),
+                )
+                .map((notification, index) => (
+                  <Card
+                    key={index}
+                    className={`border p-3 cursor-pointer dark:bg-slate-900 transition-all ${getNotificationColor(
+                      notification.type,
+                    )} opacity-100`}
+                    onClick={() =>
+                      markAsRead(notification.id || notification._id || "")
+                    }
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 mt-0.5">
+                        {getNotificationIcon(notification.type)}
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                        {notification.createdAt
-                          ? format(notification.createdAt, "MMM dd, p")
-                          : ""}
-                      </p>
-                      {!notification.read && (
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                            {notification.title}
+                          </p>
+                          {user &&
+                            (user.role === "admin" ||
+                              user.role === "manager") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeNotification(
+                                    notification.id || notification._id || "",
+                                  );
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                          {notification.createdAt
+                            ? format(notification.createdAt, "MMM dd, p")
+                            : ""}
+                        </p>
                         <div className="mt-2 w-2 h-2 bg-blue-500 rounded-full" />
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+
+              {/* Read Notifications Below */}
+              {notifications
+                .filter((n) =>
+                  n.readBy?.includes(
+                    (user?._id as string) || (user?.id as string),
+                  ),
+                )
+                .map((notification, index) => (
+                  <Card
+                    key={index}
+                    className={`border p-3 cursor-pointer dark:bg-slate-900 transition-all ${getNotificationColor(
+                      notification.type,
+                    )} opacity-60`}
+                    onClick={() =>
+                      markAsRead(notification.id || notification._id || "")
+                    }
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 mt-0.5">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                            {notification.title}
+                          </p>
+                          {user &&
+                            (user.role === "admin" ||
+                              user.role === "manager") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeNotification(
+                                    notification.id || notification._id || "",
+                                  );
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                          {notification.createdAt
+                            ? format(notification.createdAt, "MMM dd, p")
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
             </div>
           )}
         </div>

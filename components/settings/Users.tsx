@@ -417,7 +417,7 @@ export function Users() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-blue-200 border-2 dark:bg-slate-800 dark:border-blue-700">
+      <Card className="border-blue-200 border-2 dark:bg-slate-800 dark:border-teal-300">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="dark:text-teal-100">
             Team Users ({teamUsers.length})
@@ -435,7 +435,7 @@ export function Users() {
               });
               setCreateUserErrors({});
             }}
-            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 gap-2"
+            className="dark:bg-teal-600 dark:text-white bg-blue-600 hover:bg-blue-700  dark:hover:bg-teal-800 gap-2"
           >
             <Plus className="w-4 h-4" />
             Add User
@@ -460,7 +460,7 @@ export function Users() {
               }
             }}
           >
-            <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-blue-700">
+            <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-teal-700">
               <DialogHeader>
                 <DialogTitle className="dark:text-teal-100">
                   {editingUserId ? "Edit Team User" : "Create New Team User"}
@@ -490,7 +490,7 @@ export function Users() {
                     className={
                       createUserErrors.name
                         ? "border-red-500"
-                        : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        : "border-0 dark:bg-slate-900 dark:text-slate-50"
                     }
                   />
                   {createUserErrors.name && (
@@ -517,7 +517,7 @@ export function Users() {
                     className={
                       createUserErrors.email
                         ? "border-red-500"
-                        : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        : "border-0 dark:bg-slate-900 dark:text-slate-50"
                     }
                   />
                   {createUserErrors.email && (
@@ -546,7 +546,7 @@ export function Users() {
                         ? "Use Reset Password option to change"
                         : "Enter password"
                     }
-                    className={`${createUserErrors.password ? "border-red-500" : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"} ${editingUserId ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`${createUserErrors.password ? "border-red-500" : "border-0 dark:bg-slate-900 dark:text-slate-50"} ${editingUserId ? "opacity-50 cursor-not-allowed" : ""}`}
                   />
                   {createUserErrors.password && (
                     <p className="text-red-500 text-xs mt-1">
@@ -580,7 +580,7 @@ export function Users() {
                         ? "Use Reset Password option to change"
                         : "Confirm password"
                     }
-                    className={`${createUserErrors.confirmPassword ? "border-red-500" : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"} ${editingUserId ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`${createUserErrors.confirmPassword ? "border-red-500" : "border-0 dark:bg-slate-900 dark:text-slate-50"} ${editingUserId ? "opacity-50 cursor-not-allowed" : ""}`}
                   />
                   {createUserErrors.confirmPassword && (
                     <p className="text-red-500 text-xs mt-1">
@@ -604,7 +604,7 @@ export function Users() {
                           | "manager",
                       })
                     }
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-blue-700 rounded-md focus:outline-none focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-50"
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-teal-700 rounded-md focus:outline-none focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-slate-50"
                   >
                     <option value="sales">Sales</option>
                     <option value="accountant">Accountant</option>
@@ -627,13 +627,13 @@ export function Users() {
                         role: "sales",
                       });
                     }}
-                    className="dark:border-blue-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                    className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+                    className="bg-blue-600 dark:text-white hover:bg-blue-700 dark:bg-teal-500 dark:hover:bg-teal-700"
                   >
                     {editingUserId ? (
                       processing ? (
@@ -661,7 +661,7 @@ export function Users() {
             open={showResetPasswordDialog}
             onOpenChange={setShowResetPasswordDialog}
           >
-            <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-blue-700">
+            <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-teal-700">
               <DialogHeader>
                 <DialogTitle className="dark:text-teal-100">
                   Reset User Password
@@ -690,7 +690,7 @@ export function Users() {
                     className={
                       resetPasswordErrors.newPassword
                         ? "border-red-500"
-                        : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        : "border-0 dark:bg-slate-900 dark:text-slate-50"
                     }
                   />
                   {resetPasswordErrors.newPassword && (
@@ -717,7 +717,7 @@ export function Users() {
                     className={
                       resetPasswordErrors.confirmPassword
                         ? "border-red-500"
-                        : "border-blue-200 dark:border-blue-700 dark:bg-slate-700 dark:text-slate-50"
+                        : "border-0 dark:bg-slate-900 dark:text-slate-50"
                     }
                   />
                   {resetPasswordErrors.confirmPassword && (

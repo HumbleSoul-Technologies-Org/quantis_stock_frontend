@@ -116,7 +116,7 @@ export interface Product {
   imagePublicId?: string
   image?: {
     url: string;
-    publicId: string;
+    public_id: string;
   }
 }
 

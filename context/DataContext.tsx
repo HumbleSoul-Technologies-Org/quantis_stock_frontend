@@ -114,6 +114,29 @@ const apiSales = async (token?: string, businessId?: string) => {
   return null;
 };
 
+const apiSaleReturns = async (token?: string, businessId?: string) => {
+  try {
+    const response = await apiRequest(
+      "GET",
+      "/sales/returns/all",
+      {
+        limit: 100,
+        status: "all",
+        ...(businessId ? { businessId } : {}),
+      },
+      token,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data || [];
+    }
+  } catch (error) {
+    console.warn("Failed to fetch sale returns from API:", error);
+  }
+  return null;
+};
+
 interface DataContextType {
   // Products
   products: Product[];
@@ -133,6 +156,12 @@ interface DataContextType {
   updateSale: (id: string, sale: Partial<Sale>) => void;
   deleteSale: (id: string) => void;
   processSaleReturn: (saleReturn: SaleReturn) => Promise<void>;
+
+  // Sales Returns
+  saleReturns: SaleReturn[];
+  getSaleReturns: () => SaleReturn[];
+  getSaleReturnById: (id: string) => SaleReturn | undefined;
+  refetchSaleReturns: () => Promise<any>;
 
   // Stock Movements
   stockMovements: StockMovement[];
@@ -159,6 +188,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [saleReturns, setSaleReturns] = useState<SaleReturn[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -169,6 +199,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       setProducts(Array.isArray(state.products) ? state.products : []);
       setSales(Array.isArray(state.sales) ? state.sales : []);
+      setSaleReturns(Array.isArray(state.saleReturns) ? state.saleReturns : []);
       setStockMovements(
         Array.isArray(state.stockMovements) ? state.stockMovements : [],
       );
@@ -219,6 +250,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
+  // Poll sale returns from API every 30 seconds (moderate priority - historical data)
+  const { data: saleReturnsData, refetch: refetchSaleReturns } = useQuery({
+    queryKey: ["sales", "returns", user?.businessId],
+    queryFn: () => apiSaleReturns(user?.token, user?.businessId),
+    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+    refetchInterval: 30000, // Poll every 30 seconds (moderate priority)
+    refetchIntervalInBackground: true, // Continue polling when window loses focus
+  });
+
   // Update state when API data changes
   useEffect(() => {
     if (suppliersData) {
@@ -260,10 +301,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [salesData]);
 
+  useEffect(() => {
+    if (saleReturnsData) {
+      setSaleReturns(saleReturnsData || []);
+      // Also save to storage for persistence
+      const state = storage.getState();
+      state.saleReturns = saleReturnsData;
+      storage.saveState(state);
+    }
+  }, [saleReturnsData]);
+
   const refresh = useCallback(() => {
     setProducts(storage.getProducts());
     setSuppliers(storage.getSuppliers());
     setSales(storage.getSales());
+    setSaleReturns(storage.getSaleReturns());
     setStockMovements(storage.getStockMovements());
   }, []);
 
@@ -274,8 +326,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
       refetchSuppliers(),
       refetchInventory(),
       refetchSales(),
+      refetchSaleReturns(),
     ]);
-  }, [refetchProducts, refetchSuppliers, refetchInventory, refetchSales]);
+  }, [
+    refetchProducts,
+    refetchSuppliers,
+    refetchInventory,
+    refetchSales,
+    refetchSaleReturns,
+  ]);
+
+  // Utility functions for sale returns
+  const getSaleReturns = useCallback(() => saleReturns, [saleReturns]);
+  const getSaleReturnById = useCallback(
+    (id: string) => {
+      return saleReturns.find((r) => r.id === id || (r as any)._id === id);
+    },
+    [saleReturns],
+  );
 
   // Products
   const addProduct = useCallback(
@@ -339,9 +407,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         businessId: product.businessId || user?.businessId,
       };
 
-      storage.updateProduct(id, productWithBusinessId);
+      storage.updateProduct(id, productWithBusinessId as Product);
       setProducts(
-        products.map((p) =>
+        products.map((p: any) =>
           p.id === id || (p as any)._id === id
             ? {
                 ...p,
@@ -1191,6 +1259,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateSale,
         deleteSale,
         processSaleReturn,
+        saleReturns,
+        getSaleReturns,
+        getSaleReturnById,
+        refetchSaleReturns,
         stockMovements,
         addStockMovement,
         getProductById,

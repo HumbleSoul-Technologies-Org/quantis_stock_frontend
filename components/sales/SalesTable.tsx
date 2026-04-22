@@ -213,46 +213,50 @@ export function SalesTable({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-gray-900">
+                    <p className="font-bold dark:text-white">
                       {formatCurrencyShort(sale.totalAmount)}
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs dark:text-white">
                       {format(new Date(sale.createdAt), "MMM d, yyyy")}
                     </p>
                   </div>
                 </div>
 
                 {expandedSales.has(sale.id || sale._id) && (
-                  <div className="border-t border-gray-200 bg-gray-50 p-3 space-y-3">
+                  <div className="border-t border-gray-200 dark:border-teal-900 dark:bg-slate-900 p-3 space-y-3">
                     {/* Sale Details */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="font-medium text-gray-700">Sale Date</p>
-                        <p className="text-gray-600">
+                        <p className="font-medium dark:text-slate-400">
+                          Sale Date
+                        </p>
+                        <p className="text-gray-600 font-semibold dark:text-white">
                           {format(new Date(sale.date), "MMM dd, yyyy")}
                         </p>
                       </div>
                       {sale.paymentType && (
                         <div>
-                          <p className="font-medium text-gray-700">Payment</p>
-                          <p className="text-gray-600 capitalize">
+                          <p className="font-medium text-sm dark:text-slate-400">
+                            Payment
+                          </p>
+                          <p className="dark:text-white font-semibold capitalize">
                             {sale.paymentType}
                           </p>
                         </div>
                       )}
-                      {sale.returnStatus && sale.returnStatus !== "none" && (
+                      {sale.status && sale.status !== "completed" && (
                         <div>
-                          <p className="font-medium text-gray-700">
+                          <p className="font-medium dark:text-slate-400">
                             Return Status
                           </p>
                           <span
-                            className={`px-2 py-1 rounded text-xs font-medium capitalize ${
-                              sale.returnStatus === "returned"
+                            className={`px-2 py-1 rounded text-xs font-semibold capitalize ${
+                              sale.status === "returned"
                                 ? "bg-red-100 text-red-700"
                                 : "bg-orange-100 text-orange-700"
                             }`}
                           >
-                            {sale.returnStatus === "returned"
+                            {sale.status === "returned"
                               ? "Fully Returned"
                               : "Partially Returned"}
                           </span>
@@ -262,11 +266,13 @@ export function SalesTable({
 
                     {/* Items Table */}
                     <div>
-                      <p className="font-medium text-gray-700 mb-2">Items:</p>
-                      <div className="bg-white rounded border border-gray-200">
+                      <p className="font-medium dark:text-slate-400 mb-2">
+                        Items:
+                      </p>
+                      <div className="dark:bg-slate-800 rounded border dark:border-teal-200">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="border-b border-gray-200 bg-gray-100">
+                            <tr className="border-b border-gray-200 dark:text-slate-400">
                               <th className="text-left p-2">Product</th>
                               <th className="text-center p-2 w-12">Qty</th>
                               <th className="text-right p-2 w-20">
@@ -279,7 +285,7 @@ export function SalesTable({
                             {sale.items.map((item: any, idx: number) => (
                               <tr
                                 key={idx}
-                                className="border-b border-gray-200 hover:bg-gray-50"
+                                className="border-b border-gray-200 "
                               >
                                 <td className="p-2">
                                   {getProductName(item.productId)}
@@ -301,12 +307,12 @@ export function SalesTable({
                     </div>
 
                     {/* Summary */}
-                    <div className="flex justify-end bg-white rounded p-2 border border-gray-200">
+                    <div className="flex justify-end dark:bg-slate-800 rounded p-2 border border-teal-200">
                       <div className="text-right">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-slate-400">
                           Total Items: <strong>{getTotalQuantity(sale)}</strong>
                         </p>
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-lg font-bold dark:text-teal-200">
                           {formatCurrencyShort(sale.totalAmount)}
                         </p>
                       </div>
@@ -315,8 +321,10 @@ export function SalesTable({
                     {/* Notes */}
                     {sale.notes && (
                       <div className="text-sm">
-                        <p className="font-medium text-gray-700">Notes:</p>
-                        <p className="text-gray-600">{sale.notes}</p>
+                        <p className="font-medium dark:text-slate-400">
+                          Notes:
+                        </p>
+                        <p className="dark:text-white">{sale.notes}</p>
                       </div>
                     )}
 

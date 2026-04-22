@@ -46,12 +46,15 @@ export function ProductForm({
       status: "active",
       retailSubType: retailSubType,
       imageUrl: "",
-      imagePublicId: "",
+      image: {
+        url: "",
+        public_id: "",
+      },
     },
   );
 
   const [imagePreview, setImagePreview] = useState<string>(
-    product?.imageUrl || "",
+    product?.imageUrl || product?.image?.url || "",
   );
   const [uploadedImage, setUploadedImage] = useState<string>("");
   const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
@@ -313,8 +316,13 @@ export function ProductForm({
         discontinuationReason: formData.discontinuationReason,
         // Preserve existing image if no new image was uploaded
         image: {
-          url: formData.imageUrl || product?.imageUrl || "",
-          publicId: formData.imagePublicId || product?.imagePublicId || "",
+          url:
+            formData.imageUrl || product?.imageUrl || product?.image?.url || "",
+          public_id:
+            formData.imagePublicId ||
+            product?.imagePublicId ||
+            product?.image?.public_id ||
+            "",
         },
       };
 
@@ -406,7 +414,7 @@ export function ProductForm({
             disabled={isSubmitting}
             className="inline-flex items-center justify-center rounded-md border border-green-200 px-4 py-2 text-sm font-medium text-green-700 dark:text-teal-100 bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Choose Image
+            {!!imagePreview ? "Choose Image" : "Change Image"}
           </button>
           {uploadedImage && (
             <p className="text-xs text-green-600 dark:text-green-400 mt-2">

@@ -10,6 +10,8 @@ import { ClientOnly } from "@/components/client-only";
 import { SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
 import { SalesReturnDialog } from "@/components/sales/SalesReturnDialog";
+import { SalesReturnsList } from "@/components/sales/SalesReturnsList";
+import { ReturnDetailsModal } from "@/components/sales/ReturnDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,7 +29,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 
 function SalesPageContent() {
-  const { products, sales, addSale, deleteSale, processSaleReturn } = useData();
+  const {
+    products,
+    sales,
+    addSale,
+    deleteSale,
+    processSaleReturn,
+    saleReturns,
+  } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
@@ -46,6 +55,12 @@ function SalesPageContent() {
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [selectedSaleForReturn, setSelectedSaleForReturn] = useState<any>(null);
+
+  // Returns list state
+  const [showReturnsList, setShowReturnsList] = useState(false);
+  const [selectedReturnForDetails, setSelectedReturnForDetails] =
+    useState<any>(null);
+  const [showReturnDetails, setShowReturnDetails] = useState(false);
 
   const handleAddSale = async (sale: any) => {
     await addSale(sale);
@@ -125,6 +140,28 @@ function SalesPageContent() {
       (s: any) => s?.status === "returned" || s?.status === "partial",
     ).length;
   }, [todaysSales]);
+
+  // Calculate today's sale returns (from saleReturns array)
+  const todaysSaleReturns = useMemo(() => {
+    const today = new Date().toDateString();
+    const safeSaleReturns = Array.isArray(saleReturns) ? saleReturns : [];
+    return safeSaleReturns.filter((sr: any) => {
+      const returnDate = new Date(sr?.createdAt);
+      return (
+        Number.isFinite(returnDate.getTime()) &&
+        returnDate.toDateString() === today
+      );
+    });
+  }, [saleReturns]);
+
+  // Calculate total refund amount for today
+  const totalRefundAmountToday = useMemo(() => {
+    return todaysSaleReturns.reduce(
+      (sum: number, sr: any) =>
+        sum + (Number.isFinite(sr?.refundAmount) ? sr.refundAmount : 0),
+      0,
+    );
+  }, [todaysSaleReturns]);
 
   // Filter sales based on search and filters
   const filteredSales = useMemo(() => {
@@ -230,7 +267,7 @@ function SalesPageContent() {
         </p>
       </div>
       {/* Sales Form Card */}
-      <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md">
+      <Card className="border-2 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md">
         <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -254,7 +291,7 @@ function SalesPageContent() {
       {/* Stats Section: Daily Sales & Last Transaction */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Last Sale Card */}
-        <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
+        <Card className="border-2  dark:bg-slate-800 dark:text-slate-100 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="bg-linear-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">
               <div className="bg-teal-200 dark:bg-teal-900/40 p-3 rounded-lg">
@@ -285,7 +322,12 @@ function SalesPageContent() {
         </Card>
 
         {/* Today's Sales Card */}
-        <Card className="border-2 border-blue-200 dark:border-blue-700 shadow-md hover:shadow-lg transition-shadow">
+        <Card
+          className="border-2
+        dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100
+        
+        border-blue-200  shadow-md hover:shadow-lg transition-shadow"
+        >
           <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">
               <div className="bg-blue-200 dark:bg-blue-900/40 p-3 rounded-lg">
@@ -319,7 +361,10 @@ function SalesPageContent() {
         </Card>
 
         {/* Today's Returns Card */}
-        <Card className="border-2 border-amber-200 dark:border-amber-700 shadow-md hover:shadow-lg transition-shadow">
+        <Card
+          className="border-2 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 border-amber-200  shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => setShowReturnsList(!showReturnsList)}
+        >
           <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">
               <div className="bg-amber-200 dark:bg-amber-900/40 p-3 rounded-lg">
@@ -336,21 +381,17 @@ function SalesPageContent() {
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
-                  Total Returns
+                  Total Refund Amount
                 </p>
                 <p className="text-4xl font-bold text-amber-700 dark:text-amber-300">
-                  {todaysReturns}
+                  {formatCurrencyShort(totalRefundAmountToday)}
                 </p>
               </div>
               <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-amber-200 dark:border-amber-700 pt-3">
                 <span className="font-semibold text-amber-600 dark:text-amber-400">
-                  {(
-                    (todaysReturns / Math.max(todaysSales.length, 1)) *
-                    100
-                  ).toFixed(1)}
-                  %
+                  {todaysSaleReturns.length}
                 </span>{" "}
-                of sales
+                return{todaysSaleReturns.length !== 1 ? "s" : ""} recorded
               </p>
             </div>
           </CardContent>
@@ -358,7 +399,7 @@ function SalesPageContent() {
       </div>
 
       {/* Search and Filter Section */}
-      <Card className="border-2 border-gray-200 dark:border-slate-700 shadow-md">
+      <Card className="border-2   dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-slate-700 shadow-md">
         <CardHeader className="bg-linear-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -388,7 +429,7 @@ function SalesPageContent() {
               placeholder="Search by Sale ID or Transaction ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
+              className="pl-10 border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -402,7 +443,7 @@ function SalesPageContent() {
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -414,7 +455,7 @@ function SalesPageContent() {
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
-                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -426,7 +467,7 @@ function SalesPageContent() {
                 placeholder="Search product..."
                 value={filterProductName}
                 onChange={(e) => setFilterProductName(e.target.value)}
-                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -438,7 +479,7 @@ function SalesPageContent() {
                 placeholder="Search customer..."
                 value={filterCustomerName}
                 onChange={(e) => setFilterCustomerName(e.target.value)}
-                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
+                className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -474,6 +515,51 @@ function SalesPageContent() {
         onSubmit={handleProcessReturn}
         sale={selectedSaleForReturn}
         products={safeProducts}
+      />
+
+      {/* Today's Returns List Section */}
+      {showReturnsList && (
+        <Card className="border-2 border-amber-200 dark:border-amber-700 shadow-md">
+          <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <RotateCcw className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <CardTitle className="text-gray-900 dark:text-amber-100">
+                  Today's Return Transactions
+                </CardTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowReturnsList(false)}
+                className="dark:hover:bg-slate-700"
+              >
+                ✕
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <SalesReturnsList
+              returns={todaysSaleReturns}
+              onViewDetails={(saleReturn) => {
+                setSelectedReturnForDetails(saleReturn);
+                setShowReturnDetails(true);
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Return Details Modal */}
+      <ReturnDetailsModal
+        isOpen={showReturnDetails}
+        saleReturn={selectedReturnForDetails}
+        onOpenChange={(open) => {
+          setShowReturnDetails(open);
+          if (!open) {
+            setSelectedReturnForDetails(null);
+          }
+        }}
       />
     </div>
   );

@@ -295,7 +295,7 @@ function InventoryPageContent() {
   return (
     <div className="space-y-8">
       {/* Header Section with Gradient */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800 rounded-xl p-8 text-white shadow-lg">
+      <div className="bg-linear-to-r from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800 rounded-xl p-8 text-white shadow-lg">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -325,7 +325,7 @@ function InventoryPageContent() {
 
       {/* Low Stock Alert - Redesigned */}
       {lowStockItems.length > 0 && (
-        <Card className="border-2 border-amber-200 dark:border-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-amber-900/20 shadow-md">
+        <Card className="border-2 border-amber-200 dark:border-amber-700 bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-amber-900/20 shadow-md">
           <CardHeader className="pb-3">
             <CardTitle className="text-amber-900 dark:text-amber-300 flex items-center gap-3">
               <div className="bg-amber-200 dark:bg-amber-700 p-2 rounded-lg">
@@ -363,8 +363,8 @@ function InventoryPageContent() {
       )}
 
       {/* Search and Filter Section */}
-      <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
+      <Card className="border-2 dark:bg-slate-800 border-teal-200 dark:border-teal-700 shadow-md">
+        <CardHeader className="bg-linear-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800">
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             <CardTitle className="text-gray-900 dark:text-teal-100">
@@ -380,7 +380,7 @@ function InventoryPageContent() {
               placeholder="Search by product name, SKU, or category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+              className="pl-10 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
             />
           </div>
 
@@ -393,7 +393,7 @@ function InventoryPageContent() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="">All Categories</option>
                 {categories.map((cat) => (
@@ -411,7 +411,7 @@ function InventoryPageContent() {
               <select
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value as any)}
-                className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="all">All Items</option>
                 <option value="low">Low Stock</option>
@@ -435,7 +435,7 @@ function InventoryPageContent() {
             setShowDialog(open);
           }}
         >
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl dark:bg-slate-800">
             <DialogHeader>
               <DialogTitle>
                 {selectedMovement ? "Edit Stock Movement" : "Stock In Product"}
@@ -474,7 +474,7 @@ function InventoryPageContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-teal-100">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-600">
               Products
             </h2>
           </div>
@@ -513,7 +513,7 @@ function InventoryPageContent() {
       <div className="space-y-6 pt-8 border-t-2 border-gray-200 dark:border-slate-700">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-br from-teal-600 to-emerald-600 p-3 rounded-lg">
+          <div className="bg-linear-to-br from-teal-600 to-emerald-600 p-3 rounded-lg">
             <TrendingUp className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -528,7 +528,7 @@ function InventoryPageContent() {
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Card className="border-2 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
+          <Card className="border-2 dark:bg-slate-800 border-teal-200 dark:border-teal-700 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -549,7 +549,7 @@ function InventoryPageContent() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-emerald-200 dark:border-emerald-700 shadow-md hover:shadow-lg transition-shadow">
+          <Card className="border-2 dark:bg-slate-800 border-emerald-200 dark:border-emerald-700 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -573,7 +573,7 @@ function InventoryPageContent() {
 
         {/* Stock Outs Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-6 border-t border-gray-200 dark:border-slate-700 mt-6">
-          <Card className="border-2 border-red-200 dark:border-red-700 shadow-md hover:shadow-lg transition-shadow">
+          <Card className="border-2 dark:bg-red/10 border-red-200 dark:border-red-700 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -635,8 +635,8 @@ function InventoryPageContent() {
         </div>
 
         {/* Filters */}
-        <Card className="border-2 border-gray-200 dark:border-slate-700 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
+        <Card className="border-2 dark:bg-slate-800 border-gray-200 dark:border-teal-700 shadow-md">
+          <CardHeader className="bg-linear-to-r from-gray-50 to-slate-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-gray-600 dark:text-slate-400" />
               <CardTitle className="text-gray-900 dark:text-slate-100">
@@ -653,7 +653,7 @@ function InventoryPageContent() {
                 <select
                   value={historyProductFilter}
                   onChange={(e) => setHistoryProductFilter(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-2 border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="">All Products</option>
                   {safeProducts.map((product) => (
@@ -678,7 +678,7 @@ function InventoryPageContent() {
                   type="date"
                   value={historyDateFrom}
                   onChange={(e) => setHistoryDateFrom(e.target.value)}
-                  className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+                  className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -690,7 +690,7 @@ function InventoryPageContent() {
                   type="date"
                   value={historyDateTo}
                   onChange={(e) => setHistoryDateTo(e.target.value)}
-                  className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+                  className="border-2 border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
                 />
               </div>
             </div>

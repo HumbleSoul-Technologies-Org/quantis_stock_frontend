@@ -144,7 +144,7 @@ export function SalesForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 ">
       {errors.general && (
         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <X className="w-4 h-4 shrink-0" />
@@ -162,7 +162,7 @@ export function SalesForm({
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Enter customer name"
-            className={`border-2 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`border-2 dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
               errors.customerName
                 ? "border-red-500 dark:border-red-500"
                 : "border-teal-200 dark:border-teal-700"
@@ -186,7 +186,7 @@ export function SalesForm({
             type="date"
             value={saleDate}
             onChange={(e) => setSaleDate(e.target.value)}
-            className="border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="border-2  border-teal-200 dark:border-teal-700 dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -198,7 +198,7 @@ export function SalesForm({
             disabled={user?.role === "accountant"}
             value={paymentType}
             onChange={(e) => setPaymentType(e.target.value)}
-            className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 border-2  border-teal-200 dark:border-teal-700 rounded-lg tex9-sm bg-white dark:bg-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -218,7 +218,7 @@ export function SalesForm({
               value={txnId}
               onChange={(e) => setTxnId(e.target.value)}
               placeholder="e.g., TXN-123456"
-              className={`border-2 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`border-2  dark:bg-slate-800 dark:text-slate-100 disabled:opac9ty-50 disabled:cursor-not-allowed ${
                 errors.txnId
                   ? "border-red-500 dark:border-red-500"
                   : "border-teal-200 dark:border-teal-700"
@@ -242,7 +242,7 @@ export function SalesForm({
         </p>
         <div className="flex gap-2">
           <Select
-            className="flex-1"
+            className="flex-1 "
             classNamePrefix="react-select"
             value={productOptions.find(
               (option) => option.value === selectedProductId,
@@ -340,7 +340,7 @@ export function SalesForm({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="Qty"
-            className="w-20 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-20 border-2  border-teal-200 dark:border-teal-700 dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <Button
             disabled={user?.role === "accountant"}
@@ -417,7 +417,7 @@ export function SalesForm({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add any sale notes..."
           rows={3}
-          className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
