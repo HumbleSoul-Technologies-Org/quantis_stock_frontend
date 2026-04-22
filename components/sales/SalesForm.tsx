@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { Sale, SaleItem, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, Printer } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
@@ -14,6 +22,7 @@ import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
 import { set } from "date-fns";
 import Select from "react-select";
+// import { Printer } from "lucide-react";
 
 interface SalesFormProps {
   products: Product[];
@@ -22,6 +31,7 @@ interface SalesFormProps {
   currentUserId: string;
   currentUsername: string;
   sale?: Sale; // Optional: if provided, form is in edit mode
+  RecieptPreview?: (sale: Sale) => Promise<void> | void; // Optional: list of items already sold (for editing)
 }
 
 export function SalesForm({
@@ -31,10 +41,11 @@ export function SalesForm({
   currentUserId,
   currentUsername,
   sale,
+  RecieptPreview,
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
-  const { user } = useAuth();
+  const { user, business } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
 
   const isEditing = !!sale; // Determine if we're in edit mode
@@ -68,7 +79,7 @@ export function SalesForm({
   }, [sale]);
 
   const productOptions = products
-    .filter((p) => p.currentStock > 0)
+    ?.filter((p) => p.currentStock > 0)
     .map((p) => ({
       value: p._id || p.id,
       label: `${p.name} (${p.currentStock} available)`,
@@ -95,6 +106,15 @@ export function SalesForm({
       quantity: parseInt(quantity),
       unitPrice: product.unitPrice,
       total: parseInt(quantity) * product.unitPrice,
+    };
+
+    const payLoad = {
+      quantity: parseInt(quantity),
+      unitPrice: product.unitPrice,
+      total: parseInt(quantity) * product.unitPrice,
+      items: [...items, saleItem],
+      createdBy: currentUsername,
+      txnId: txnId || uuidv4(),
     };
 
     setItems([...items, saleItem]);
@@ -131,7 +151,7 @@ export function SalesForm({
     try {
       // If editing, use the existing saleNumber and ID; otherwise generate new ones
       const saleNumber = isEditing ? sale.saleNumber : "";
-      // const saleId = isEditing ? sale.id || sale._id : uuidv4();
+      const newTxnId = txnId || uuidv4();
 
       const saleData: Sale = {
         ...(isEditing && { _id: sale._id }),
@@ -145,11 +165,23 @@ export function SalesForm({
         createdAt: isEditing ? sale.createdAt : new Date().toISOString(),
         customerName,
         paymentType,
-        txnId: txnId || uuidv4(),
+        txnId: newTxnId,
         ...(isEditing && { _id: sale._id }), // Preserve _id if editing
       };
 
+      // Submit the sale
       await onSubmit(saleData);
+
+      // Create receipt payload with products data for display
+      const receiptPayload = {
+        ...saleData,
+        products, // Include products so receipt can look up product names
+      };
+
+      // Call receipt preview with complete data
+      RecieptPreview?.(receiptPayload);
+
+      // Clear form
       setItems([]);
       setCustomerName("");
       setPaymentType("cash");
@@ -275,9 +307,9 @@ export function SalesForm({
         </p>
         <div className="flex gap-2">
           <Select
-            className="flex-1 "
+            className="flex-1 dark:text-slate-100 dark:bg-slate-900 disabled:cursor-not-allowed"
             classNamePrefix="react-select"
-            value={productOptions.find(
+            value={productOptions?.find(
               (option) => option.value === selectedProductId,
             )}
             onChange={(selectedOption) =>
@@ -292,7 +324,7 @@ export function SalesForm({
                 border: state.isFocused
                   ? "2px solid rgb(20 184 166)"
                   : `2px solid ${theme === "dark" ? "rgb(71 85 105)" : "rgb(165 243 252)"}`,
-                borderRadius: "0.5rem",
+
                 fontSize: "0.875rem",
                 backgroundColor: theme === "dark" ? "rgb(30 41 59)" : "white",
                 color: theme === "dark" ? "rgb(226 232 240)" : "inherit",
@@ -303,8 +335,11 @@ export function SalesForm({
                 padding: "0",
                 cursor: user?.role === "accountant" ? "not-allowed" : "pointer",
                 opacity: user?.role === "accountant" ? 0.5 : 1,
+                transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                 "&:hover": {
-                  borderColor: "rgb(20 184 166)",
+                  borderColor: state.isFocused
+                    ? "rgb(20 184 166)"
+                    : `${theme === "dark" ? "rgb(71 85 105)" : "rgb(165 243 252)"}`,
                 },
               }),
               input: (provided) => ({
@@ -327,7 +362,10 @@ export function SalesForm({
                 border: `2px solid ${theme === "dark" ? "rgb(71 85 105)" : "rgb(165 243 252)"}`,
                 borderRadius: "0.5rem",
                 marginTop: "0.5rem",
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  theme === "dark"
+                    ? "0 4px 6px rgba(0, 0, 0, 0.3)"
+                    : "0 4px 6px rgba(0, 0, 0, 0.1)",
               }),
               option: (provided, state) => ({
                 ...provided,
@@ -341,14 +379,16 @@ export function SalesForm({
                       ? "rgb(30 41 59)"
                       : "white",
                 color: state.isSelected
-                  ? "white"
+                  ? "#ffffff"
                   : theme === "dark"
                     ? "rgb(226 232 240)"
-                    : "inherit",
+                    : "rgb(17 24 39)",
                 padding: "10px 12px",
                 cursor: "pointer",
+                fontWeight: state.isSelected ? "500" : "normal",
+                transition: "background-color 0.1s ease, color 0.1s ease",
                 "&:active": {
-                  backgroundColor: "rgb(20 184 166)",
+                  backgroundColor: "rgb(13 148 136)",
                 },
               }),
               indicatorSeparator: (provided) => ({
@@ -356,10 +396,11 @@ export function SalesForm({
                 backgroundColor:
                   theme === "dark" ? "rgb(71 85 105)" : "rgb(229 231 235)",
               }),
-              dropdownIndicator: (provided) => ({
+              dropdownIndicator: (provided, state) => ({
                 ...provided,
                 color:
                   theme === "dark" ? "rgb(148 163 184)" : "rgb(107 114 128)",
+                transition: "color 0.15s ease",
                 "&:hover": {
                   color: "rgb(20 184 166)",
                 },
@@ -495,3 +536,223 @@ export function SalesForm({
     </form>
   );
 }
+
+// Immediate receipt for printing
+export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
+  const { user, business } = useAuth();
+  const { formatCurrency } = useSettings();
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  // Format number with k/M/B suffix and no decimals
+  const formatShortNumber = (num: number): string => {
+    if (num >= 1000000000) {
+      return (num / 1000000000).toFixed(0) + "B";
+    } else if (num >= 1000000) {
+      return (num / 1000000).toFixed(0) + "M";
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(0) + "k";
+    }
+    return Math.round(num).toString();
+  };
+
+  // Calculate totals
+  const items = payLoad?.items || [];
+  const subtotal = items.reduce(
+    (sum: number, item: any) => sum + item.total,
+    0,
+  );
+  const taxRate = 0.1; // 10% tax (adjust as needed)
+  const tax = subtotal * taxRate;
+  const grandTotal = subtotal + tax;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div
+        ref={receiptRef}
+        className="receipt-container bg-white dark:bg-white text-black p-4 rounded-lg font-mono max-w-xs mx-auto border border-gray-300 dark:border-gray-300"
+        style={{ fontFamily: "monospace" }}
+      >
+        {/* Header */}
+        <div className="receipt-header text-center border-b-2 border-dashed border-black pb-3 mb-3">
+          <div className="receipt-title font-bold text-lg">
+            {business?.businessName || "BUSINESS NAME"}
+          </div>
+          <div className="receipt-subtitle text-xs text-gray-700">
+            {business?.address || "Address Line 1"}
+          </div>
+          <div className="receipt-subtitle text-xs text-gray-700">
+            {business?.phone || "Phone: XXXX-XXXX-XXXX"}
+          </div>
+          <div className="receipt-title text-base font-bold mt-2">
+            SALES RECEIPT
+          </div>
+        </div>
+
+        {/* Transaction Details */}
+        <div className="space-y-1 text-xs mb-3">
+          <p className="receipt-info">
+            Date:{" "}
+            <b>{new Date(payLoad?.date || new Date()).toLocaleDateString()}</b>
+          </p>
+          <p className="receipt-info">
+            Receipt #: <b>{payLoad?.saleNumber || "---"}</b>
+          </p>
+          <p className="receipt-info">
+            Cashier: <b>{payLoad?.createdBy || user?.username || "---"}</b>
+          </p>
+          <p className="receipt-info">
+            Customer: <b>{payLoad?.customerName || "Walk-in"}</b>
+          </p>
+        </div>
+
+        {/* Items Table */}
+        <table className="items-table w-full mb-3">
+          <thead>
+            <tr className="border-b-2 border-dashed border-black">
+              <th className="text-left text-xs font-bold pb-2">Item</th>
+              <th className="qty text-right text-xs font-bold pb-2 w-10">
+                Qty
+              </th>
+              <th className="price text-right text-xs font-bold pb-2 w-16">
+                Price
+              </th>
+              <th className="total text-right text-xs font-bold pb-2 w-16">
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length > 0 ? (
+              items.map((item: any, index: number) => {
+                const product = payLoad?.products?.find(
+                  (p: any) =>
+                    p.id === item.productId || p._id === item.productId,
+                );
+                return (
+                  <tr key={index} className="border-b border-gray-200">
+                    <td className="text-xs py-1">
+                      {product?.name || "Product"}
+                    </td>
+                    <td className="qty text-right text-xs py-1">
+                      {item.quantity}
+                    </td>
+                    <td className="price text-right text-xs py-1">
+                      {formatShortNumber(item.unitPrice)}
+                    </td>
+                    <td className="total text-right text-xs py-1 font-semibold">
+                      {formatShortNumber(item.total)}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="text-center text-xs py-2 text-gray-500"
+                >
+                  No items
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {/* Totals Section */}
+        <div className="totals-section border-t-2 border-b-2 border-dashed border-black py-2 my-3">
+          <div className="total-row">
+            <span>Subtotal:</span>
+            <span className="font-semibold">{formatShortNumber(subtotal)}</span>
+          </div>
+          <div className="total-row">
+            <span>Tax (10%):</span>
+            <span className="font-semibold">{formatShortNumber(tax)}</span>
+          </div>
+          <div className="total-row grand-total border-t border-black pt-2 mt-2">
+            <span>TOTAL:</span>
+            <span>{formatShortNumber(grandTotal)}</span>
+          </div>
+        </div>
+
+        {/* Payment Information */}
+        <div className="payment-info bg-gray-50 border border-gray-200 p-2 rounded mb-3 text-xs">
+          <div className="payment-info-row font-semibold">
+            <span>Payment Method:</span>
+            <span className="uppercase">
+              {payLoad?.paymentType
+                ? payLoad.paymentType.charAt(0).toUpperCase() +
+                  payLoad.paymentType.slice(1)
+                : "Cash"}
+            </span>
+          </div>
+          {payLoad?.paymentType !== "cash" && payLoad?.txnId && (
+            <div className="payment-info-row">
+              <span>Transaction ID:</span>
+              <span className="font-mono">{payLoad.txnId}</span>
+            </div>
+          )}
+          {payLoad?.notes && (
+            <div className="mt-2 pt-2 border-t border-gray-300">
+              <span className="text-xs text-gray-600">
+                Notes: {payLoad.notes}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="receipt-number text-xs text-gray-600 mb-3">
+          {payLoad?.txnId || "TXN-" + new Date().getTime()}
+        </div>
+        <div className="footer-message text-lg font-bold mb-2">THANK YOU!</div>
+        <div className="footer-text text-xs text-gray-600">
+          Please visit us again 😊
+        </div>
+      </div>
+
+      {/* Print Button */}
+      <style>{`
+        @media print {
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          body * {
+            visibility: hidden;
+          }
+          .receipt-container,
+          .receipt-container * {
+            visibility: visible;
+          }
+          .receipt-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm;
+            max-width: 100%;
+            margin: 0;
+            padding: 10px;
+            background: white;
+            box-shadow: none;
+            border: none;
+            border-radius: 0;
+            page-break-after: always;
+          }
+        }
+      `}</style>
+      <div className="flex gap-2 justify-center no-print">
+        <Button
+          onClick={handlePrint}
+          className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2"
+        >
+          <Printer className="w-4 h-4" />
+          Print Receipt
+        </Button>
+      </div>
+    </div>
+  );
+};

@@ -8,7 +8,7 @@ import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { Sale } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
-import { SalesForm } from "@/components/sales/SalesForm";
+import { RecieptPreview, SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
 import { SalesReturnDialog } from "@/components/sales/SalesReturnDialog";
 import { SalesReturnsList } from "@/components/sales/SalesReturnsList";
@@ -25,6 +25,7 @@ import {
   Calendar,
   Filter,
   RotateCcw,
+  View,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
@@ -60,6 +61,7 @@ function SalesPageContent() {
 
   // Sales form state
   const [editingSale, setEditingSale] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<any>(null);
 
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -85,6 +87,13 @@ function SalesPageContent() {
       "Sale Completed",
       `${sale.saleNumber} recorded for ${formatCurrency(sale.totalAmount)}`,
     );
+
+    // Capture receipt data with products for display
+    setReceiptData({
+      ...sale,
+      products: safeProducts,
+    });
+
     setEditingSale(null);
   };
 
@@ -298,32 +307,51 @@ function SalesPageContent() {
           Create and manage sales transactions
         </p>
       </div>
-      {/* Sales Form Card */}
-      <Card
-        ref={formRef}
-        className="border-2 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md scroll-mt-4"
-      >
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <CardTitle className="text-gray-900 dark:text-blue-100">
-              {editingSale ? "Edit Sale" : "Record New Sale"}
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {user && (
-            <SalesForm
-              products={products}
-              onSubmit={handleAddSale}
-              onCancel={() => {}}
-              currentUserId={user.id || user._id || ""}
-              currentUsername={user.username}
-              sale={editingSale}
-            />
-          )}
-        </CardContent>
-      </Card>
+
+      <section className="w-full flex gap-2 p-4">
+        <Card
+          ref={formRef}
+          className="border-2 dark:border-teal-700 w-1/2 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md scroll-mt-4"
+        >
+          <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-3">
+              <View className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <CardTitle className="text-gray-900 dark:text-blue-100">
+                Reciept Preview
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <RecieptPreview payLoad={receiptData} />
+          </CardContent>
+        </Card>
+        {/* Sales Form Card */}
+        <Card
+          ref={formRef}
+          className="border-2 dark:border-teal-700 w-5/5 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md scroll-mt-4"
+        >
+          <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <CardTitle className="text-gray-900 dark:text-blue-100">
+                {editingSale ? "Edit Sale" : "Record New Sale"}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {user && (
+              <SalesForm
+                products={products}
+                onSubmit={handleAddSale}
+                onCancel={() => {}}
+                currentUserId={user.id || user._id || ""}
+                currentUsername={user.username}
+                sale={editingSale}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </section>
       {/* Stats Section: Daily Sales & Last Transaction */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Last Sale Card */}

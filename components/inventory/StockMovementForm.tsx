@@ -195,19 +195,31 @@ export function StockMovementForm({
             styles={{
               control: (provided, state) => ({
                 ...provided,
-                border: errors.productId
-                  ? "1px solid rgb(239 68 68)"
-                  : "1px solid rgb(34 197 94)",
+                border: state.isFocused
+                  ? "2px solid rgb(34 197 94)"
+                  : errors.productId
+                    ? "2px solid rgb(239 68 68)"
+                    : "2px solid rgb(34 197 94)",
                 borderRadius: "0.375rem",
                 fontSize: "0.875rem",
                 backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
                 color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
                 minHeight: "2.5rem",
+                boxShadow: state.isFocused
+                  ? `0 0 0 3px ${errors.productId ? "rgba(239, 68, 68, 0.1)" : "rgba(34, 197, 94, 0.1)"}`
+                  : "none",
+                transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                 "&:hover": {
-                  borderColor: errors.productId
-                    ? "rgb(239 68 68)"
-                    : "rgb(34 197 94)",
+                  borderColor: state.isFocused
+                    ? "rgb(34 197 94)"
+                    : errors.productId
+                      ? "rgb(239 68 68)"
+                      : "rgb(34 197 94)",
                 },
+              }),
+              input: (provided) => ({
+                ...provided,
+                color: theme === "dark" ? "rgb(248 250 252)" : "inherit",
               }),
               singleValue: (provided) => ({
                 ...provided,
@@ -215,13 +227,19 @@ export function StockMovementForm({
               }),
               placeholder: (provided) => ({
                 ...provided,
-                color: "rgb(107 114 128)",
+                color:
+                  theme === "dark" ? "rgb(148 163 184)" : "rgb(107 114 128)",
               }),
               menu: (provided) => ({
                 ...provided,
                 backgroundColor: theme === "dark" ? "rgb(51 65 85)" : "white",
-                border: "1px solid rgb(34 197 94)",
+                border: "2px solid rgb(34 197 94)",
                 borderRadius: "0.375rem",
+                marginTop: "0.5rem",
+                boxShadow:
+                  theme === "dark"
+                    ? "0 4px 6px rgba(0, 0, 0, 0.3)"
+                    : "0 4px 6px rgba(0, 0, 0, 0.1)",
               }),
               option: (provided, state) => ({
                 ...provided,
@@ -235,13 +253,34 @@ export function StockMovementForm({
                       ? "rgb(51 65 85)"
                       : "white",
                 color: state.isSelected
-                  ? "white"
+                  ? "#ffffff"
                   : theme === "dark"
                     ? "rgb(248 250 252)"
-                    : "inherit",
+                    : "rgb(17 24 39)",
+                padding: "10px 12px",
+                cursor: "pointer",
+                fontWeight: state.isSelected ? "500" : "normal",
+                transition: "background-color 0.1s ease, color 0.1s ease",
+                "&:active": {
+                  backgroundColor: "rgb(22 163 74)",
+                },
                 "&:hover": {
                   backgroundColor:
                     theme === "dark" ? "rgb(71 85 105)" : "rgb(243 244 246)",
+                },
+              }),
+              indicatorSeparator: (provided) => ({
+                ...provided,
+                backgroundColor:
+                  theme === "dark" ? "rgb(71 85 105)" : "rgb(229 231 235)",
+              }),
+              dropdownIndicator: (provided, state) => ({
+                ...provided,
+                color:
+                  theme === "dark" ? "rgb(148 163 184)" : "rgb(107 114 128)",
+                transition: "color 0.15s ease",
+                "&:hover": {
+                  color: "rgb(34 197 94)",
                 },
               }),
             }}
