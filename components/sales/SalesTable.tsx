@@ -9,6 +9,7 @@ import {
   Printer,
   Trash2,
   RotateCcw,
+  Edit2,
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -21,6 +22,7 @@ interface SalesTableProps {
   products: Product[];
   onDelete: (id: string) => void;
   onReturn?: (sale: Sale) => void;
+  onEdit?: (sale: Sale) => void;
 }
 
 export function SalesTable({
@@ -28,6 +30,7 @@ export function SalesTable({
   products,
   onDelete,
   onReturn,
+  onEdit,
 }: SalesTableProps) {
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
@@ -339,6 +342,20 @@ export function SalesTable({
                         <Printer className="w-4 h-4" />
                         Print
                       </Button>
+                      {onEdit &&
+                        user &&
+                        (user.role === "admin" || user.role === "manager") &&
+                        sale?.status === "completed" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onEdit(sale)}
+                            className="text-teal-600 hover:bg-teal-50 gap-1"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Edit
+                          </Button>
+                        )}
                       {onReturn && sale?.status !== "returned" && (
                         <Button
                           size="sm"

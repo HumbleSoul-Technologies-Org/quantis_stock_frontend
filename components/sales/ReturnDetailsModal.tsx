@@ -36,7 +36,7 @@ export function ReturnDetailsModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600 -mx-6 -mt-6 px-6 pt-6 pb-4 rounded-t-lg">
+        <DialogHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600 -mx-6 -mt-6 px-6 pt-6 pb-4 rounded-t-lg">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
               <RotateCcw className="w-6 h-6 text-amber-600 dark:text-amber-400" />
@@ -55,7 +55,7 @@ export function ReturnDetailsModal({
         <div className="space-y-6 mt-6">
           {/* Return Information Card */}
           <Card className="border-2 border-amber-200 dark:border-amber-700 dark:bg-slate-800">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600">
+            <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600">
               <CardTitle className="text-amber-900 dark:text-amber-100">
                 Return Information
               </CardTitle>
@@ -150,7 +150,7 @@ export function ReturnDetailsModal({
 
           {/* Items Returned */}
           <Card className="border-2 border-amber-200 dark:border-amber-700 dark:bg-slate-800">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600">
+            <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600">
               <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
                 <Package className="w-5 h-5" />
                 Items Returned
@@ -202,7 +202,7 @@ export function ReturnDetailsModal({
           {/* Notes */}
           {saleReturn.notes && (
             <Card className="border-2 border-amber-200 dark:border-amber-700 dark:bg-slate-800">
-              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600">
+              <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600">
                 <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
                   <FileText className="w-5 h-5" />
                   Notes

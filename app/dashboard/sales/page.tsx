@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
+import { Sale } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
 import { SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
@@ -36,12 +37,17 @@ function SalesPageContent() {
     deleteSale,
     processSaleReturn,
     saleReturns,
+    updateSale,
   } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
-  const { notifyResourceCreated, notifyResourceDeleted, notifySuccess } =
-    useNotificationActions();
+  const {
+    notifyResourceCreated,
+    notifyResourceDeleted,
+    notifySuccess,
+    notifyResourceUpdated,
+  } = useNotificationActions();
 
   const safeProducts = Array.isArray(products) ? products : [];
   const safeSales = Array.isArray(sales) ? sales : [];
@@ -51,6 +57,9 @@ function SalesPageContent() {
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterProductName, setFilterProductName] = useState("");
   const [filterCustomerName, setFilterCustomerName] = useState("");
+
+  // Sales form state
+  const [editingSale, setEditingSale] = useState<any>(null);
 
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -63,12 +72,20 @@ function SalesPageContent() {
   const [showReturnDetails, setShowReturnDetails] = useState(false);
 
   const handleAddSale = async (sale: any) => {
-    await addSale(sale);
-    notifyResourceCreated("Sale", sale.saleNumber);
+    if (sale.id || sale._id) {
+      // Update existing sale
+      await updateSale((sale.id as string) || (sale._id as string), sale);
+      notifyResourceUpdated("Sale", sale.saleNumber);
+    } else {
+      // Create new sale
+      await addSale(sale);
+      notifyResourceCreated("Sale", sale.saleNumber);
+    }
     notifySuccess(
       "Sale Completed",
       `${sale.saleNumber} recorded for ${formatCurrency(sale.totalAmount)}`,
     );
+    setEditingSale(null);
   };
 
   const handleDeleteSale = (id: string) => {
@@ -77,6 +94,21 @@ function SalesPageContent() {
     deleteSale(id);
     notifyResourceDeleted("Sale", sale.saleNumber || "Unknown");
   };
+
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const handleEditSale = (sale: Sale) => {
+    setEditingSale(sale);
+  };
+
+  // Scroll to form when editing a sale
+  useEffect(() => {
+    if (editingSale && formRef.current) {
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [editingSale]);
 
   const handleReturnSale = (sale: any) => {
     setSelectedSaleForReturn(sale);
@@ -267,12 +299,15 @@ function SalesPageContent() {
         </p>
       </div>
       {/* Sales Form Card */}
-      <Card className="border-2 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md">
+      <Card
+        ref={formRef}
+        className="border-2 dark:border-teal-700 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md scroll-mt-4"
+      >
         <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             <CardTitle className="text-gray-900 dark:text-blue-100">
-              Record New Sale
+              {editingSale ? "Edit Sale" : "Record New Sale"}
             </CardTitle>
           </div>
         </CardHeader>
@@ -284,6 +319,7 @@ function SalesPageContent() {
               onCancel={() => {}}
               currentUserId={user.id || user._id || ""}
               currentUsername={user.username}
+              sale={editingSale}
             />
           )}
         </CardContent>
@@ -503,6 +539,7 @@ function SalesPageContent() {
         products={safeProducts}
         onDelete={handleDeleteSale}
         onReturn={handleReturnSale}
+        onEdit={handleEditSale}
       />
 
       {/* Return Dialog */}

@@ -12,6 +12,7 @@ import {
   Product,
   Supplier,
   Sale,
+  SaleItem,
   SaleReturn,
   StockMovement,
 } from "@/lib/types";
@@ -802,13 +803,157 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  // Helper function to calculate stock movement deltas
+  const calculateStockMovementsDelta = (
+    originalItems: SaleItem[],
+    updatedItems: SaleItem[],
+  ) => {
+    const deltas: Array<{
+      productId: string;
+      quantity: number;
+      type: "in" | "out";
+      reason: "Sale" | "Return";
+    }> = [];
+
+    // Create maps for easy lookup
+    const originalMap = new Map<string, number>();
+    const updatedMap = new Map<string, number>();
+
+    originalItems.forEach((item) => {
+      originalMap.set(item.productId, item.quantity);
+    });
+
+    updatedItems.forEach((item) => {
+      updatedMap.set(item.productId, item.quantity);
+    });
+
+    // Check all products from both original and updated
+    const allProductIds = new Set([
+      ...originalMap.keys(),
+      ...updatedMap.keys(),
+    ]);
+
+    allProductIds.forEach((productId) => {
+      const originalQty = originalMap.get(productId) || 0;
+      const updatedQty = updatedMap.get(productId) || 0;
+      const delta = updatedQty - originalQty;
+
+      if (delta > 0) {
+        // Increased quantity - stock out for sale
+        deltas.push({
+          productId,
+          quantity: delta,
+          type: "out",
+          reason: "Sale",
+        });
+      } else if (delta < 0) {
+        // Decreased quantity - stock in for return
+        deltas.push({
+          productId,
+          quantity: Math.abs(delta),
+          type: "in",
+          reason: "Return",
+        });
+      }
+    });
+
+    return deltas;
+  };
+
   const updateSale = useCallback(
     async (id: string, sale: Partial<Sale>) => {
+      // Find the original sale
+      const originalSale = sales.find(
+        (s) => s.id === id || (s as any)._id === id,
+      );
+      if (!originalSale) {
+        throw new Error("Sale not found");
+      }
+
       // Ensure businessId is included if updating
       const saleWithBusinessId = {
         ...sale,
         businessId: sale.businessId || user?.businessId,
       };
+
+      // Calculate stock movement deltas
+      const movementDeltas = calculateStockMovementsDelta(
+        originalSale.items,
+        saleWithBusinessId.items || [],
+      );
+
+      // Find and delete old stock movements for this sale
+      const oldMovements = stockMovements.filter(
+        (m) => m.reference === originalSale.saleNumber,
+      );
+
+      // Reverse stock adjustments from old movements
+      let updatedProducts = products.map((product) => {
+        let stockAdjustment = 0;
+        for (const oldMovement of oldMovements) {
+          if (
+            product.id === oldMovement.productId ||
+            (product as any)._id === oldMovement.productId
+          ) {
+            if (oldMovement.type === "out") {
+              stockAdjustment += oldMovement.quantity; // Add back what was taken
+            } else if (oldMovement.type === "in") {
+              stockAdjustment -= oldMovement.quantity; // Remove what was added back
+            }
+          }
+        }
+        if (stockAdjustment !== 0) {
+          return {
+            ...product,
+            currentStock: product.currentStock + stockAdjustment,
+          };
+        }
+        return product;
+      });
+
+      // Apply new stock movements
+      const newMovements: StockMovement[] = movementDeltas.map((delta) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        productId: delta.productId,
+        type: delta.type,
+        quantity: delta.quantity,
+        reason: delta.reason,
+        reference: `SUP-${originalSale.saleNumber}`,
+        createdBy: user?.id || user?._id || "system",
+        createdAt: new Date().toISOString(),
+      }));
+
+      // Apply new movements to products
+      updatedProducts = updatedProducts.map((product) => {
+        let totalStockChange = 0;
+        for (const movement of newMovements) {
+          if (
+            product.id === movement.productId ||
+            (product as any)._id === movement.productId
+          ) {
+            if (movement.type === "in") {
+              totalStockChange += movement.quantity;
+            } else if (movement.type === "out") {
+              totalStockChange -= movement.quantity;
+            }
+          }
+        }
+        if (totalStockChange !== 0) {
+          return {
+            ...product,
+            currentStock: product.currentStock + totalStockChange,
+          };
+        }
+        return product;
+      });
+
+      // Ensure we always have a new array reference to trigger re-renders
+      updatedProducts = [...updatedProducts];
+
+      // Remove old stock movements and add new ones
+      const updatedStockMovements = stockMovements.filter(
+        (m) => m.reference !== originalSale.saleNumber,
+      );
 
       // Optimistically update local state
       storage.updateSale(id, saleWithBusinessId);
@@ -823,6 +968,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
             : s,
         ),
       );
+      setProducts(updatedProducts);
+      setStockMovements([...updatedStockMovements, ...newMovements]);
+
+      // Update React Query cache
+      queryClient.setQueryData(
+        ["sales", user?.businessId],
+        (oldData: Sale[] | undefined) =>
+          oldData
+            ? oldData.map((s) =>
+                s.id === id || (s as any)._id === id
+                  ? {
+                      ...s,
+                      ...saleWithBusinessId,
+                      updatedAt: new Date().toISOString(),
+                    }
+                  : s,
+              )
+            : undefined,
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["products", user?.businessId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["inventory", "movements", user?.businessId],
+      });
 
       // Send to API if online
       if (isOnline && user?.token) {
@@ -849,6 +1019,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Revert optimistic update on API error
             const state = storage.getState();
             setSales(state.sales);
+            setProducts(state.products);
+            setStockMovements(state.stockMovements);
             throw error; // Re-throw so caller can handle it
           }
         }
@@ -864,9 +1036,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     },
     [
       sales,
+      stockMovements,
+      products,
       isOnline,
       user?.token,
       user?.businessId,
+      user?.id,
+      user?._id,
       enqueueAction,
       refetchSales,
     ],
@@ -948,7 +1124,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return product;
       });
-      setProducts(updatedProducts);
+      setProducts([...updatedProducts]);
 
       // Add stock movements optimistically
       const newMovements: StockMovement[] = returnWithBusinessId.items.map(
@@ -989,15 +1165,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       // Update React Query cache
-      queryClient.setQueryData(
-        ["products", user?.businessId],
-        (oldData: Product[] | undefined) => updatedProducts,
-      );
-      queryClient.setQueryData(
-        ["inventory", "movements", user?.businessId],
-        (oldData: StockMovement[] | undefined) =>
-          oldData ? [...oldData, ...newMovements] : newMovements,
-      );
+      queryClient.invalidateQueries({
+        queryKey: ["products", user?.businessId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["inventory", "movements", user?.businessId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["sales", user?.businessId],
+      });
       if (originalSale) {
         const totalReturnedQuantity = returnWithBusinessId.items.reduce(
           (sum, item) => sum + item.quantity,
@@ -1131,35 +1307,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }),
       );
 
-      queryClient.setQueryData(
-        ["inventory", "movements", user?.businessId],
-        (oldData: StockMovement[] | undefined) =>
-          oldData
-            ? [...oldData, movementWithBusinessId]
-            : [movementWithBusinessId],
-      );
-      queryClient.setQueryData(
-        ["products", user?.businessId],
-        (oldData: Product[] | undefined) =>
-          oldData
-            ? oldData.map((product) => {
-                if (
-                  product.id === movementWithBusinessId.productId ||
-                  (product as any)._id === movementWithBusinessId.productId
-                ) {
-                  const adjustedStock =
-                    movementWithBusinessId.type === "in"
-                      ? product.currentStock + movementWithBusinessId.quantity
-                      : movementWithBusinessId.type === "out"
-                        ? product.currentStock - movementWithBusinessId.quantity
-                        : movementWithBusinessId.quantity;
-
-                  return { ...product, currentStock: adjustedStock };
-                }
-                return product;
-              })
-            : undefined,
-      );
+      queryClient.invalidateQueries({
+        queryKey: ["inventory", "movements", user?.businessId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["products", user?.businessId],
+      });
 
       // Send to API if online
       if (isOnline && user?.token) {

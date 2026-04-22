@@ -145,7 +145,7 @@ export interface Category {
 
 // Sales Types
 export interface Sale {
-  id: string;
+  id?: string;
   _id?: string; // For backward compatibility with older sale objects
   saleNumber: string;
   date: string;

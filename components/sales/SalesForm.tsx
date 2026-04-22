@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Sale, SaleItem, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ interface SalesFormProps {
   onCancel: () => void;
   currentUserId: string;
   currentUsername: string;
+  sale?: Sale; // Optional: if provided, form is in edit mode
 }
 
 export function SalesForm({
@@ -29,24 +30,42 @@ export function SalesForm({
   onCancel,
   currentUserId,
   currentUsername,
+  sale,
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
   const { user } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
 
-  const [items, setItems] = useState<SaleItem[]>([]);
+  const isEditing = !!sale; // Determine if we're in edit mode
+
+  const [items, setItems] = useState<SaleItem[]>(sale?.items || []);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [paymentType, setPaymentType] = useState("cash");
-  const [txnId, setTxnId] = useState("");
+  const [customerName, setCustomerName] = useState(sale?.customerName || "");
+  const [paymentType, setPaymentType] = useState(sale?.paymentType || "cash");
+  const [txnId, setTxnId] = useState(sale?.txnId || "");
   const [saleDate, setSaleDate] = useState(
-    new Date().toISOString().split("T")[0],
+    sale?.date || new Date().toISOString().split("T")[0],
   );
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(sale?.notes || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update form state when sale prop changes
+  useEffect(() => {
+    if (sale) {
+      setItems(sale.items || []);
+      setCustomerName(sale.customerName || "");
+      setPaymentType(sale.paymentType || "cash");
+      setTxnId(sale.txnId || "");
+      setSaleDate(sale.date || new Date().toISOString().split("T")[0]);
+      setNotes(sale.notes || "");
+      setSelectedProductId("");
+      setQuantity("");
+      setErrors({});
+    }
+  }, [sale]);
 
   const productOptions = products
     .filter((p) => p.currentStock > 0)
@@ -110,10 +129,12 @@ export function SalesForm({
     setErrors({});
 
     try {
-      const saleNumber = `S-${Date.now()}`;
+      // If editing, use the existing saleNumber and ID; otherwise generate new ones
+      const saleNumber = isEditing ? sale.saleNumber : "";
+      // const saleId = isEditing ? sale.id || sale._id : uuidv4();
 
-      const sale: Sale = {
-        id: "", // Will be set by the backend
+      const saleData: Sale = {
+        ...(isEditing && { _id: sale._id }),
         saleNumber,
         date: saleDate,
         items,
@@ -121,13 +142,14 @@ export function SalesForm({
         status: "completed",
         notes,
         createdBy: currentUserId,
-        createdAt: new Date().toISOString(),
+        createdAt: isEditing ? sale.createdAt : new Date().toISOString(),
         customerName,
         paymentType,
-        txnId: txnId || uuidv4(), // Use provided txnId or generate a unique one for cash sales
+        txnId: txnId || uuidv4(),
+        ...(isEditing && { _id: sale._id }), // Preserve _id if editing
       };
 
-      await onSubmit(sale);
+      await onSubmit(saleData);
       setItems([]);
       setCustomerName("");
       setPaymentType("cash");
@@ -137,7 +159,9 @@ export function SalesForm({
       setErrors({});
     } catch (error) {
       console.error("Failed to complete sale:", error);
-      setErrors({ general: "Failed to complete sale. Please try again." });
+      setErrors({
+        general: `Failed to ${isEditing ? "update" : "complete"} sale. Please try again.`,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -149,6 +173,15 @@ export function SalesForm({
         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <X className="w-4 h-4 shrink-0" />
           <span>{errors.general}</span>
+        </div>
+      )}
+
+      {isEditing && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            Sale Number:{" "}
+            <span className="font-mono font-bold">{sale.saleNumber}</span>
+          </p>
         </div>
       )}
 
@@ -432,8 +465,10 @@ export function SalesForm({
           {isSubmitting ? (
             <>
               <Spinner className="h-4 w-4" />
-              Processing Sale...
+              {isEditing ? "Updating Sale..." : "Processing Sale..."}
             </>
+          ) : isEditing ? (
+            "Update Sale"
           ) : (
             "Complete Sale"
           )}
