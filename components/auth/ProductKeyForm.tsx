@@ -24,7 +24,7 @@ export function ProductKeyForm() {
     general?: string;
   }>({});
 
-  const { loginWithApiData, user } = useAuth();
+  const { loginWithApiData, user, business } = useAuth();
   const router = useRouter();
 
   const clearFieldError = (field: string) => {
@@ -170,10 +170,11 @@ export function ProductKeyForm() {
 
       // Update auth context with the validated data
       loginWithApiData(newUser);
-
-      setTimeout(() => {
-        router.push("/onboarding");
-      }, 1500);
+      if (user || (business && business.activated)) {
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error

@@ -25,18 +25,18 @@ export function useFormatCurrencyShort() {
 
     // Values less than 1000 - no abbreviation
     if (absValue < 1000) {
-      return `${isNegative ? "-" : ""}${symbol}${absValue.toFixed(2)}`;
+      return `${isNegative ? "-" : ""}${symbol} ${absValue.toFixed(2)}`;
     }
 
     // Values 1,000,000 and above - use M
     if (absValue >= 1000000) {
       const millions = absValue / 1000000;
-      return `${isNegative ? "-" : ""}${symbol}${millions.toFixed(2)}M`;
+      return `${isNegative ? "-" : ""}${symbol} ${millions.toFixed(2)}M`;
     }
 
     // Values 1,000 to 999,999 - use K
     const thousands = absValue / 1000;
-    return `${isNegative ? "-" : ""}${symbol}${thousands.toFixed(2)}K`;
+    return `${isNegative ? "-" : ""}${symbol} ${thousands.toFixed(2)}K`;
   };
 
   return formatCurrencyShort;

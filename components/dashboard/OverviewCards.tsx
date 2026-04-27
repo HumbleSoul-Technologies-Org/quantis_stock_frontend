@@ -17,7 +17,7 @@ function OverviewCardsContent() {
   const currencyFormatter =
     typeof formatCurrency === "function"
       ? formatCurrency
-      : (value: number) => `$${value.toFixed(2)}`;
+      : (value: number) => `$ ${value.toFixed(2)}`;
 
   const totalInventoryValue = safeProducts.reduce(
     (sum, p) =>
