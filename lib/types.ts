@@ -3,6 +3,34 @@ export type UserRole = 'admin' | 'manager' | 'sales' | 'accountant';
 export type BusinessType = 'retail' | 'other';
 export type RetailSubType = 'electronics' | 'clothing' | 'food_beverage' | 'beauty' | 'home_hardware' | 'general';
 
+export interface BusinessSettings {
+  businessId: string;
+  currency: {
+    code: string;
+    symbol: string;
+    decimalPlaces: number;
+  };
+  units: {
+    weightUnits: string[];
+    volumeUnits: string[];
+    lengthUnits: string[];
+    countUnits: string[];
+  };
+  syncData: {
+    offlineMode: boolean;
+    syncInterval: string;
+    lastSyncedAt?: string;
+  };
+  notifications: {
+    creationNotifications: { email: boolean; sms: boolean };
+    SalesNotifications: { email: boolean; sms: boolean };
+    stockNotifications: { email: boolean; sms: boolean };
+  };
+  security: {
+    autoLogoutTimeout: number;
+  };
+}
+
 export interface BusinessSetup {
   businessName: string;
   businessType: BusinessType;
@@ -22,15 +50,20 @@ export interface Business {
   ownerId: string; // Reference to admin user who owns the business
   businessName: string;
   businessType: BusinessType;
+  address?: string; // Optional business address
+  phone?: string; // Optional business phone
   setupCompletedAt: string;
   settings: BusinessSettings; // New: embedded business settings
   user?: any; // Array of user IDs associated with this business
+  activated?: boolean; // New: whether the business is activated via product key
+  activationKey?: string; // New: the product key used for activation
 }
 
 export interface User {
   id: string;
   _id?: string; // For backward compatibility with older user objects
   username: string;
+  email?: string; // Optional email field
   password?: string; // hashed in production
   role: UserRole;
   businessId?: string; // Reference to Business model (optional during transition)
@@ -293,44 +326,6 @@ export interface TeamUser {
 }
 
 // Settings Types
-export interface BusinessSettings {
-  businessId: string;
-  currency: {
-    code: string;
-    symbol: string;
-    decimalPlaces: number;
-  };
-  units: {
-    weightUnits: string[];
-    volumeUnits: string[];
-    lengthUnits: string[];
-    countUnits: string[];
-  };
-  syncData: {
-    offlineMode: boolean;
-    syncInterval: string;
-    lastSyncedAt?: string;
-  };
-  notifications: {
-    creationNotifications: {
-      email: boolean;
-      sms: boolean;
-    };
-    SalesNotifications: {
-      email: boolean;
-      sms: boolean;
-    };
-    stockNotifications: {
-      email: boolean;
-      sms: boolean;
-    };
-  };
-  security?: {
-    
-    autoLogoutTimeout: number; // In milliseconds: 60000, 300000, 600000, etc. 0 = disabled
-  };
-}
-
 export interface AppSettings {
   currency: {
     symbol: string;

@@ -25,15 +25,18 @@ function OnboardingContent() {
       return;
     }
 
-    // Redirect to dashboard if user is admin AND has completed business setup
-    // Check both business object AND businessId field for robustness
+    // Allow admins to complete onboarding before requiring activation.
     if (
-      user?.role === "admin" &&
+      user.role === "admin" &&
       business &&
       !!business.businessName &&
       business.settings !== null
     ) {
-      router.replace("/dashboard");
+      if (!business.activated) {
+        router.replace("/product-key");
+      } else {
+        router.replace("/dashboard");
+      }
     }
   }, [user, business, authLoading, router]);
 
@@ -110,6 +113,18 @@ function OnboardingContent() {
       if (response.ok && (data.business || data.businessData)) {
         // Update business in context with the correct response field
         const businessPayload = data.business || data.businessData;
+
+        // Reset activation fields after demo onboarding completion
+        // This prevents users from being redirected back to product key form
+        if (business?.activationKey) {
+          const demoKey =
+            process.env.NEXT_PUBLIC_DEMO_PRODUCT_KEY || "466882-256-demo-key";
+          if (business.activationKey === demoKey) {
+            businessPayload.activated = false;
+            businessPayload.activationKey = undefined;
+          }
+        }
+
         updateBusiness(businessPayload);
         // Show finalizing state - redirect will be triggered by useEffect when business updates
         setIsLoading(false);

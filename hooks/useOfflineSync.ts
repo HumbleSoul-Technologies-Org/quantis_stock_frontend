@@ -20,20 +20,48 @@ const SYNC_QUEUE_EVENT = 'erp_system_sync_queue_updated';
 
 /**
  * Check if device has internet connectivity
- * Uses navigator.onLine API which is reliable for most use cases
- * Avoids depending on backend endpoints that may not exist or have auth issues
+ * Uses multiple signals: navigator.onLine + attempt to fetch a lightweight resource
+ * Falls back safely if fetch fails
  */
 async function checkBackendConnectivity(): Promise<boolean> {
-  // navigator.onLine is the most reliable indicator for browser connectivity
-  const isOnline = navigator.onLine;
+  // Primary check: navigator.onLine
+  const navigatorOnline = navigator.onLine;
   
-  if (!isOnline) {
+  if (!navigatorOnline) {
     console.debug('🔴 Device is OFFLINE (navigator.onLine = false)');
-  } else {
-    console.debug('🟢 Device is ONLINE (navigator.onLine = true)');
+    return false;
   }
-  
-  return isOnline;
+
+  // Secondary check: Try a lightweight fetch to verify actual connectivity
+  // Use a HEAD request to a simple endpoint to detect network issues
+  try {
+    console.debug('🔍 [CONNECTIVITY] navigator.onLine = true, verifying with fetch...');
+    const response = await fetch('/api/health', { 
+      method: 'GET',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3000) // 3 second timeout
+    });
+    
+    if (response.ok) {
+      console.debug('🟢 Device is ONLINE (fetch successful)');
+      return true;
+    } else {
+      console.debug('🟡 Device connectivity uncertain (fetch returned ' + response.status + ')');
+      // If server returns an error but fetch succeeds, we're online but server has issues
+      // Still consider it online for sync purposes
+      return true;
+    }
+  } catch (fetchError: any) {
+    const isTimeout = fetchError?.name === 'AbortError';
+    if (isTimeout) {
+      console.debug('🟡 Connectivity check timed out, assuming OFFLINE');
+      return false;
+    }
+    
+    console.debug('🔴 Fetch check failed:', fetchError?.message);
+    // Fetch failed = network error, trust navigator.onLine as fallback
+    return navigatorOnline;
+  }
 }
 
 export function useOfflineSync(syncConfig?: SyncConfig) {
@@ -74,7 +102,7 @@ export function useOfflineSync(syncConfig?: SyncConfig) {
   const enqueueAction = useCallback(
     (action: Omit<SyncAction, 'id' | 'retries' | 'timestamp'>) => {
       if (!offlineMode) {
-        console.warn('Offline mode is disabled. Action will not be queued:', action);
+        console.warn('⚠️ [USEOFFLINESYNC] Offline mode disabled. Not queuing action:', action);
         return;
       }
 
@@ -84,24 +112,37 @@ export function useOfflineSync(syncConfig?: SyncConfig) {
         retries: 0,
         timestamp: new Date().toISOString(),
       };
+      console.log('📥 [USEOFFLINESYNC] Enqueueing action:', {
+        id: newAction.id,
+        type: action.type,
+        endpoint: action.endpoint,
+        method: action.method,
+        timestamp: newAction.timestamp,
+      });
       const updated = [...pendingActions, newAction];
       setPendingActions(updated);
       savePendingActions(updated);
+      console.log('✓ [USEOFFLINESYNC] Action enqueued. Queue size:', updated.length);
     },
     [offlineMode, pendingActions, savePendingActions],
   );
 
   // Remove action from queue
   const dequeueAction = useCallback((id: string) => {
+    console.log('📤 [USEOFFLINESYNC] Dequeuing action:', id);
     const updated = pendingActions.filter(a => a.id !== id);
     setPendingActions(updated);
     savePendingActions(updated);
+    console.log('✓ [USEOFFLINESYNC] Action dequeued. Queue size:', updated.length);
   }, [pendingActions, savePendingActions]);
 
   // Increment retry count
   const incrementRetry = useCallback((id: string) => {
+    const action = pendingActions.find(a => a.id === id);
+    const newRetryCount = (action?.retries ?? 0) + 1;
+    console.log('🔁 [USEOFFLINESYNC] Incrementing retry for action:', { id, newRetryCount });
     const updated = pendingActions.map(a =>
-      a.id === id ? { ...a, retries: a.retries + 1 } : a
+      a.id === id ? { ...a, retries: newRetryCount } : a
     );
     setPendingActions(updated);
     savePendingActions(updated);

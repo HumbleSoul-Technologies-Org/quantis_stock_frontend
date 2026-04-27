@@ -79,22 +79,72 @@ export function SalesForm({
   }, [sale]);
 
   const productOptions = products
-    ?.filter((p) => p.currentStock > 0)
+    ?.filter((p) => {
+      const hasStock = p.currentStock > 0;
+      if (!hasStock) {
+        console.debug("🚫 [SALESFORM] Product filtered (no stock):", {
+          id: p.id,
+          name: p.name,
+          stock: p.currentStock,
+        });
+      }
+      return hasStock;
+    })
     .map((p) => ({
       value: p._id || p.id,
       label: `${p.name} (${p.currentStock} available)`,
     }));
 
   const addItem = () => {
+    console.log(
+      "🛒 [SALESFORM] addItem - selectedProductId:",
+      selectedProductId,
+      "quantity:",
+      quantity,
+    );
     if (!selectedProductId || !quantity) {
+      console.log("⚠️ [SALESFORM] Missing product or quantity");
       setErrors({ product: "Select product and quantity" });
       return;
     }
 
-    const product = products.find(
+    console.log(
+      "🔍 [SALESFORM] Looking up product, available products:",
+      products.length,
+    );
+    console.log(
+      "🔍 [SALESFORM] Searching for product with id/._id matching:",
+      selectedProductId,
+    );
+    let product = products.find(
       (p) => p.id === selectedProductId || p._id === selectedProductId,
     );
-    if (!product) return;
+
+    // Fallback: if not found by ID, try to find by name in case of display name match
+    if (!product) {
+      console.warn(
+        "⚠️ [SALESFORM] Product not found by ID, trying fallback lookup",
+      );
+      product = products.find((p) => (p._id || p.id) === selectedProductId);
+    }
+
+    if (!product) {
+      console.error(
+        "❌ [SALESFORM] Product not found for id:",
+        selectedProductId,
+      );
+      console.log(
+        "📋 [SALESFORM] Available product IDs:",
+        products.map((p) => ({ id: p.id, _id: (p as any)._id })),
+      );
+      setErrors({ product: "Product not found. Please select again." });
+      return;
+    }
+    console.log("✓ [SALESFORM] Product found:", {
+      id: product.id,
+      name: product.name,
+      stock: product.currentStock,
+    });
 
     if (parseInt(quantity) > product.currentStock) {
       setErrors({ quantity: `Only ${product.currentStock} available` });
@@ -102,7 +152,7 @@ export function SalesForm({
     }
 
     const saleItem: SaleItem = {
-      productId: selectedProductId,
+      productId: product.id || product._id || selectedProductId, // Use the actual product ID
       quantity: parseInt(quantity),
       unitPrice: product.unitPrice,
       total: parseInt(quantity) * product.unitPrice,

@@ -73,3 +73,90 @@ export function isConnectivityError(error: any): boolean {
     !error?.response // No response object means network error
   );
 }
+
+/**
+ * Clean payload for sync - removes temporary ID fields that cause E11000 errors
+ * MongoDB will auto-generate _id and we shouldn't send empty id fields
+ * Also cleans nested items arrays (e.g., in sales with line items)
+ */
+export function cleanPayloadForSync(payload: any, method: string): any {
+  if (!payload) return payload;
+
+  // For POST requests, remove id and _id fields completely
+  if (method === 'POST') {
+    const cleaned = { ...payload };
+    delete cleaned.id;
+    delete cleaned._id;
+    
+    // Clean nested items array if present (e.g., sale items, stock movements)
+    if (Array.isArray(cleaned.items)) {
+      cleaned.items = cleaned.items.map((item: any) => {
+        const cleanedItem = { ...item };
+        delete cleanedItem.id;
+        delete cleanedItem._id;
+        return cleanedItem;
+      });
+      console.log('🧹 [PAYLOAD CLEAN] POST payload - removed id/_id from nested items array');
+    }
+    
+    console.log('🧹 [PAYLOAD CLEAN] POST payload cleaned - removed id/_id fields');
+    return cleaned;
+  }
+
+  // For PUT requests, keep id but remove _id (for matching)
+  if (method === 'PUT') {
+    const cleaned = { ...payload };
+    delete cleaned._id; // MongoDB might reject _id on update
+    
+    // Clean nested items array if present
+    if (Array.isArray(cleaned.items)) {
+      cleaned.items = cleaned.items.map((item: any) => {
+        const cleanedItem = { ...item };
+        delete cleanedItem._id;
+        // Keep item.id for PUT since it might be needed for mapping
+        return cleanedItem;
+      });
+      console.log('🧹 [PAYLOAD CLEAN] PUT payload - removed _id from nested items array');
+    }
+    
+    console.log('🧹 [PAYLOAD CLEAN] PUT payload cleaned - removed _id field');
+    return cleaned;
+  }
+
+  // For other methods, return as-is
+  return payload;
+}
+
+/**
+ * Detect MongoDB E11000 duplicate key error
+ * Indicates resource with same unique field already exists in database
+ * Should be treated as successful sync (don't retry)
+ */
+export function isDuplicateKeyError(error: any): boolean {
+  if (!error) return false;
+
+  // Check error message for E11000
+  const errorMessage = error?.message?.toString().toLowerCase() || '';
+  if (errorMessage.includes('e11000')) {
+    return true;
+  }
+
+  // Check response data for E11000 error
+  const responseData = error?.response?.data || {};
+  const dataMessage = (responseData.message || '').toString().toLowerCase();
+  if (dataMessage.includes('e11000')) {
+    return true;
+  }
+
+  // Check nested error object
+  if (error?.error?.includes?.('e11000')) {
+    return true;
+  }
+
+  // Check error code (some APIs return error code)
+  if (error?.code === 'E11000' || error?.code === 11000) {
+    return true;
+  }
+
+  return false;
+}

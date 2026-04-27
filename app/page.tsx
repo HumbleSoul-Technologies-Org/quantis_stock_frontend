@@ -11,9 +11,11 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        // Check if admin user has completed business setup
+        // Check redirect logic based on user role and business status
         if (user.role === "admin" && !business) {
           router.push("/onboarding");
+        } else if (user.role === "admin" && !business?.activated) {
+          router.push("/product-key");
         } else {
           router.push("/dashboard");
         }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useOfflineSync, SyncAction } from "@/hooks/useOfflineSync";
 import { apiRequest } from "@/lib/queryClient";
+import { cleanPayloadForSync, isDuplicateKeyError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,26 +55,123 @@ export function SyncModal({
     }
   }, [isOpen, autoStartSync, pendingActions.length, syncing, backgroundSync]);
 
+  // Helper: Get priority order for sync (suppliers → products → stock movements → sales)
+  const getSyncPriority = (type: string): number => {
+    if (type.includes("Supplier")) return 1;
+    if (type.includes("Product")) return 2;
+    if (type.includes("StockMovement")) return 3;
+    if (type.includes("Sale")) return 4;
+    return 5; // Other types last
+  };
+
+  // Helper: Get category name for logging
+  const getCategoryName = (type: string): string => {
+    if (type.includes("Supplier")) return "Suppliers";
+    if (type.includes("Product")) return "Products";
+    if (type.includes("StockMovement")) return "Stock Movements";
+    if (type.includes("Sale")) return "Sales";
+    return "Other";
+  };
+
+  // Helper: Sync a single action
+  const syncSingleAction = async (
+    action: SyncAction,
+    results: { [key: string]: "success" | "error" },
+    token: string,
+  ) => {
+    console.log(`📤 [SYNC MODAL] Syncing action:`, {
+      id: action.id,
+      type: action.type,
+      endpoint: action.endpoint,
+      method: action.method,
+      retries: action.retries,
+    });
+    try {
+      // Clean payload before sending to avoid E11000 errors
+      const cleanedPayload = cleanPayloadForSync(action.payload, action.method);
+      console.log(
+        `🧹 [SYNC MODAL] Cleaned payload for ${action.method}:`,
+        cleanedPayload,
+      );
+
+      console.log(
+        `📡 [SYNC MODAL] Sending ${action.method} request to ${action.endpoint}`,
+      );
+      const response = await apiRequest(
+        action.method,
+        action.endpoint,
+        cleanedPayload,
+        token,
+      );
+      console.log(
+        `✅ [SYNC MODAL] Success for action ${action.id}, response:`,
+        response,
+      );
+      results[action.id] = "success";
+
+      // Dequeue BEFORE any refetch to ensure it's marked as processed
+      console.log(`📤 [SYNC MODAL] Dequeuing action ${action.id}...`);
+      dequeueAction(action.id);
+      console.log(`✓ [SYNC MODAL] Action ${action.id} dequeued successfully`);
+    } catch (error) {
+      console.error(
+        `❌ [SYNC MODAL] Failed to sync action ${action.id}:`,
+        error,
+      );
+
+      // Check if it's a duplicate key error (resource already exists)
+      if (isDuplicateKeyError(error)) {
+        console.log(
+          `🔄 [SYNC MODAL] E11000 duplicate key detected - resource already synced, dequeuing...`,
+        );
+        results[action.id] = "success"; // Treat as successful (already in DB)
+        dequeueAction(action.id);
+        console.log(`✓ [SYNC MODAL] Action ${action.id} dequeued as duplicate`);
+      } else {
+        // Retry for non-duplicate errors
+        console.log(
+          `🔁 [SYNC MODAL] Incrementing retry count for action ${action.id}`,
+        );
+        incrementRetry(action.id);
+        results[action.id] = "error";
+      }
+    }
+  };
+
   const handleSync = async () => {
     if (!user?.token) return;
 
+    console.log(
+      "🔄 [SYNC MODAL] Starting prioritized sync, pending actions:",
+      pendingActions.length,
+    );
     setSyncing(true);
     const results: { [key: string]: "success" | "error" } = {};
 
-    for (const action of pendingActions) {
-      try {
-        await apiRequest(
-          action.method,
-          action.endpoint,
-          action.payload,
-          user.token,
+    // Sort actions by priority: Suppliers → Products → Stock Movements → Sales
+    const sortedActions = [...pendingActions].sort(
+      (a, b) => getSyncPriority(a.type) - getSyncPriority(b.type),
+    );
+
+    // Sync by category in order
+    const categories = [1, 2, 3, 4]; // Priority levels
+    for (const priority of categories) {
+      const categoryActions = sortedActions.filter(
+        (a) => getSyncPriority(a.type) === priority,
+      );
+
+      if (categoryActions.length > 0) {
+        const categoryName = getCategoryName(categoryActions[0].type);
+        console.log(
+          `\n📋 [SYNC MODAL] Starting sync for ${categoryName} (${categoryActions.length} actions)`,
         );
-        results[action.id] = "success";
-        dequeueAction(action.id);
-      } catch (error) {
-        console.error(`Failed to sync action ${action.id}:`, error);
-        incrementRetry(action.id);
-        results[action.id] = "error";
+
+        // Sync each action in this category one by one
+        for (const action of categoryActions) {
+          await syncSingleAction(action, results, user.token!);
+        }
+
+        console.log(`✅ [SYNC MODAL] Completed ${categoryName} sync`);
       }
     }
 
@@ -88,9 +186,13 @@ export function SyncModal({
       (r) => r === "error",
     ).length;
 
+    console.log(
+      `\n🎯 [SYNC MODAL] Sync completed - ${successfulCount} successful, ${errorCount} failed`,
+    );
+
     if (successfulCount > 0 && errorCount === 0) {
       notifyDataSync(
-        `All ${successfulCount} offline actions have been synced with the database.`,
+        `All ${successfulCount} offline actions synced (Suppliers → Products → Stock → Sales).`,
       );
       // Auto-close on success if not in background mode
       if (!backgroundSync) {
@@ -98,7 +200,7 @@ export function SyncModal({
       }
     } else if (errorCount > 0) {
       notifyDataSync(
-        `${errorCount} actions failed to sync. Check pending actions for details.`,
+        `${successfulCount} synced, ${errorCount} failed. Check details.`,
       );
     }
   };

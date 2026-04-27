@@ -8,6 +8,7 @@ import {
   ReactNode,
   useCallback,
 } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   Product,
   Supplier,
@@ -349,32 +350,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Products
   const addProduct = useCallback(
     async (product: Product) => {
-      // Ensure businessId is included
+      // Ensure businessId is included and generate ID if missing
       const productWithBusinessId = {
         ...product,
+        id: product.id || uuidv4(), // Generate UUID if no ID
         businessId: product.businessId || user?.businessId,
       };
 
+      console.log(
+        "📝 [DATACONTEXT] addProduct - generated/existing ID:",
+        productWithBusinessId.id,
+      );
       storage.addProduct(productWithBusinessId);
       setProducts([...products, productWithBusinessId]);
 
       // Send to API if online
+      console.log(
+        "📝 [DATACONTEXT] addProduct - isOnline:",
+        isOnline,
+        "hasToken:",
+        !!user?.token,
+      );
       if (isOnline && user?.token) {
         try {
+          console.log(
+            "📡 [DATACONTEXT] Sending product to API:",
+            productWithBusinessId.id,
+          );
           await apiRequest(
             "POST",
             "/products/new",
             productWithBusinessId,
             user.token,
           );
+          console.log(
+            "✅ [DATACONTEXT] Product saved to API successfully:",
+            productWithBusinessId.id,
+          );
           // Immediately invalidate products cache for instant refresh
           await queryClient.invalidateQueries({
             queryKey: ["products", user?.businessId],
           });
         } catch (error) {
-          console.warn("Failed to save product to API:", error);
+          console.warn(
+            "❌ [DATACONTEXT] Failed to save product to API:",
+            error,
+          );
           // Only enqueue if it's a network error, not API error
           if (isNetworkError(error)) {
+            console.log(
+              "🌐 [DATACONTEXT] Network error detected, enqueueing product:",
+              productWithBusinessId.id,
+            );
             enqueueAction({
               endpoint: "/products/new",
               method: "POST",
@@ -382,6 +409,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
               type: "addProduct",
             });
           } else {
+            console.log(
+              "⚠️ [DATACONTEXT] API error (not network), removing product from local state",
+            );
             // For API errors, remove from local state since sync failed
             setProducts(products.filter((p) => p.id !== product.id));
             throw error; // Re-throw so caller can handle it
@@ -389,6 +419,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // Offline: enqueue action
+        console.log(
+          "🔌 [DATACONTEXT] Offline detected or no token, enqueueing product:",
+          productWithBusinessId.id,
+        );
         enqueueAction({
           endpoint: "/products/new",
           method: "POST",
@@ -516,20 +550,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
       storage.addSupplier(supplierWithBusinessId);
       setSuppliers([...suppliers, supplierWithBusinessId]);
       // Send to API if online
+      console.log(
+        "📝 [DATACONTEXT] addSupplier - isOnline:",
+        isOnline,
+        "hasToken:",
+        !!user?.token,
+      );
       if (isOnline && user?.token) {
         try {
+          console.log(
+            "📡 [DATACONTEXT] Sending supplier to API:",
+            supplierWithBusinessId.id,
+          );
           await apiRequest(
             "POST",
             "/suppliers/create",
             supplierWithBusinessId,
             user.token,
           );
-          // Immediately refetch suppliers for instant UI update (don't just invalidate)
-          await refetchSuppliers();
+          console.log("✅ [DATACONTEXT] Supplier saved to API successfully");
+
+          // Refetch suppliers AFTER success but wrapped separately to not mask success
+          try {
+            console.log(
+              "🔄 [DATACONTEXT] Refetching suppliers after successful POST...",
+            );
+            await refetchSuppliers();
+            console.log("✓ [DATACONTEXT] Suppliers refetched successfully");
+          } catch (refetchError) {
+            console.warn(
+              "⚠️ [DATACONTEXT] Refetch failed but POST already succeeded, not re-enqueueing:",
+              refetchError,
+            );
+            // Don't re-enqueue - the POST already succeeded
+          }
         } catch (error) {
-          console.warn("Failed to save supplier to API:", error);
+          console.warn(
+            "❌ [DATACONTEXT] Failed to save supplier to API:",
+            error,
+          );
           // Only enqueue if it's a network error, not API error
           if (isNetworkError(error)) {
+            console.log(
+              "🌐 [DATACONTEXT] Network error detected, enqueueing supplier:",
+              supplierWithBusinessId.id,
+            );
             enqueueAction({
               endpoint: "/suppliers/create",
               method: "POST",
@@ -537,12 +602,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
               type: "addSupplier",
             });
           } else {
+            console.log(
+              "⚠️ [DATACONTEXT] API error (not network), removing supplier from local state",
+            );
             setSuppliers(suppliers.filter((s) => s.id !== supplier.id));
             throw error; // Re-throw so caller can handle it
           }
         }
       } else {
         // Offline: enqueue action
+        console.log(
+          "🔌 [DATACONTEXT] Offline detected or no token, enqueueing supplier:",
+          supplierWithBusinessId.id,
+        );
         enqueueAction({
           endpoint: "/suppliers/create",
           method: "POST",
@@ -551,7 +623,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [suppliers, isOnline, user?.token, user?.businessId, enqueueAction],
+    [
+      suppliers,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      refetchSuppliers,
+    ],
   );
 
   const updateSupplier = useCallback(
