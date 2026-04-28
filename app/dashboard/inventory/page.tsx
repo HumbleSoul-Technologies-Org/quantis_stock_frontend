@@ -34,7 +34,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function InventoryPageContent() {
-  const { products, stockMovements, addStockMovement } = useData();
+  const { products, stockMovements, addStockMovement, openNoInternetModal } =
+    useData();
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -119,6 +120,13 @@ function InventoryPageContent() {
     });
   }, [products, searchTerm, categoryFilter, stockFilter]);
 
+  const openDialogForAction = (actionType: string, action: () => void) => {
+    if (openNoInternetModal(actionType, action)) {
+      return;
+    }
+    action();
+  };
+
   const handleAddMovement = async (movement: any) => {
     await addStockMovement(movement);
 
@@ -161,14 +169,18 @@ function InventoryPageContent() {
   };
 
   const handleStockIn = (product: any) => {
-    setSelectedMovement(null);
-    setSelectedProductId(product._id || product.id);
-    setShowDialog(true);
+    openDialogForAction("create stock movement", () => {
+      setSelectedMovement(null);
+      setSelectedProductId(product._id || product.id);
+      setShowDialog(true);
+    });
   };
 
   const handleEditMovement = (movement: StockMovement) => {
-    setSelectedMovement(movement);
-    setShowDialog(true);
+    openDialogForAction("update stock movement", () => {
+      setSelectedMovement(movement);
+      setShowDialog(true);
+    });
   };
 
   // Sort stock movement history so recent events appear first
@@ -310,7 +322,13 @@ function InventoryPageContent() {
           </div>
           {((user && user?.role === "manager") || user?.role === "admin") && (
             <Button
-              onClick={() => setShowDialog(true)}
+              onClick={() =>
+                openDialogForAction("create stock movement", () => {
+                  setSelectedMovement(null);
+                  setSelectedProductId("");
+                  setShowDialog(true);
+                })
+              }
               className="bg-white text-emerald-600 hover:bg-emerald-50 dark:hover:bg-gray-100 gap-2 w-full sm:w-auto font-semibold shadow-md hover:shadow-lg transition-all"
             >
               <Plus className="w-5 h-5" />

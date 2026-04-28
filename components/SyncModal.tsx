@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useOfflineSync, SyncAction } from "@/hooks/useOfflineSync";
-import { apiRequest } from "@/lib/queryClient";
-import { cleanPayloadForSync, isDuplicateKeyError } from "@/lib/errors";
+import { useSettings } from "@/context/SettingsContext";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { Operation } from "@/lib/offline/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,11 +34,15 @@ export function SyncModal({
   autoStartSync = false,
 }: SyncModalProps) {
   const { user } = useAuth();
-  const { pendingActions, dequeueAction, incrementRetry } = useOfflineSync();
+  const { settings } = useSettings();
+  const { pendingActions, dequeueAction, syncPendingActions } = useOfflineSync(
+    settings?.syncData,
+    user?.token,
+  );
   const { notifyDataSync } = useNotificationActions();
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState<{
-    [key: string]: "success" | "error";
+    [key: string]: "success" | "failed";
   }>({});
   const [backgroundSync, setBackgroundSync] = useState(false);
 
@@ -55,153 +59,81 @@ export function SyncModal({
     }
   }, [isOpen, autoStartSync, pendingActions.length, syncing, backgroundSync]);
 
-  // Helper: Get priority order for sync (suppliers → products → stock movements → sales)
-  const getSyncPriority = (type: string): number => {
-    if (type.includes("Supplier")) return 1;
-    if (type.includes("Product")) return 2;
-    if (type.includes("StockMovement")) return 3;
-    if (type.includes("Sale")) return 4;
-    return 5; // Other types last
-  };
-
-  // Helper: Get category name for logging
-  const getCategoryName = (type: string): string => {
-    if (type.includes("Supplier")) return "Suppliers";
-    if (type.includes("Product")) return "Products";
-    if (type.includes("StockMovement")) return "Stock Movements";
-    if (type.includes("Sale")) return "Sales";
-    return "Other";
-  };
-
-  // Helper: Sync a single action
-  const syncSingleAction = async (
-    action: SyncAction,
-    results: { [key: string]: "success" | "error" },
-    token: string,
-  ) => {
-    console.log(`📤 [SYNC MODAL] Syncing action:`, {
-      id: action.id,
-      type: action.type,
-      endpoint: action.endpoint,
-      method: action.method,
-      retries: action.retries,
-    });
-    try {
-      // Clean payload before sending to avoid E11000 errors
-      const cleanedPayload = cleanPayloadForSync(action.payload, action.method);
-      console.log(
-        `🧹 [SYNC MODAL] Cleaned payload for ${action.method}:`,
-        cleanedPayload,
-      );
-
-      console.log(
-        `📡 [SYNC MODAL] Sending ${action.method} request to ${action.endpoint}`,
-      );
-      const response = await apiRequest(
-        action.method,
-        action.endpoint,
-        cleanedPayload,
-        token,
-      );
-      console.log(
-        `✅ [SYNC MODAL] Success for action ${action.id}, response:`,
-        response,
-      );
-      results[action.id] = "success";
-
-      // Dequeue BEFORE any refetch to ensure it's marked as processed
-      console.log(`📤 [SYNC MODAL] Dequeuing action ${action.id}...`);
-      dequeueAction(action.id);
-      console.log(`✓ [SYNC MODAL] Action ${action.id} dequeued successfully`);
-    } catch (error) {
-      console.error(
-        `❌ [SYNC MODAL] Failed to sync action ${action.id}:`,
-        error,
-      );
-
-      // Check if it's a duplicate key error (resource already exists)
-      if (isDuplicateKeyError(error)) {
-        console.log(
-          `🔄 [SYNC MODAL] E11000 duplicate key detected - resource already synced, dequeuing...`,
-        );
-        results[action.id] = "success"; // Treat as successful (already in DB)
-        dequeueAction(action.id);
-        console.log(`✓ [SYNC MODAL] Action ${action.id} dequeued as duplicate`);
-      } else {
-        // Retry for non-duplicate errors
-        console.log(
-          `🔁 [SYNC MODAL] Incrementing retry count for action ${action.id}`,
-        );
-        incrementRetry(action.id);
-        results[action.id] = "error";
-      }
+  // Clear sync state when modal closes to prevent stale data on reopen
+  useEffect(() => {
+    if (!isOpen) {
+      setSyncResults({});
+      setBackgroundSync(false);
     }
-  };
+  }, [isOpen]);
 
   const handleSync = async () => {
-    if (!user?.token) return;
-
-    console.log(
-      "🔄 [SYNC MODAL] Starting prioritized sync, pending actions:",
-      pendingActions.length,
-    );
-    setSyncing(true);
-    const results: { [key: string]: "success" | "error" } = {};
-
-    // Sort actions by priority: Suppliers → Products → Stock Movements → Sales
-    const sortedActions = [...pendingActions].sort(
-      (a, b) => getSyncPriority(a.type) - getSyncPriority(b.type),
-    );
-
-    // Sync by category in order
-    const categories = [1, 2, 3, 4]; // Priority levels
-    for (const priority of categories) {
-      const categoryActions = sortedActions.filter(
-        (a) => getSyncPriority(a.type) === priority,
-      );
-
-      if (categoryActions.length > 0) {
-        const categoryName = getCategoryName(categoryActions[0].type);
-        console.log(
-          `\n📋 [SYNC MODAL] Starting sync for ${categoryName} (${categoryActions.length} actions)`,
-        );
-
-        // Sync each action in this category one by one
-        for (const action of categoryActions) {
-          await syncSingleAction(action, results, user.token!);
-        }
-
-        console.log(`✅ [SYNC MODAL] Completed ${categoryName} sync`);
-      }
+    if (!user?.token || !syncPendingActions) {
+      console.error("🚨 [SYNC MODAL] Cannot start sync", {
+        hasToken: !!user?.token,
+        hasSyncFunction: !!syncPendingActions,
+      });
+      return;
     }
 
-    setSyncResults(results);
-    setSyncing(false);
+    const syncStartTime = performance.now();
+    console.log("🔄 [SYNC MODAL] Starting sync", {
+      count: pendingActions.length,
+      types: pendingActions.map((a: Operation) => a.type),
+    });
+    setSyncing(true);
 
-    // Send completion notifications
-    const successfulCount = Object.values(results).filter(
-      (r) => r === "success",
-    ).length;
-    const errorCount = Object.values(results).filter(
-      (r) => r === "error",
-    ).length;
+    try {
+      const results = await syncPendingActions();
+      setSyncResults(results);
 
-    console.log(
-      `\n🎯 [SYNC MODAL] Sync completed - ${successfulCount} successful, ${errorCount} failed`,
-    );
+      const successfulCount = Object.values(results).filter(
+        (r) => r === "success",
+      ).length;
+      const errorCount = Object.values(results).filter(
+        (r) => r === "failed",
+      ).length;
 
-    if (successfulCount > 0 && errorCount === 0) {
-      notifyDataSync(
-        `All ${successfulCount} offline actions synced (Suppliers → Products → Stock → Sales).`,
-      );
-      // Auto-close on success if not in background mode
-      if (!backgroundSync) {
-        setTimeout(() => onClose(), 2000);
+      console.log("🎯 [SYNC MODAL] Sync completed", {
+        successful: successfulCount,
+        failed: errorCount,
+        durationSec: ((performance.now() - syncStartTime) / 1000).toFixed(2),
+      });
+
+      if (errorCount > 0) {
+        console.error(
+          "❌ [SYNC MODAL] Failed ops:",
+          pendingActions
+            .filter((a: Operation) => results[a.id] === "failed")
+            .map((a: Operation) => ({
+              id: a.id,
+              type: a.type,
+              retries: a.retries,
+            })),
+        );
       }
-    } else if (errorCount > 0) {
+
+      if (successfulCount > 0 && errorCount === 0) {
+        notifyDataSync(
+          `All ${successfulCount} offline actions synced successfully.`,
+        );
+        if (!backgroundSync) {
+          setTimeout(() => onClose(), 2000);
+        }
+      } else if (errorCount > 0) {
+        notifyDataSync(
+          `${successfulCount} synced, ${errorCount} failed. Check console.`,
+        );
+      }
+    } catch (error) {
+      console.error("🚨 [SYNC MODAL] Sync error", {
+        msg: error instanceof Error ? error.message : String(error),
+      });
       notifyDataSync(
-        `${successfulCount} synced, ${errorCount} failed. Check details.`,
+        `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -209,7 +141,7 @@ export function SyncModal({
     (r) => r === "success",
   ).length;
   const errorCount = Object.values(syncResults).filter(
-    (r) => r === "error",
+    (r) => r === "failed",
   ).length;
 
   return (
@@ -256,16 +188,16 @@ export function SyncModal({
               <div className="space-y-2">
                 <h4 className="font-medium">Pending Actions:</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  {pendingActions.map((action: SyncAction) => (
+                  {pendingActions.map((action: Operation) => (
                     <li key={action.id} className="flex items-center gap-2">
                       {syncResults[action.id] === "success" && (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       )}
-                      {syncResults[action.id] === "error" && (
+                      {syncResults[action.id] === "failed" && (
                         <AlertCircle className="w-4 h-4 text-red-600" />
                       )}
                       {action.type} -{" "}
-                      {new Date(action.timestamp).toLocaleString()}
+                      {new Date(action.createdAt).toLocaleString()}
                     </li>
                   ))}
                 </ul>

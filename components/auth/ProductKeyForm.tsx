@@ -62,16 +62,16 @@ export function ProductKeyForm() {
     if (productKey.trim() === demoKey) {
       // For demo activation, only set the activation key fields
       // Keep all user credentials and other business data intact
-      if (user) {
-        const updatedBusiness = user.business
+      if (business) {
+        const updatedBusiness = business
           ? {
-              ...user.business,
+              ...business,
               activated: true,
               activationKey: demoKey,
             }
           : {
               id: `temp-${Date.now()}`,
-              ownerId: user.id,
+              ownerId: user?.id,
               businessName: "Demo Business",
               businessType: "retail" as const,
               setupCompletedAt: new Date().toISOString(),
@@ -121,12 +121,9 @@ export function ProductKeyForm() {
 
         setSuccess("Demo Mode Activated! Redirecting...");
 
-        // Update auth context with only activation fields changed
-        loginWithApiData(updatedUser);
-
-        setTimeout(() => {
-          router.push("/onboarding");
-        }, 1500);
+        // // Update auth context with only activation fields changed
+        loginWithApiData(updatedUser as any);
+        router.push("/onboarding");
       }
 
       setIsLoading(false);
@@ -171,9 +168,7 @@ export function ProductKeyForm() {
       // Update auth context with the validated data
       loginWithApiData(newUser);
       if (user || (business && business.activated)) {
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1500);
+        router.push("/dashboard");
       }
     } catch (error) {
       const errorMessage =

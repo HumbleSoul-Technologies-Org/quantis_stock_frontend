@@ -483,11 +483,8 @@ export function ProductForm({
             }`}
           >
             <option value="">Select supplier</option>
-            {suppliers.map((supplier) => (
-              <option
-                key={supplier.id || supplier._id}
-                value={supplier.id || supplier._id}
-              >
+            {suppliers.map((supplier, index) => (
+              <option key={index} value={supplier.id || supplier._id}>
                 {supplier.name}
               </option>
             ))}

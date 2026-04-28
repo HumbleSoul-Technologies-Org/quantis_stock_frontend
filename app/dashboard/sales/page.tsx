@@ -39,6 +39,7 @@ function SalesPageContent() {
     processSaleReturn,
     saleReturns,
     updateSale,
+    openNoInternetModal,
   } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
@@ -73,6 +74,13 @@ function SalesPageContent() {
     useState<any>(null);
   const [showReturnDetails, setShowReturnDetails] = useState(false);
 
+  const openDialogForAction = (actionType: string, action: () => void) => {
+    if (openNoInternetModal(actionType, action)) {
+      return;
+    }
+    action();
+  };
+
   const handleAddSale = async (sale: any) => {
     if (sale.id || sale._id) {
       // Update existing sale
@@ -100,14 +108,19 @@ function SalesPageContent() {
   const handleDeleteSale = (id: string) => {
     const sale = safeSales.find((s) => s.id === id || s._id === id);
     if (!sale) return;
-    deleteSale(id);
-    notifyResourceDeleted("Sale", sale.saleNumber || "Unknown");
+
+    openDialogForAction("delete sale", () => {
+      deleteSale(id);
+      notifyResourceDeleted("Sale", sale.saleNumber || "Unknown");
+    });
   };
 
   const formRef = useRef<HTMLDivElement>(null);
 
   const handleEditSale = (sale: Sale) => {
-    setEditingSale(sale);
+    openDialogForAction("update sale", () => {
+      setEditingSale(sale);
+    });
   };
 
   // Scroll to form when editing a sale
@@ -120,8 +133,10 @@ function SalesPageContent() {
   }, [editingSale]);
 
   const handleReturnSale = (sale: any) => {
-    setSelectedSaleForReturn(sale);
-    setReturnDialogOpen(true);
+    openDialogForAction("process sale return", () => {
+      setSelectedSaleForReturn(sale);
+      setReturnDialogOpen(true);
+    });
   };
 
   const handleProcessReturn = async (saleReturn: any) => {

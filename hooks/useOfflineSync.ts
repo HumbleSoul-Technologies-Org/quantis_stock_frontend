@@ -1,21 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-
-export interface SyncAction {
-  id: string;
-  endpoint: string;
-  method: string;
-  payload: any;
-  retries: number;
-  timestamp: string;
-  type: string; // e.g., 'addSale', 'updateProduct'
-}
+import { addOperation, deleteOperation, getOperationById, getPendingOperations, updateOperation } from '@/lib/offline/db';
+import { syncQueue } from '@/lib/offline/sync-engine';
+import { Operation } from '@/lib/offline/types';
+import { API_BASE_URL } from '@/lib/config';
 
 export interface SyncConfig {
   offlineMode: boolean;
   syncInterval: string;
 }
 
-const SYNC_QUEUE_KEY = 'erp_system_sync_queue';
 const SYNC_QUEUE_EVENT = 'erp_system_sync_queue_updated';
 
 /**
@@ -35,8 +28,10 @@ async function checkBackendConnectivity(): Promise<boolean> {
   // Secondary check: Try a lightweight fetch to verify actual connectivity
   // Use a HEAD request to a simple endpoint to detect network issues
   try {
+
+    
     console.debug('🔍 [CONNECTIVITY] navigator.onLine = true, verifying with fetch...');
-    const response = await fetch('/api/health', { 
+    const response = await fetch(`${API_BASE_URL}/health`, { 
       method: 'GET',
       cache: 'no-store',
       signal: AbortSignal.timeout(3000) // 3 second timeout
@@ -64,131 +59,201 @@ async function checkBackendConnectivity(): Promise<boolean> {
   }
 }
 
-export function useOfflineSync(syncConfig?: SyncConfig) {
+export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [pendingActions, setPendingActions] = useState<SyncAction[]>([]);
+  const [pendingActions, setPendingActions] = useState<Operation[]>([]);
   const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
 
   const offlineMode = syncConfig?.offlineMode ?? true;
   const syncIntervalMinutes = Number(syncConfig?.syncInterval) || 15;
   const syncIntervalMs = Math.max(syncIntervalMinutes * 60000, 5000);
 
-  // Load pending actions from localStorage
-  const loadPendingActions = useCallback(() => {
+  const dispatchQueueUpdate = useCallback((actions: Operation[]) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(SYNC_QUEUE_EVENT, { detail: actions }));
+  }, []);
+
+  const loadPendingActions = useCallback(async (): Promise<Operation[]> => {
     if (typeof window === 'undefined') return [];
     try {
-      const stored = localStorage.getItem(SYNC_QUEUE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      return await getPendingOperations();
     } catch (error) {
-      console.error('Error loading pending actions from localStorage:', error);
+      console.error('Error loading pending actions from IndexedDB:', error);
       return [];
     }
   }, []);
 
-  // Save pending actions to localStorage
-  const savePendingActions = useCallback((actions: SyncAction[]) => {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(actions));
-      window.dispatchEvent(
-        new CustomEvent(SYNC_QUEUE_EVENT, { detail: actions }),
-      );
-    } catch (error) {
-      console.error('Error saving pending actions to localStorage:', error);
-    }
-  }, []);
-
-  // Add action to queue
   const enqueueAction = useCallback(
-    (action: Omit<SyncAction, 'id' | 'retries' | 'timestamp'>) => {
+    async (action: Omit<Operation, 'id' | 'status' | 'retries' | 'createdAt' | 'updatedAt'>) => {
       if (!offlineMode) {
         console.warn('⚠️ [USEOFFLINESYNC] Offline mode disabled. Not queuing action:', action);
         return;
       }
 
-      const newAction: SyncAction = {
+      const operation: Operation = {
         ...action,
-        id: Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID?.() ?? Math.random().toString(36).substr(2, 9),
+        status: 'pending',
         retries: 0,
-        timestamp: new Date().toISOString(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
-      console.log('📥 [USEOFFLINESYNC] Enqueueing action:', {
-        id: newAction.id,
-        type: action.type,
-        endpoint: action.endpoint,
-        method: action.method,
-        timestamp: newAction.timestamp,
-      });
-      const updated = [...pendingActions, newAction];
-      setPendingActions(updated);
-      savePendingActions(updated);
-      console.log('✓ [USEOFFLINESYNC] Action enqueued. Queue size:', updated.length);
+
+      try {
+        console.log('📥 [USEOFFLINESYNC] Enqueueing operation:', {
+          id: operation.id,
+          type: operation.type,
+          endpoint: operation.endpoint,
+          method: operation.method,
+        });
+
+        await addOperation(operation);
+        
+        const updated = await getPendingOperations();
+        setPendingActions(updated);
+        dispatchQueueUpdate(updated);
+        console.log('✓ [USEOFFLINESYNC] Operation enqueued. Queue size:', updated.length);
+      } catch (error) {
+        console.error('❌ [USEOFFLINESYNC] Failed to enqueue operation', { id: operation.id, error: error instanceof Error ? error.message : String(error) });
+      }
     },
-    [offlineMode, pendingActions, savePendingActions],
+    [offlineMode, dispatchQueueUpdate],
   );
 
-  // Remove action from queue
-  const dequeueAction = useCallback((id: string) => {
-    console.log('📤 [USEOFFLINESYNC] Dequeuing action:', id);
-    const updated = pendingActions.filter(a => a.id !== id);
-    setPendingActions(updated);
-    savePendingActions(updated);
-    console.log('✓ [USEOFFLINESYNC] Action dequeued. Queue size:', updated.length);
-  }, [pendingActions, savePendingActions]);
+  const dequeueAction = useCallback(
+    async (id: string) => {
+      console.log('📤 [USEOFFLINESYNC] Dequeuing action:', id);
+      await deleteOperation(id);
+      const updated = await getPendingOperations();
+      setPendingActions(updated);
+      dispatchQueueUpdate(updated);
+      console.log('✓ [USEOFFLINESYNC] Action dequeued. Queue size:', updated.length);
+    },
+    [dispatchQueueUpdate],
+  );
 
-  // Increment retry count
-  const incrementRetry = useCallback((id: string) => {
-    const action = pendingActions.find(a => a.id === id);
-    const newRetryCount = (action?.retries ?? 0) + 1;
-    console.log('🔁 [USEOFFLINESYNC] Incrementing retry for action:', { id, newRetryCount });
-    const updated = pendingActions.map(a =>
-      a.id === id ? { ...a, retries: newRetryCount } : a
-    );
-    setPendingActions(updated);
-    savePendingActions(updated);
-  }, [pendingActions, savePendingActions]);
+  const incrementRetry = useCallback(
+    async (id: string) => {
+      const existing = await getOperationById(id);
+      const newRetryCount = (existing?.retries ?? 0) + 1;
+      console.log('🔁 [USEOFFLINESYNC] Incrementing retry for action:', { id, newRetryCount });
 
-  // Check actual backend connectivity (not just navigator.onLine)
+      await updateOperation(id, { retries: newRetryCount, updatedAt: Date.now() });
+      const updated = await getPendingOperations();
+      setPendingActions(updated);
+      dispatchQueueUpdate(updated);
+    },
+    [dispatchQueueUpdate],
+  );
+
+  const syncPendingActions = useCallback(
+    async (): Promise<Record<string, 'success' | 'failed'>> => {
+      console.log("🔐 [useOfflineSync] syncPendingActions called", {
+        hasToken: !!authToken,
+        tokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'MISSING',
+        authTokenValue: authToken,
+      });
+
+      if (!authToken) {
+        console.error("🚨 [useOfflineSync] CRITICAL: Cannot sync - no auth token", {
+          authTokenIsUndefined: authToken === undefined,
+          authTokenIsNull: authToken === null,
+          authTokenIsEmpty: authToken === '',
+        });
+        return {};
+      }
+
+      try {
+        console.log("📤 [useOfflineSync] Starting sync with token", {
+          tokenLength: authToken.length,
+        });
+        const results = await syncQueue(authToken);
+        
+        try {
+          const updated = await getPendingOperations();
+          setPendingActions(updated);
+          dispatchQueueUpdate(updated);
+        } catch (stateError) {
+          console.error("❌ [useOfflineSync] Failed to update state after sync", { error: stateError instanceof Error ? stateError.message : String(stateError) });
+        }
+        
+        return results;
+      } catch (error) {
+        console.error("❌ [useOfflineSync] syncQueue threw error", { error: error instanceof Error ? error.message : String(error) });
+        return {};
+      }
+    },
+    [authToken, dispatchQueueUpdate],
+  );
+
   const verifyConnectivity = useCallback(async () => {
-    // Trust navigator.onLine as the primary source of truth
-    const navigatorOnline = navigator.onLine;
-    
-    if (!navigatorOnline) {
-      setIsOnline(false);
+    try {
+      const navigatorOnline = navigator.onLine;
+
+      if (!navigatorOnline) {
+        console.log("📡 [useOfflineSync] navigator.onLine = false");
+        setIsOnline(false);
+        return false;
+      }
+
+      console.log("📡 [useOfflineSync] Checking backend connectivity...");
+      const isReachable = await checkBackendConnectivity();
+      setIsOnline(isReachable);
+
+      if (isReachable && pendingActions.length > 0 && offlineMode) {
+        console.log("🔄 [useOfflineSync] Backend reachable with pending actions - showing sync modal");
+        setShowSyncModal(true);
+        if (authToken) {
+          console.log("🔄 [useOfflineSync] Starting auto-sync");
+          await syncPendingActions();
+        }
+      }
+
+      return isReachable;
+    } catch (error) {
+      console.error("❌ [useOfflineSync] verifyConnectivity error", { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
-
-    // If navigator says we're online, trust it
-    // Only do backend checks if we want extra confidence, but don't fail on them
-    const isReachable = await checkBackendConnectivity();
-    setIsOnline(isReachable);
-
-    // If we just came online and have pending actions, show sync modal
-    if (isReachable && pendingActions.length > 0 && offlineMode) {
-      setShowSyncModal(true);
-    }
-
-    return isReachable;
-  }, [pendingActions.length, offlineMode]);
+  }, [pendingActions.length, offlineMode, authToken, syncPendingActions]);
 
   // Check connectivity on window events and periodically
   useEffect(() => {
     const handleOnline = async () => {
-      // Verify backend is reachable when online event fires
-      await verifyConnectivity();
+      try {
+        console.log("🟢 [useOfflineSync] 'online' event triggered");
+        const isReachable = await verifyConnectivity();
+        if (isReachable && authToken) {
+          console.log("🔄 [useOfflineSync] Syncing after 'online' event");
+          await syncPendingActions();
+        }
+      } catch (error) {
+        console.error("❌ [useOfflineSync] Error in handleOnline", { error: error instanceof Error ? error.message : String(error) });
+      }
     };
 
     const handleOffline = () => {
-      setIsOnline(false);
+      try {
+        console.log("🔴 [useOfflineSync] 'offline' event triggered");
+        setIsOnline(false);
+      } catch (error) {
+        console.error("❌ [useOfflineSync] Error in handleOffline", { error: error instanceof Error ? error.message : String(error) });
+      }
     };
 
-    // Initial check
-    verifyConnectivity();
+    try {
+      console.log("🔌 [useOfflineSync] Initial connectivity check on mount");
+      verifyConnectivity();
+    } catch (error) {
+      console.error("❌ [useOfflineSync] Error in initial connectivity check", { error: error instanceof Error ? error.message : String(error) });
+    }
 
-    // Periodic connectivity check - uses the configured sync interval when offline sync is enabled
     const interval = offlineMode
       ? setInterval(() => {
-          verifyConnectivity();
+          try {
+            verifyConnectivity();
+          } catch (error) {
+            console.error("❌ [useOfflineSync] Error in interval connectivity check", { error: error instanceof Error ? error.message : String(error) });
+          }
         }, syncIntervalMs)
       : null;
 
@@ -202,11 +267,13 @@ export function useOfflineSync(syncConfig?: SyncConfig) {
         clearInterval(interval);
       }
     };
-  }, [verifyConnectivity, offlineMode, syncIntervalMs]);
+  }, [verifyConnectivity, offlineMode, syncIntervalMs, authToken, syncPendingActions]);
 
   // Load pending actions on mount
   useEffect(() => {
-    setPendingActions(loadPendingActions());
+    (async () => {
+      setPendingActions(await loadPendingActions());
+    })();
   }, [loadPendingActions]);
 
   // Trigger sync modal on app init if we have pending actions and are online
@@ -216,31 +283,23 @@ export function useOfflineSync(syncConfig?: SyncConfig) {
     }
   }, [pendingActions.length, isOnline, offlineMode]);
 
-  // Sync pending actions across tabs and hook instances in the same window
+  // Sync pending actions across hook instances in the same window
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === SYNC_QUEUE_KEY) {
-        setPendingActions(loadPendingActions());
-      }
-    };
-
     const handleSyncQueueUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<SyncAction[]>;
+      const customEvent = event as CustomEvent<Operation[]>;
       if (customEvent?.detail) {
         setPendingActions(customEvent.detail);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener(SYNC_QUEUE_EVENT, handleSyncQueueUpdate);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(SYNC_QUEUE_EVENT, handleSyncQueueUpdate);
     };
-  }, [loadPendingActions]);
+  }, []);
 
   return {
     isOnline,
@@ -250,6 +309,7 @@ export function useOfflineSync(syncConfig?: SyncConfig) {
     enqueueAction,
     dequeueAction,
     incrementRetry,
+    syncPendingActions,
     verifyConnectivity, // Export connectivity checker for error handling
   };
 }

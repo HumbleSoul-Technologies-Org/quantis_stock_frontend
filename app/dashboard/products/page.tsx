@@ -13,8 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 function ProductsPageContent() {
-  const { products, suppliers, addProduct, updateProduct, deleteProduct } =
-    useData();
+  const {
+    products,
+    suppliers,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    openNoInternetModal,
+  } = useData();
   const {
     notifyResourceCreated,
     notifyResourceUpdated,
@@ -33,6 +39,13 @@ function ProductsPageContent() {
   const [categoryFilter, setCategoryFilter] = useState("");
 
   const { user } = useAuth();
+
+  const openDialogForAction = (actionType: string, action: () => void) => {
+    if (openNoInternetModal(actionType, action)) {
+      return;
+    }
+    action();
+  };
 
   const categories = Array.from(
     new Set(safeProducts.map((p) => p?.category || "")),
@@ -62,8 +75,10 @@ function ProductsPageContent() {
   };
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setShowDialog(true);
+    openDialogForAction("update product", () => {
+      setEditingProduct(product);
+      setShowDialog(true);
+    });
   };
 
   const handleStockIn = (product: Product) => {
@@ -89,7 +104,9 @@ function ProductsPageContent() {
         </div>
         {user && (user.role === "admin" || user.role === "manager") && (
           <Button
-            onClick={() => setShowDialog(true)}
+            onClick={() =>
+              openDialogForAction("create product", () => setShowDialog(true))
+            }
             className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />

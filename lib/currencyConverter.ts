@@ -1,12 +1,12 @@
 /**
  * Currency Converter Utility
  * Provides exchange rate fetching with stale-while-revalidate caching
- * Uses exchangerate.host API (free, no auth required)
- * Falls back to static rates if API is unavailable
+ * Uses a free public provider by default and falls back to static rates if unavailable
  */
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const API_BASE = "https://api.exchangerate.host";
+const API_BASE =
+  process.env.NEXT_PUBLIC_CURRENCY_API_BASE?.trim() || "https://open.er-api.com/v6";
 
 /**
  * Static fallback exchange rates (USD base)
@@ -117,9 +117,7 @@ function setCachedRates(
  */
 async function fetchFromAPI(baseCurrency: string): Promise<ExchangeRates | null> {
   try {
-    const response = await fetch(
-      `${API_BASE}/latest?base=${baseCurrency}&symbols=*`
-    );
+    const response = await fetch(`${API_BASE}/latest/${baseCurrency}`);
 
     if (!response.ok) {
       console.error(`API returned ${response.status}: ${response.statusText}`);
@@ -127,17 +125,22 @@ async function fetchFromAPI(baseCurrency: string): Promise<ExchangeRates | null>
     }
 
     const data = await response.json();
+    const rates = data?.rates;
 
-    if (!data.rates || typeof data.rates !== "object") {
+    if (!rates || typeof rates !== "object") {
       const responsePreview = JSON.stringify(data).slice(0, 500);
-      const errorMsg = data.error ? `API Error: ${data.error}` : "";
+      const errorMsg = data?.result === "error"
+        ? `API Error: ${JSON.stringify(data.error ?? data)}`
+        : data?.error
+          ? `API Error: ${JSON.stringify(data.error)}`
+          : "";
       console.error(
         `Invalid API response for currency '${baseCurrency}'. Response: ${responsePreview}. ${errorMsg}`
       );
       return null;
     }
 
-    return data.rates as ExchangeRates;
+    return rates as ExchangeRates;
   } catch (error) {
     console.error("Failed to fetch exchange rates:", error);
     return null;

@@ -23,7 +23,7 @@ export function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const { getUnreadCount } = useNotifications();
-  const { isOnline, pendingActions } = useOfflineSync();
+  const { isOnline, pendingActions } = useOfflineSync(undefined, user?.token);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);

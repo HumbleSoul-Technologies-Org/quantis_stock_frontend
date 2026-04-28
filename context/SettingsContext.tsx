@@ -124,7 +124,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     if (businessSettings) {
       // Use settings from business object (from login response)
-      setSettings(businessSettings as any);
+      setSettings((businessSettings as any) || business?.settings);
       // Cache in localStorage for offline access
       localStorage.setItem(
         "businessSettings",

@@ -13,8 +13,14 @@ import { Plus, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 function SuppliersPageContent() {
-  const { suppliers, products, addSupplier, updateSupplier, deleteSupplier } =
-    useData();
+  const {
+    suppliers,
+    products,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
+    openNoInternetModal,
+  } = useData();
   const {
     notifyResourceCreated,
     notifyResourceUpdated,
@@ -31,6 +37,13 @@ function SuppliersPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { user } = useAuth();
+
+  const openDialogForAction = (actionType: string, action: () => void) => {
+    if (openNoInternetModal(actionType, action)) {
+      return;
+    }
+    action();
+  };
 
   const filteredSuppliers = safeSuppliers.filter(
     (supplier) =>
@@ -66,8 +79,10 @@ function SuppliersPageContent() {
   };
 
   const handleEditSupplier = (supplier: Supplier) => {
-    setEditingSupplier(supplier);
-    setShowDialog(true);
+    openDialogForAction("update supplier", () => {
+      setEditingSupplier(supplier);
+      setShowDialog(true);
+    });
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -89,10 +104,12 @@ function SuppliersPageContent() {
           </p>
         </div>
         <Button
-          onClick={() => {
-            setEditingSupplier(undefined);
-            setShowDialog(true);
-          }}
+          onClick={() =>
+            openDialogForAction("create supplier", () => {
+              setEditingSupplier(undefined);
+              setShowDialog(true);
+            })
+          }
           className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2"
           disabled={user?.role === "accountant"}
         >

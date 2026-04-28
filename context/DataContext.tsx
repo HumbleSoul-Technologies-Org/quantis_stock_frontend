@@ -20,10 +20,10 @@ import {
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { isNetworkError } from "@/lib/errors";
 import { useAuth } from "./AuthContext";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { useSettings } from "@/context/SettingsContext";
+import { useToast } from "@/hooks/useToast";
 
 // API functions for polling
 const apiSuppliers = async (token?: string, businessId?: string) => {
@@ -178,6 +178,13 @@ interface DataContextType {
   refetchData: () => Promise<void>;
   refetchProducts: () => Promise<any>;
   refetchInventory: () => Promise<any>;
+
+  // No Internet Modal
+  showNoInternetModal: boolean;
+  noInternetModalActionType: string;
+  closeNoInternetModal: () => void;
+  continueLocally: () => void;
+  openNoInternetModal: (actionType: string, action: () => void) => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -185,7 +192,10 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { isOnline, enqueueAction } = useOfflineSync(settings?.syncData);
+  const { isOnline, enqueueAction } = useOfflineSync(
+    settings?.syncData,
+    user?.token,
+  );
 
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -194,23 +204,142 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize from storage on mount - only if storage has been initialized
+  // No internet modal state
+  const [showNoInternetModal, setShowNoInternetModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: string;
+    action: () => void;
+  } | null>(null);
+  const [skipNextOfflineModalType, setSkipNextOfflineModalType] = useState<
+    string | null
+  >(null);
+
+  const { success: toastSuccess } = useToast();
+
+  // Handle continuing with local-only action
+  const handleContinueLocally = useCallback(() => {
+    if (pendingAction) {
+      setSkipNextOfflineModalType(pendingAction.type);
+      pendingAction.action();
+      setShowNoInternetModal(false);
+      setPendingAction(null);
+      toastSuccess(
+        "Action completed locally. Data will not sync until offline mode is enabled.",
+        5000,
+      );
+    }
+  }, [pendingAction, toastSuccess]);
+
+  // Check if should show no internet modal
+  const openNoInternetModal = useCallback(
+    (actionType: string, action: () => void) => {
+      if (skipNextOfflineModalType === actionType) {
+        setSkipNextOfflineModalType(null);
+        return false;
+      }
+
+      if (!settings?.syncData?.offlineMode && !isOnline) {
+        setPendingAction({ type: actionType, action });
+        setShowNoInternetModal(true);
+        return true;
+      }
+      return false;
+    },
+    [settings?.syncData?.offlineMode, isOnline, skipNextOfflineModalType],
+  );
+
+  const mergeServerDataWithLocal = useCallback(
+    <T extends { id?: string; _id?: string }>(
+      serverItems: T[],
+      offlineItems: T[],
+    ): T[] => {
+      if (!offlineItems || offlineItems.length === 0) {
+        return serverItems;
+      }
+
+      const merged = [...serverItems];
+
+      offlineItems.forEach((offlineItem) => {
+        const exists = merged.some(
+          (item) =>
+            item.id === offlineItem.id ||
+            item._id === offlineItem._id ||
+            item.id === offlineItem._id ||
+            item._id === offlineItem.id,
+        );
+        if (!exists) {
+          merged.push(offlineItem);
+        }
+      });
+
+      return merged;
+    },
+    [],
+  );
+
+  const refresh = useCallback(() => {
+    const offlineItems = storage.getOfflineItems();
+    setProducts(
+      mergeServerDataWithLocal(storage.getProducts(), offlineItems.products),
+    );
+    setSuppliers(
+      mergeServerDataWithLocal(storage.getSuppliers(), offlineItems.suppliers),
+    );
+    setSales(mergeServerDataWithLocal(storage.getSales(), offlineItems.sales));
+    setSaleReturns(
+      mergeServerDataWithLocal(
+        storage.getSaleReturns(),
+        offlineItems.saleReturns,
+      ),
+    );
+    setStockMovements(
+      mergeServerDataWithLocal(
+        storage.getStockMovements(),
+        offlineItems.stockMovements,
+      ),
+    );
+  }, [mergeServerDataWithLocal]);
+
+  // Initialize from storage on mount - merge synced items with offline items
   useEffect(() => {
     const loadData = () => {
       const state = storage.getState();
+      const offlineItems = storage.getOfflineItems();
 
-      setProducts(Array.isArray(state.products) ? state.products : []);
-      setSales(Array.isArray(state.sales) ? state.sales : []);
-      setSaleReturns(Array.isArray(state.saleReturns) ? state.saleReturns : []);
-      setStockMovements(
-        Array.isArray(state.stockMovements) ? state.stockMovements : [],
+      // Merge synced items with offline items
+      const mergedProducts = mergeServerDataWithLocal(
+        Array.isArray(state.products) ? state.products : [],
+        Array.isArray(offlineItems.products) ? offlineItems.products : [],
       );
-      setSuppliers(Array.isArray(state.suppliers) ? state.suppliers : []);
+      const mergedSuppliers = mergeServerDataWithLocal(
+        Array.isArray(state.suppliers) ? state.suppliers : [],
+        Array.isArray(offlineItems.suppliers) ? offlineItems.suppliers : [],
+      );
+      const mergedSales = mergeServerDataWithLocal(
+        Array.isArray(state.sales) ? state.sales : [],
+        Array.isArray(offlineItems.sales) ? offlineItems.sales : [],
+      );
+      const mergedSaleReturns = mergeServerDataWithLocal(
+        Array.isArray(state.saleReturns) ? state.saleReturns : [],
+        Array.isArray(offlineItems.saleReturns) ? offlineItems.saleReturns : [],
+      );
+      const mergedStockMovements = mergeServerDataWithLocal(
+        Array.isArray(state.stockMovements) ? state.stockMovements : [],
+        Array.isArray(offlineItems.stockMovements)
+          ? offlineItems.stockMovements
+          : [],
+      );
+
+      setProducts(mergedProducts);
+      setSales(mergedSales);
+      setSaleReturns(mergedSaleReturns);
+      setStockMovements(mergedStockMovements);
+      setSuppliers(mergedSuppliers);
       setIsInitialized(true);
     };
 
     loadData();
-  }, []);
+  }, [mergeServerDataWithLocal]);
 
   // Poll suppliers from API every 30 seconds (moderate volatility - supplier edits)
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
@@ -264,62 +393,79 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Update state when API data changes
   useEffect(() => {
-    if (suppliersData) {
-      setSuppliers(suppliersData || []);
-      // Also save to storage for persistence
+    if (suppliersData !== undefined && suppliersData !== null) {
+      const offlineItems = storage.getOfflineItems();
+      const mergedSuppliers = mergeServerDataWithLocal(
+        suppliersData,
+        offlineItems.suppliers,
+      );
+      setSuppliers(mergedSuppliers);
+      // Save only server data to main storage
       const state = storage.getState();
       state.suppliers = suppliersData;
       storage.saveState(state);
     }
-  }, [suppliersData]);
+  }, [suppliersData, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (productsData) {
-      setProducts(productsData);
-      // Also save to storage for persistence
+    if (productsData !== undefined && productsData !== null) {
+      const offlineItems = storage.getOfflineItems();
+      const mergedProducts = mergeServerDataWithLocal(
+        productsData,
+        offlineItems.products,
+      );
+      setProducts(mergedProducts);
+      // Save only server data to main storage
       const state = storage.getState();
       state.products = productsData;
       storage.saveState(state);
     }
-  }, [productsData]);
+  }, [productsData, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (inventoryData) {
-      setStockMovements(inventoryData);
-      // Also save to storage for persistence
+    if (inventoryData !== undefined && inventoryData !== null) {
+      const offlineItems = storage.getOfflineItems();
+      const mergedStockMovements = mergeServerDataWithLocal(
+        inventoryData,
+        offlineItems.stockMovements,
+      );
+      setStockMovements(mergedStockMovements);
+      // Save only server data to main storage
       const state = storage.getState();
       state.stockMovements = inventoryData;
       storage.saveState(state);
     }
-  }, [inventoryData]);
+  }, [inventoryData, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (salesData) {
-      setSales(salesData);
-      // Also save to storage for persistence
+    if (salesData !== undefined && salesData !== null) {
+      const offlineItems = storage.getOfflineItems();
+      const mergedSales = mergeServerDataWithLocal(
+        salesData,
+        offlineItems.sales,
+      );
+      setSales(mergedSales);
+      // Save only server data to main storage
       const state = storage.getState();
       state.sales = salesData;
       storage.saveState(state);
     }
-  }, [salesData]);
+  }, [salesData, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (saleReturnsData) {
-      setSaleReturns(saleReturnsData || []);
-      // Also save to storage for persistence
+    if (saleReturnsData !== undefined && saleReturnsData !== null) {
+      const offlineItems = storage.getOfflineItems();
+      const mergedSaleReturns = mergeServerDataWithLocal(
+        saleReturnsData,
+        offlineItems.saleReturns,
+      );
+      setSaleReturns(mergedSaleReturns);
+      // Save only server data to main storage
       const state = storage.getState();
       state.saleReturns = saleReturnsData;
       storage.saveState(state);
     }
-  }, [saleReturnsData]);
-
-  const refresh = useCallback(() => {
-    setProducts(storage.getProducts());
-    setSuppliers(storage.getSuppliers());
-    setSales(storage.getSales());
-    setSaleReturns(storage.getSaleReturns());
-    setStockMovements(storage.getStockMovements());
-  }, []);
+  }, [saleReturnsData, mergeServerDataWithLocal]);
 
   // Refetch data from API immediately (for instant updates after creating records)
   const refetchData = useCallback(async () => {
@@ -361,181 +507,115 @@ export function DataProvider({ children }: { children: ReactNode }) {
         "📝 [DATACONTEXT] addProduct - generated/existing ID:",
         productWithBusinessId.id,
       );
-      storage.addProduct(productWithBusinessId);
-      setProducts([...products, productWithBusinessId]);
+
+      const localAction = () => {
+        // Save to offline store if offline, otherwise to main store
+        if (isOnline) {
+          storage.addProduct(productWithBusinessId);
+        } else {
+          storage.addOfflineProduct(productWithBusinessId);
+        }
+        setProducts([...products, productWithBusinessId]);
+      };
+
+      if (openNoInternetModal("create product", localAction)) {
+        return;
+      }
+
+      // Proceed with normal action
+      localAction();
 
       // Send to API if online
-      console.log(
-        "📝 [DATACONTEXT] addProduct - isOnline:",
-        isOnline,
-        "hasToken:",
-        !!user?.token,
-      );
-      if (isOnline && user?.token) {
-        try {
-          console.log(
-            "📡 [DATACONTEXT] Sending product to API:",
-            productWithBusinessId.id,
-          );
-          await apiRequest(
-            "POST",
-            "/products/new",
-            productWithBusinessId,
-            user.token,
-          );
-          console.log(
-            "✅ [DATACONTEXT] Product saved to API successfully:",
-            productWithBusinessId.id,
-          );
-          // Immediately invalidate products cache for instant refresh
-          await queryClient.invalidateQueries({
-            queryKey: ["products", user?.businessId],
-          });
-        } catch (error) {
-          console.warn(
-            "❌ [DATACONTEXT] Failed to save product to API:",
-            error,
-          );
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            console.log(
-              "🌐 [DATACONTEXT] Network error detected, enqueueing product:",
-              productWithBusinessId.id,
-            );
-            enqueueAction({
-              endpoint: "/products/new",
-              method: "POST",
-              payload: productWithBusinessId,
-              type: "addProduct",
-            });
-          } else {
-            console.log(
-              "⚠️ [DATACONTEXT] API error (not network), removing product from local state",
-            );
-            // For API errors, remove from local state since sync failed
-            setProducts(products.filter((p) => p.id !== product.id));
-            throw error; // Re-throw so caller can handle it
-          }
-        }
-      } else {
-        // Offline: enqueue action
-        console.log(
-          "🔌 [DATACONTEXT] Offline detected or no token, enqueueing product:",
-          productWithBusinessId.id,
-        );
-        enqueueAction({
-          endpoint: "/products/new",
-          method: "POST",
-          payload: productWithBusinessId,
-          type: "addProduct",
-        });
-      }
+      enqueueAction({
+        endpoint: "/products/new",
+        method: "POST",
+        payload: productWithBusinessId,
+        type: "CREATE_PRODUCT",
+      });
     },
-    [products, isOnline, user?.token, user?.businessId, enqueueAction],
+    [
+      products,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      openNoInternetModal,
+    ],
   );
 
   const updateProduct = useCallback(
     async (id: string, product: Partial<Product>) => {
-      // Ensure businessId is included if updating
       const productWithBusinessId = {
         ...product,
         businessId: product.businessId || user?.businessId,
       };
 
-      storage.updateProduct(id, productWithBusinessId as Product);
-      setProducts(
-        products.map((p: any) =>
-          p.id === id || (p as any)._id === id
-            ? {
-                ...p,
-                ...productWithBusinessId,
-                updatedAt: new Date().toISOString(),
-              }
-            : p,
-        ),
-      );
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest(
-            "PUT",
-            `/products/${id}/update`,
-            productWithBusinessId,
-            user.token,
-          );
-          // Immediately invalidate products cache for instant refresh
-          await queryClient.invalidateQueries({
-            queryKey: ["products", user?.businessId],
-          });
-        } catch (error) {
-          console.warn("Failed to update product in API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: `/products/${id}/update`,
-              method: "PUT",
-              payload: productWithBusinessId,
-              type: "updateProduct",
-            });
-          } else {
-            throw error; // Re-throw so caller can handle it
-          }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: `/products/${id}/update`,
-          method: "PUT",
-          payload: product,
-          type: "updateProduct",
-        });
+      const localAction = () => {
+        storage.updateProduct(id, productWithBusinessId as Product);
+        setProducts(
+          products.map((p: any) =>
+            p.id === id || (p as any)._id === id
+              ? {
+                  ...p,
+                  ...productWithBusinessId,
+                  updatedAt: new Date().toISOString(),
+                }
+              : p,
+          ),
+        );
+      };
+
+      if (openNoInternetModal("update product", localAction)) {
+        return;
       }
+
+      localAction();
+      enqueueAction({
+        endpoint: `/products/${id}/update`,
+        method: "PUT",
+        payload: productWithBusinessId,
+        type: "UPDATE_PRODUCT",
+      });
     },
-    [products, isOnline, user?.token, user?.businessId, enqueueAction],
+    [
+      products,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      openNoInternetModal,
+    ],
   );
 
   const deleteProduct = useCallback(
     async (id: string) => {
-      // Optimistically update local state
-      storage.deleteProduct(id);
-      setProducts(products.filter((p) => p.id !== id && (p as any)._id !== id));
+      const localAction = () => {
+        storage.deleteProduct(id);
+        setProducts(
+          products.filter((p) => p.id !== id && (p as any)._id !== id),
+        );
+      };
 
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest("DELETE", `/products/${id}/delete`, {}, user.token);
-          // Immediately invalidate products cache for instant refresh
-          await queryClient.invalidateQueries({
-            queryKey: ["products", user?.businessId],
-          });
-        } catch (error) {
-          console.warn("Failed to delete product from API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: `/products/${id}/delete`,
-              method: "DELETE",
-              payload: {},
-              type: "deleteProduct",
-            });
-          } else {
-            // Revert optimistic update on API error
-            const state = storage.getState();
-            setProducts(state.products);
-            throw error; // Re-throw so caller can handle it
-          }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: `/products/${id}/delete`,
-          method: "DELETE",
-          payload: {},
-          type: "deleteProduct",
-        });
+      if (openNoInternetModal("delete product", localAction)) {
+        return;
       }
+
+      localAction();
+      enqueueAction({
+        endpoint: `/products/${id}/delete`,
+        method: "DELETE",
+        payload: {},
+        type: "DELETE_PRODUCT",
+      });
     },
-    [products, isOnline, user?.token, user?.businessId, enqueueAction],
+    [
+      products,
+      isOnline,
+      user?.token,
+      user?.businessId,
+      enqueueAction,
+      openNoInternetModal,
+    ],
   );
 
   // Suppliers
@@ -547,81 +627,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         businessId: supplier.businessId || user?.businessId,
       };
 
-      storage.addSupplier(supplierWithBusinessId);
-      setSuppliers([...suppliers, supplierWithBusinessId]);
-      // Send to API if online
-      console.log(
-        "📝 [DATACONTEXT] addSupplier - isOnline:",
-        isOnline,
-        "hasToken:",
-        !!user?.token,
-      );
-      if (isOnline && user?.token) {
-        try {
-          console.log(
-            "📡 [DATACONTEXT] Sending supplier to API:",
-            supplierWithBusinessId.id,
-          );
-          await apiRequest(
-            "POST",
-            "/suppliers/create",
-            supplierWithBusinessId,
-            user.token,
-          );
-          console.log("✅ [DATACONTEXT] Supplier saved to API successfully");
-
-          // Refetch suppliers AFTER success but wrapped separately to not mask success
-          try {
-            console.log(
-              "🔄 [DATACONTEXT] Refetching suppliers after successful POST...",
-            );
-            await refetchSuppliers();
-            console.log("✓ [DATACONTEXT] Suppliers refetched successfully");
-          } catch (refetchError) {
-            console.warn(
-              "⚠️ [DATACONTEXT] Refetch failed but POST already succeeded, not re-enqueueing:",
-              refetchError,
-            );
-            // Don't re-enqueue - the POST already succeeded
-          }
-        } catch (error) {
-          console.warn(
-            "❌ [DATACONTEXT] Failed to save supplier to API:",
-            error,
-          );
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            console.log(
-              "🌐 [DATACONTEXT] Network error detected, enqueueing supplier:",
-              supplierWithBusinessId.id,
-            );
-            enqueueAction({
-              endpoint: "/suppliers/create",
-              method: "POST",
-              payload: supplierWithBusinessId,
-              type: "addSupplier",
-            });
-          } else {
-            console.log(
-              "⚠️ [DATACONTEXT] API error (not network), removing supplier from local state",
-            );
-            setSuppliers(suppliers.filter((s) => s.id !== supplier.id));
-            throw error; // Re-throw so caller can handle it
-          }
+      const localAction = () => {
+        // Save to offline store if offline, otherwise to main store
+        if (isOnline) {
+          storage.addSupplier(supplierWithBusinessId);
+        } else {
+          storage.addOfflineSupplier(supplierWithBusinessId);
         }
-      } else {
-        // Offline: enqueue action
-        console.log(
-          "🔌 [DATACONTEXT] Offline detected or no token, enqueueing supplier:",
-          supplierWithBusinessId.id,
-        );
-        enqueueAction({
-          endpoint: "/suppliers/create",
-          method: "POST",
-          payload: supplierWithBusinessId,
-          type: "addSupplier",
-        });
+        setSuppliers([...suppliers, supplierWithBusinessId]);
+      };
+
+      if (openNoInternetModal("create supplier", localAction)) {
+        return;
       }
+
+      // Proceed with normal action
+      localAction();
+      enqueueAction({
+        endpoint: "/suppliers/create",
+        method: "POST",
+        payload: supplierWithBusinessId,
+        type: "CREATE_SUPPLIER",
+      });
     },
     [
       suppliers,
@@ -629,64 +656,44 @@ export function DataProvider({ children }: { children: ReactNode }) {
       user?.token,
       user?.businessId,
       enqueueAction,
+      openNoInternetModal,
       refetchSuppliers,
     ],
   );
 
   const updateSupplier = useCallback(
     async (id: string, supplier: Partial<Supplier>) => {
-      // Ensure businessId is included if updating
       const supplierWithBusinessId = {
         ...supplier,
         businessId: supplier.businessId || user?.businessId,
       };
 
-      storage.updateSupplier(id, supplierWithBusinessId);
-      setSuppliers(
-        suppliers.map((s) =>
-          s.id === id || (s as any)._id === id
-            ? {
-                ...s,
-                ...supplierWithBusinessId,
-                updatedAt: new Date().toISOString(),
-              }
-            : s,
-        ),
-      );
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest(
-            "PUT",
-            `/suppliers/${id}/update`,
-            supplierWithBusinessId,
-            user.token,
-          );
-          // Immediately refetch suppliers for instant UI update
-          await refetchSuppliers();
-        } catch (error) {
-          console.warn("Failed to update supplier in API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: `/suppliers/${id}/update`,
-              method: "PUT",
-              payload: supplierWithBusinessId,
-              type: "updateSupplier",
-            });
-          } else {
-            throw error; // Re-throw so caller can handle it
-          }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: `/suppliers/${id}/update`,
-          method: "PUT",
-          payload: supplierWithBusinessId,
-          type: "updateSupplier",
-        });
+      const localAction = () => {
+        storage.updateSupplier(id, supplierWithBusinessId);
+        setSuppliers(
+          suppliers.map((s) =>
+            s.id === id || (s as any)._id === id
+              ? {
+                  ...s,
+                  ...supplierWithBusinessId,
+                  updatedAt: new Date().toISOString(),
+                }
+              : s,
+          ),
+        );
+      };
+
+      if (openNoInternetModal("update supplier", localAction)) {
+        return;
       }
+
+      localAction();
+      enqueueAction({
+        endpoint: `/suppliers/${id}/update`,
+        method: "PUT",
+        payload: supplierWithBusinessId,
+        type: "UPDATE_SUPPLIER",
+      });
     },
     [
       suppliers,
@@ -695,49 +702,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
       user?.businessId,
       enqueueAction,
       refetchSuppliers,
+      openNoInternetModal,
     ],
   );
 
   const deleteSupplier = useCallback(
     async (id: string) => {
-      // Optimistically update local state
-      storage.deleteSupplier(id);
-      setSuppliers(
-        suppliers.filter((s) => s.id !== id && (s as any)._id !== id),
-      );
+      const localAction = () => {
+        storage.deleteSupplier(id);
+        setSuppliers(
+          suppliers.filter((s) => s.id !== id && (s as any)._id !== id),
+        );
+      };
 
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest("DELETE", `/suppliers/${id}/delete`, {}, user.token);
-          // Immediately refetch suppliers for instant UI update
-          await refetchSuppliers();
-        } catch (error) {
-          console.warn("Failed to delete supplier from API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: `/suppliers/${id}/delete`,
-              method: "DELETE",
-              payload: {},
-              type: "deleteSupplier",
-            });
-          } else {
-            // Revert optimistic update on API error
-            const state = storage.getState();
-            setSuppliers(state.suppliers);
-            throw error; // Re-throw so caller can handle it
-          }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: `/suppliers/${id}/delete`,
-          method: "DELETE",
-          payload: {},
-          type: "deleteSupplier",
-        });
+      if (openNoInternetModal("delete supplier", localAction)) {
+        return;
       }
+
+      localAction();
+      enqueueAction({
+        endpoint: `/suppliers/${id}/delete`,
+        method: "DELETE",
+        payload: {},
+        type: "DELETE_SUPPLIER",
+      });
     },
     [
       suppliers,
@@ -746,116 +734,84 @@ export function DataProvider({ children }: { children: ReactNode }) {
       user?.businessId,
       enqueueAction,
       refetchSuppliers,
+      openNoInternetModal,
     ],
   );
 
   // Sales
   const addSale = useCallback(
     async (sale: Sale) => {
-      // Ensure businessId is included
       const saleWithBusinessId = {
         ...sale,
         businessId: sale.businessId || user?.businessId,
       };
 
-      // Save locally immediately and update UI optimistically
-      storage.addSale(saleWithBusinessId);
-      setSales((prev) => [...prev, saleWithBusinessId]);
-
-      // Update products stock levels and create stock movements optimistically
-      const updatedProducts = products.map((product) => {
-        const saleItem = saleWithBusinessId.items.find(
-          (item) =>
-            item.productId === product.id ||
-            item.productId === (product as any)._id,
-        );
-        if (saleItem) {
-          return {
-            ...product,
-            currentStock: product.currentStock - saleItem.quantity,
-          };
+      const localAction = () => {
+        if (isOnline) {
+          storage.addSale(saleWithBusinessId);
+        } else {
+          storage.addOfflineSale(saleWithBusinessId);
         }
-        return product;
-      });
-      setProducts(updatedProducts);
+        setSales((prev) => [...prev, saleWithBusinessId]);
 
-      // Add stock movements optimistically
-      const newMovements: StockMovement[] = saleWithBusinessId.items.map(
-        (item) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          productId: item.productId,
-          type: "out" as const,
-          quantity: item.quantity,
-          reason: "Sale",
-          reference: `SALE-${saleWithBusinessId.saleNumber}`,
-          createdBy: user?.id || user?._id || "system",
-          createdAt: new Date().toISOString(),
-        }),
-      );
-      setStockMovements((prev) => [...prev, ...newMovements]);
-
-      // Update React Query cache
-      queryClient.setQueryData(
-        ["sales", user?.businessId],
-        (oldData: Sale[] | undefined) =>
-          oldData ? [...oldData, saleWithBusinessId] : [saleWithBusinessId],
-      );
-      queryClient.setQueryData(
-        ["products", user?.businessId],
-        (oldData: Product[] | undefined) => updatedProducts,
-      );
-      queryClient.setQueryData(
-        ["inventory", "movements", user?.businessId],
-        (oldData: StockMovement[] | undefined) =>
-          oldData ? [...oldData, ...newMovements] : newMovements,
-      );
-
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest(
-            "POST",
-            "/sales/create",
-            saleWithBusinessId,
-            user.token,
+        const updatedProducts = products.map((product) => {
+          const saleItem = saleWithBusinessId.items.find(
+            (item) =>
+              item.productId === product.id ||
+              item.productId === (product as any)._id,
           );
-          // Force immediate cache refresh to ensure consistency
-          await Promise.all([
-            queryClient.refetchQueries({
-              queryKey: ["products", user?.businessId],
-            }),
-            queryClient.refetchQueries({
-              queryKey: ["sales", user?.businessId],
-            }),
-            queryClient.refetchQueries({
-              queryKey: ["inventory", "movements", user?.businessId],
-            }),
-          ]);
-        } catch (error) {
-          console.warn("Failed to save sale to API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: "/sales/create",
-              method: "POST",
-              payload: saleWithBusinessId,
-              type: "addSale",
-            });
-          } else {
-            throw error; // Re-throw so caller can handle it
+          if (saleItem) {
+            return {
+              ...product,
+              currentStock: product.currentStock - saleItem.quantity,
+            };
           }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: "/sales/create",
-          method: "POST",
-          payload: saleWithBusinessId,
-          type: "addSale",
+          return product;
         });
+        setProducts(updatedProducts);
+
+        const newMovements: StockMovement[] = saleWithBusinessId.items.map(
+          (item) => ({
+            id: Math.random().toString(36).substr(2, 9),
+            productId: item.productId,
+            type: "out" as const,
+            quantity: item.quantity,
+            reason: "Sale",
+            reference: `SALE-${saleWithBusinessId.saleNumber}`,
+            createdBy: user?.id || user?._id || "system",
+            createdAt: new Date().toISOString(),
+          }),
+        );
+        setStockMovements((prev) => [...prev, ...newMovements]);
+
+        queryClient.setQueryData(
+          ["sales", user?.businessId],
+          (oldData: Sale[] | undefined) =>
+            oldData ? [...oldData, saleWithBusinessId] : [saleWithBusinessId],
+        );
+        queryClient.setQueryData(
+          ["products", user?.businessId],
+          (oldData: Product[] | undefined) => updatedProducts,
+        );
+        queryClient.setQueryData(
+          ["inventory", "movements", user?.businessId],
+          (oldData: StockMovement[] | undefined) =>
+            oldData ? [...oldData, ...newMovements] : newMovements,
+        );
+      };
+
+      if (openNoInternetModal("create sale", localAction)) {
+        return;
       }
 
-      // Always try to invalidate locally cached data after optimistic update
+      localAction();
+      enqueueAction({
+        endpoint: "/sales/create",
+        method: "POST",
+        payload: saleWithBusinessId,
+        type: "CREATE_SALE",
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["products", user?.businessId],
@@ -941,7 +897,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateSale = useCallback(
     async (id: string, sale: Partial<Sale>) => {
-      // Find the original sale
       const originalSale = sales.find(
         (s) => s.id === id || (s as any)._id === id,
       );
@@ -949,172 +904,126 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw new Error("Sale not found");
       }
 
-      // Ensure businessId is included if updating
       const saleWithBusinessId = {
         ...sale,
         businessId: sale.businessId || user?.businessId,
       };
 
-      // Calculate stock movement deltas
-      const movementDeltas = calculateStockMovementsDelta(
-        originalSale.items,
-        saleWithBusinessId.items || [],
-      );
+      const localAction = () => {
+        const movementDeltas = calculateStockMovementsDelta(
+          originalSale.items,
+          saleWithBusinessId.items || [],
+        );
 
-      // Find and delete old stock movements for this sale
-      const oldMovements = stockMovements.filter(
-        (m) => m.reference === `SALE-${originalSale.saleNumber}`,
-      );
+        const oldMovements = stockMovements.filter(
+          (m) => m.reference === `SALE-${originalSale.saleNumber}`,
+        );
 
-      // Reverse stock adjustments from old movements
-      let updatedProducts = products.map((product) => {
-        let stockAdjustment = 0;
-        for (const oldMovement of oldMovements) {
-          if (
-            product.id === oldMovement.productId ||
-            (product as any)._id === oldMovement.productId
-          ) {
-            if (oldMovement.type === "out") {
-              stockAdjustment += oldMovement.quantity; // Add back what was taken
-            } else if (oldMovement.type === "in") {
-              stockAdjustment -= oldMovement.quantity; // Remove what was added back
-            }
-          }
-        }
-        if (stockAdjustment !== 0) {
-          return {
-            ...product,
-            currentStock: product.currentStock + stockAdjustment,
-          };
-        }
-        return product;
-      });
-
-      // Apply new stock movements
-      const newMovements: StockMovement[] = movementDeltas.map((delta) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        productId: delta.productId,
-        type: delta.type,
-        quantity: delta.quantity,
-        reason: delta.reason,
-        reference: `SALE-${originalSale.saleNumber}`,
-        createdBy: user?.id || user?._id || "system",
-        createdAt: new Date().toISOString(),
-      }));
-
-      // Apply new movements to products
-      updatedProducts = updatedProducts.map((product) => {
-        let totalStockChange = 0;
-        for (const movement of newMovements) {
-          if (
-            product.id === movement.productId ||
-            (product as any)._id === movement.productId
-          ) {
-            if (movement.type === "in") {
-              totalStockChange += movement.quantity;
-            } else if (movement.type === "out") {
-              totalStockChange -= movement.quantity;
-            }
-          }
-        }
-        if (totalStockChange !== 0) {
-          return {
-            ...product,
-            currentStock: product.currentStock + totalStockChange,
-          };
-        }
-        return product;
-      });
-
-      // Ensure we always have a new array reference to trigger re-renders
-      updatedProducts = [...updatedProducts];
-
-      // Remove old stock movements and add new ones
-      const updatedStockMovements = stockMovements.filter(
-        (m) => m.reference !== `SALE-${originalSale.saleNumber}`,
-      );
-
-      // Optimistically update local state
-      storage.updateSale(id, saleWithBusinessId);
-      setSales(
-        sales.map((s) =>
-          s.id === id || (s as any)._id === id
-            ? {
-                ...s,
-                ...saleWithBusinessId,
-                updatedAt: new Date().toISOString(),
+        let updatedProducts = products.map((product) => {
+          let stockAdjustment = 0;
+          for (const oldMovement of oldMovements) {
+            if (
+              product.id === oldMovement.productId ||
+              (product as any)._id === oldMovement.productId
+            ) {
+              if (oldMovement.type === "out") {
+                stockAdjustment += oldMovement.quantity;
+              } else if (oldMovement.type === "in") {
+                stockAdjustment -= oldMovement.quantity;
               }
-            : s,
-        ),
-      );
-      setProducts(updatedProducts);
-      setStockMovements([...updatedStockMovements, ...newMovements]);
-
-      // Update React Query cache
-      queryClient.setQueryData(
-        ["sales", user?.businessId],
-        (oldData: Sale[] | undefined) =>
-          oldData
-            ? oldData.map((s) =>
-                s.id === id || (s as any)._id === id
-                  ? {
-                      ...s,
-                      ...saleWithBusinessId,
-                      updatedAt: new Date().toISOString(),
-                    }
-                  : s,
-              )
-            : undefined,
-      );
-
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest(
-            "PUT",
-            `/sales/${id}/update`,
-            saleWithBusinessId,
-            user.token,
-          );
-          // Force immediate cache refresh to ensure consistency
-          await Promise.all([
-            queryClient.refetchQueries({
-              queryKey: ["products", user?.businessId],
-            }),
-            queryClient.refetchQueries({
-              queryKey: ["inventory", "movements", user?.businessId],
-            }),
-          ]);
-          // Immediately refetch sales to ensure consistency
-          refetchSales();
-        } catch (error) {
-          console.warn("Failed to update sale in API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: `/sales/${id}/update`,
-              method: "PUT",
-              payload: saleWithBusinessId,
-              type: "updateSale",
-            });
-          } else {
-            // Revert optimistic update on API error
-            const state = storage.getState();
-            setSales(state.sales);
-            setProducts(state.products);
-            setStockMovements(state.stockMovements);
-            throw error; // Re-throw so caller can handle it
+            }
           }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: `/sales/${id}/update`,
-          method: "PUT",
-          payload: saleWithBusinessId,
-          type: "updateSale",
+          if (stockAdjustment !== 0) {
+            return {
+              ...product,
+              currentStock: product.currentStock + stockAdjustment,
+            };
+          }
+          return product;
         });
+
+        const newMovements: StockMovement[] = movementDeltas.map((delta) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          productId: delta.productId,
+          type: delta.type,
+          quantity: delta.quantity,
+          reason: delta.reason,
+          reference: `SALE-${originalSale.saleNumber}`,
+          createdBy: user?.id || user?._id || "system",
+          createdAt: new Date().toISOString(),
+        }));
+
+        updatedProducts = updatedProducts.map((product) => {
+          let totalStockChange = 0;
+          for (const movement of newMovements) {
+            if (
+              product.id === movement.productId ||
+              (product as any)._id === movement.productId
+            ) {
+              if (movement.type === "in") {
+                totalStockChange += movement.quantity;
+              } else if (movement.type === "out") {
+                totalStockChange -= movement.quantity;
+              }
+            }
+          }
+          if (totalStockChange !== 0) {
+            return {
+              ...product,
+              currentStock: product.currentStock + totalStockChange,
+            };
+          }
+          return product;
+        });
+
+        updatedProducts = [...updatedProducts];
+        const updatedStockMovements = stockMovements.filter(
+          (m) => m.reference !== `SALE-${originalSale.saleNumber}`,
+        );
+
+        storage.updateSale(id, saleWithBusinessId);
+        setSales(
+          sales.map((s) =>
+            s.id === id || (s as any)._id === id
+              ? {
+                  ...s,
+                  ...saleWithBusinessId,
+                  updatedAt: new Date().toISOString(),
+                }
+              : s,
+          ),
+        );
+        setProducts(updatedProducts);
+        setStockMovements([...updatedStockMovements, ...newMovements]);
+
+        queryClient.setQueryData(
+          ["sales", user?.businessId],
+          (oldData: Sale[] | undefined) =>
+            oldData
+              ? oldData.map((s) =>
+                  s.id === id || (s as any)._id === id
+                    ? {
+                        ...s,
+                        ...saleWithBusinessId,
+                        updatedAt: new Date().toISOString(),
+                      }
+                    : s,
+                )
+              : undefined,
+        );
+      };
+
+      if (openNoInternetModal("update sale", localAction)) {
+        return;
       }
+
+      localAction();
+      enqueueAction({
+        endpoint: `/sales/${id}/update`,
+        method: "PUT",
+        payload: saleWithBusinessId,
+        type: "UPDATE_SALE",
+      });
     },
     [
       sales,
@@ -1127,212 +1036,165 @@ export function DataProvider({ children }: { children: ReactNode }) {
       user?._id,
       enqueueAction,
       refetchSales,
+      openNoInternetModal,
     ],
   );
 
   const deleteSale = useCallback(
     async (id: string) => {
-      // Optimistically update local state
-      storage.deleteSale(id);
-      setSales(sales.filter((s) => s.id !== id && (s as any)._id !== id));
+      const localAction = () => {
+        storage.deleteSale(id);
+        setSales(sales.filter((s) => s.id !== id && (s as any)._id !== id));
+      };
 
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest("DELETE", `/sales/${id}/delete`, {}, user.token);
-          // Immediately refetch sales to ensure consistency
-          refetchSales();
-        } catch (error) {
-          console.warn("Failed to delete sale from API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: `/sales/${id}/delete`,
-              method: "DELETE",
-              payload: {},
-              type: "deleteSale",
-            });
-          } else {
-            // Revert optimistic update on API error
-            const state = storage.getState();
-            setSales(state.sales);
-            throw error; // Re-throw so caller can handle it
-          }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: `/sales/${id}/delete`,
-          method: "DELETE",
-          payload: {},
-          type: "deleteSale",
-        });
+      if (openNoInternetModal("delete sale", localAction)) {
+        return;
       }
+
+      localAction();
+      enqueueAction({
+        endpoint: `/sales/${id}/delete`,
+        method: "DELETE",
+        payload: {},
+        type: "DELETE_SALE",
+      });
     },
-    [sales, isOnline, user?.token, enqueueAction, refetchSales],
+    [
+      sales,
+      isOnline,
+      user?.token,
+      enqueueAction,
+      refetchSales,
+      openNoInternetModal,
+    ],
   );
 
   // Sale Returns
   const processSaleReturn = useCallback(
     async (saleReturn: SaleReturn) => {
-      // Ensure businessId is included
       const returnWithBusinessId = {
         ...saleReturn,
         businessId: saleReturn.businessId || user?.businessId,
       };
 
-      // Save locally immediately and update UI optimistically
-      storage.processSaleReturn(returnWithBusinessId);
-
-      // Find the original sale to update its return status
-      const originalSale = sales.find(
-        (s) =>
-          s.id === returnWithBusinessId.saleId ||
-          s._id === returnWithBusinessId.saleId,
-      );
-
-      // Update products stock levels optimistically (add back returned quantities)
-      const updatedProducts = products.map((product) => {
-        const returnItem = returnWithBusinessId.items.find(
-          (item) =>
-            item.productId === product.id ||
-            item.productId === (product as any)._id,
-        );
-        if (returnItem) {
-          return {
-            ...product,
-            currentStock: product.currentStock + returnItem.quantity,
-          };
+      const localAction = () => {
+        if (isOnline) {
+          storage.processSaleReturn(returnWithBusinessId);
+        } else {
+          storage.addOfflineSaleReturn(returnWithBusinessId);
         }
-        return product;
-      });
-      setProducts([...updatedProducts]);
 
-      // Add stock movements optimistically
-      const newMovements: StockMovement[] = returnWithBusinessId.items.map(
-        (item) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          productId: item.productId,
-          type: "in" as const,
-          quantity: item.quantity,
-          reason: "Return",
-          reference:
-            returnWithBusinessId.reference ||
-            `SALE-${originalSale?.saleNumber}` ||
-            "",
-          createdBy: user?.id || user?._id || "system",
-          createdAt: new Date().toISOString(),
-        }),
-      );
-      setStockMovements((prev) => [...prev, ...newMovements]);
-
-      // Update the original sale's return status optimistically
-      if (originalSale) {
-        const totalReturnedQuantity = returnWithBusinessId.items.reduce(
-          (sum, item) => sum + item.quantity,
-          0,
-        );
-        const totalSoldQuantity = originalSale.items.reduce(
-          (sum, item) => sum + item.quantity,
-          0,
-        );
-        const newReturnStatus =
-          totalReturnedQuantity >= totalSoldQuantity ? "returned" : "partial";
-
-        setSales((prev) =>
-          prev.map((sale) =>
-            sale.id === originalSale.id || sale._id === originalSale._id
-              ? { ...sale, returnStatus: newReturnStatus }
-              : sale,
-          ),
-        );
-      }
-
-      // Update React Query cache
-      queryClient.invalidateQueries({
-        queryKey: ["products", user?.businessId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["inventory", "movements", user?.businessId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["sales", user?.businessId],
-      });
-      if (originalSale) {
-        const totalReturnedQuantity = returnWithBusinessId.items.reduce(
-          (sum, item) => sum + item.quantity,
-          0,
-        );
-        const totalSoldQuantity = originalSale.items.reduce(
-          (sum, item) => sum + item.quantity,
-          0,
+        const originalSale = sales.find(
+          (s) =>
+            s.id === returnWithBusinessId.saleId ||
+            s._id === returnWithBusinessId.saleId,
         );
 
-        queryClient.setQueryData(
-          ["sales", user?.businessId],
-          (oldData: Sale[] | undefined) =>
-            oldData
-              ? oldData.map((sale) =>
-                  sale.id === originalSale.id || sale._id === originalSale._id
-                    ? {
-                        ...sale,
-                        returnStatus:
-                          totalReturnedQuantity >= totalSoldQuantity
-                            ? "returned"
-                            : "partial",
-                      }
-                    : sale,
-                )
-              : undefined,
-        );
-      }
-
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest(
-            "POST",
-            "/sales/return",
-            returnWithBusinessId,
-            user.token,
+        const updatedProducts = products.map((product) => {
+          const returnItem = returnWithBusinessId.items.find(
+            (item) =>
+              item.productId === product.id ||
+              item.productId === (product as any)._id,
           );
-          // Force cache invalidation to ensure consistency
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: ["products", user?.businessId],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["sales", user?.businessId],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["inventory", "movements", user?.businessId],
-            }),
-          ]);
-        } catch (error) {
-          console.warn("Failed to save return to API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: "/sales/return",
-              method: "POST",
-              payload: returnWithBusinessId,
-              type: "processSaleReturn",
-            });
-          } else {
-            throw error; // Re-throw so caller can handle it
+          if (returnItem) {
+            return {
+              ...product,
+              currentStock: product.currentStock + returnItem.quantity,
+            };
           }
-        }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: "/sales/return",
-          method: "POST",
-          payload: returnWithBusinessId,
-          type: "processSaleReturn",
+          return product;
         });
+        setProducts([...updatedProducts]);
+
+        const newMovements: StockMovement[] = returnWithBusinessId.items.map(
+          (item) => ({
+            id: Math.random().toString(36).substr(2, 9),
+            productId: item.productId,
+            type: "in" as const,
+            quantity: item.quantity,
+            reason: "Return",
+            reference:
+              returnWithBusinessId.reference ||
+              `SALE-${originalSale?.saleNumber}` ||
+              "",
+            createdBy: user?.id || user?._id || "system",
+            createdAt: new Date().toISOString(),
+          }),
+        );
+        setStockMovements((prev) => [...prev, ...newMovements]);
+
+        if (originalSale) {
+          const totalReturnedQuantity = returnWithBusinessId.items.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          );
+          const totalSoldQuantity = originalSale.items.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          );
+          const newReturnStatus =
+            totalReturnedQuantity >= totalSoldQuantity ? "returned" : "partial";
+
+          setSales((prev) =>
+            prev.map((sale) =>
+              sale.id === originalSale.id || sale._id === originalSale._id
+                ? { ...sale, returnStatus: newReturnStatus }
+                : sale,
+            ),
+          );
+        }
+
+        queryClient.invalidateQueries({
+          queryKey: ["products", user?.businessId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["inventory", "movements", user?.businessId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["sales", user?.businessId],
+        });
+        if (originalSale) {
+          const totalReturnedQuantity = returnWithBusinessId.items.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          );
+          const totalSoldQuantity = originalSale.items.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          );
+
+          queryClient.setQueryData(
+            ["sales", user?.businessId],
+            (oldData: Sale[] | undefined) =>
+              oldData
+                ? oldData.map((sale) =>
+                    sale.id === originalSale.id || sale._id === originalSale._id
+                      ? {
+                          ...sale,
+                          returnStatus:
+                            totalReturnedQuantity >= totalSoldQuantity
+                              ? "returned"
+                              : "partial",
+                        }
+                      : sale,
+                  )
+                : undefined,
+          );
+        }
+      };
+
+      if (openNoInternetModal("process sale return", localAction)) {
+        return;
       }
 
-      // Always try to invalidate locally cached data after optimistic update
+      localAction();
+      enqueueAction({
+        endpoint: "/sales/return",
+        method: "POST",
+        payload: returnWithBusinessId,
+        type: "PROCESS_SALE_RETURN",
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["products", user?.businessId],
@@ -1357,90 +1219,64 @@ export function DataProvider({ children }: { children: ReactNode }) {
       products,
       stockMovements,
       sales,
+      openNoInternetModal,
     ],
   );
 
   // Stock Movements
   const addStockMovement = useCallback(
     async (movement: StockMovement) => {
-      // Ensure businessId is included
       const movementWithBusinessId = {
         ...movement,
         businessId: movement.businessId || user?.businessId,
       };
 
-      // Save locally immediately and update UI optimistically
-      storage.addStockMovement(movementWithBusinessId);
-      setStockMovements((prev) => [...prev, movementWithBusinessId]);
-      setProducts((prev) =>
-        prev.map((product) => {
-          if (
-            product.id === movementWithBusinessId.productId ||
-            (product as any)._id === movementWithBusinessId.productId
-          ) {
-            const adjustedStock =
-              movementWithBusinessId.type === "in"
-                ? product.currentStock + movementWithBusinessId.quantity
-                : movementWithBusinessId.type === "out"
-                  ? product.currentStock - movementWithBusinessId.quantity
-                  : movementWithBusinessId.quantity;
-
-            return { ...product, currentStock: adjustedStock };
-          }
-          return product;
-        }),
-      );
-
-      queryClient.invalidateQueries({
-        queryKey: ["inventory", "movements", user?.businessId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["products", user?.businessId],
-      });
-
-      // Send to API if online
-      if (isOnline && user?.token) {
-        try {
-          await apiRequest(
-            "POST",
-            "/inventory/movement",
-            movementWithBusinessId,
-            user?.token,
-          );
-          // Force cache invalidation to immediately reflect stock changes
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: ["products", user?.businessId],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["inventory", "movements", user?.businessId],
-            }),
-          ]);
-        } catch (error) {
-          console.warn("Failed to save stock movement to API:", error);
-          // Only enqueue if it's a network error, not API error
-          if (isNetworkError(error)) {
-            enqueueAction({
-              endpoint: "/inventory/movement",
-              method: "POST",
-              payload: movementWithBusinessId,
-              type: "addStockMovement",
-            });
-          } else {
-            throw error; // Re-throw so caller can handle it
-          }
+      const localAction = () => {
+        if (isOnline) {
+          storage.addStockMovement(movementWithBusinessId);
+        } else {
+          storage.addOfflineStockMovement(movementWithBusinessId);
         }
-      } else {
-        // Offline: enqueue action
-        enqueueAction({
-          endpoint: "/inventory/movement",
-          method: "POST",
-          payload: movementWithBusinessId,
-          type: "addStockMovement",
+        setStockMovements((prev) => [...prev, movementWithBusinessId]);
+        setProducts((prev) =>
+          prev.map((product) => {
+            if (
+              product.id === movementWithBusinessId.productId ||
+              (product as any)._id === movementWithBusinessId.productId
+            ) {
+              const adjustedStock =
+                movementWithBusinessId.type === "in"
+                  ? product.currentStock + movementWithBusinessId.quantity
+                  : movementWithBusinessId.type === "out"
+                    ? product.currentStock - movementWithBusinessId.quantity
+                    : movementWithBusinessId.quantity;
+
+              return { ...product, currentStock: adjustedStock };
+            }
+            return product;
+          }),
+        );
+
+        queryClient.invalidateQueries({
+          queryKey: ["inventory", "movements", user?.businessId],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["products", user?.businessId],
+        });
+      };
+
+      if (openNoInternetModal("create stock movement", localAction)) {
+        return;
       }
 
-      // Always try to invalidate locally cached data after optimistic update
+      localAction();
+      enqueueAction({
+        endpoint: "/inventory/movement",
+        method: "POST",
+        payload: movementWithBusinessId,
+        type: "STOCK_IN",
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["products", user?.businessId],
@@ -1452,7 +1288,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Continue even if invalidation fails
       });
     },
-    [user?.token, user?.businessId, isOnline, enqueueAction],
+    [
+      user?.token,
+      user?.businessId,
+      isOnline,
+      enqueueAction,
+      openNoInternetModal,
+    ],
   );
 
   // Utilities
@@ -1510,6 +1352,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refetchData,
         refetchProducts,
         refetchInventory,
+        showNoInternetModal,
+        noInternetModalActionType: pendingAction?.type || "",
+        closeNoInternetModal: () => {
+          setShowNoInternetModal(false);
+          setPendingAction(null);
+        },
+        continueLocally: handleContinueLocally,
+        openNoInternetModal,
       }}
     >
       {children}

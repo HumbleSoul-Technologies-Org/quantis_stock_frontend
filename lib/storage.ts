@@ -1,10 +1,28 @@
 import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement } from './types';
 
 const STORAGE_KEY = 'erp_system_state';
+const OFFLINE_ITEMS_KEY = 'erp_system_offline_items';
 
 const DEFAULT_USERS: User[] = [
   // Removed hardcoded demo users - authentication now handled by API
 ];
+
+// Offline-only items that haven't synced yet
+interface OfflineItemsState {
+  products: Product[];
+  suppliers: Supplier[];
+  sales: Sale[];
+  saleReturns: SaleReturn[];
+  stockMovements: StockMovement[];
+}
+
+const DEFAULT_OFFLINE_STATE: OfflineItemsState = {
+  products: [],
+  suppliers: [],
+  sales: [],
+  saleReturns: [],
+  stockMovements: [],
+};
  
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
@@ -417,12 +435,131 @@ class StorageService {
     this.saveState(state);
   }
 
+  // ============ Offline-Only Items Store ============
+  // Track items created offline that haven't synced yet
+
+  private getOfflineState(): OfflineItemsState {
+    if (typeof window === 'undefined') {
+      return DEFAULT_OFFLINE_STATE;
+    }
+
+    if (!this.isLocalStorageAvailable()) {
+      return DEFAULT_OFFLINE_STATE;
+    }
+
+    try {
+      const stored = localStorage.getItem(OFFLINE_ITEMS_KEY);
+      if (!stored) {
+        return DEFAULT_OFFLINE_STATE;
+      }
+
+      const parsed = JSON.parse(stored);
+      return {
+        products: parsed.products || [],
+        suppliers: parsed.suppliers || [],
+        sales: parsed.sales || [],
+        saleReturns: parsed.saleReturns || [],
+        stockMovements: parsed.stockMovements || [],
+      };
+    } catch (error) {
+      console.error('Error reading offline items from localStorage:', error);
+      return DEFAULT_OFFLINE_STATE;
+    }
+  }
+
+  private saveOfflineState(state: OfflineItemsState): void {
+    if (typeof window === 'undefined') return;
+    if (!this.isLocalStorageAvailable()) {
+      console.warn('localStorage is not available. Cannot save offline items.');
+      return;
+    }
+
+    try {
+      localStorage.setItem(OFFLINE_ITEMS_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.error('Error saving offline items to localStorage:', error);
+    }
+  }
+
+  getOfflineItems(): OfflineItemsState {
+    return this.getOfflineState();
+  }
+
+  addOfflineProduct(product: Product): void {
+    const state = this.getOfflineState();
+    state.products.push(product);
+    this.saveOfflineState(state);
+  }
+
+  addOfflineSupplier(supplier: Supplier): void {
+    const state = this.getOfflineState();
+    state.suppliers.push(supplier);
+    this.saveOfflineState(state);
+  }
+
+  addOfflineSale(sale: Sale): void {
+    const state = this.getOfflineState();
+    state.sales.push(sale);
+    this.saveOfflineState(state);
+  }
+
+  addOfflineSaleReturn(saleReturn: SaleReturn): void {
+    const state = this.getOfflineState();
+    state.saleReturns.push(saleReturn);
+    this.saveOfflineState(state);
+  }
+
+  addOfflineStockMovement(movement: StockMovement): void {
+    const state = this.getOfflineState();
+    state.stockMovements.push(movement);
+    this.saveOfflineState(state);
+  }
+
+  removeOfflineItem(type: 'product' | 'supplier' | 'sale' | 'saleReturn' | 'stockMovement', id: string): void {
+    const state = this.getOfflineState();
+    
+    switch (type) {
+      case 'product':
+        state.products = state.products.filter((p: any) => p.id !== id && p._id !== id);
+        break;
+      case 'supplier':
+        state.suppliers = state.suppliers.filter((s: any) => s.id !== id && s._id !== id);
+        break;
+      case 'sale':
+        state.sales = state.sales.filter((s: any) => s.id !== id && s._id !== id);
+        break;
+      case 'saleReturn':
+        state.saleReturns = state.saleReturns.filter((sr: any) => sr.id !== id && sr._id !== id);
+        break;
+      case 'stockMovement':
+        state.stockMovements = state.stockMovements.filter((m: any) => m.id !== id && m._id !== id);
+        break;
+    }
+    
+    this.saveOfflineState(state);
+  }
+
+  clearOfflineItems(): void {
+    if (typeof window === 'undefined') return;
+    if (!this.isLocalStorageAvailable()) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(OFFLINE_ITEMS_KEY);
+    } catch (error) {
+      console.error('Error clearing offline items:', error);
+    }
+  }
+
   // Reset
   resetToDefaults(): void {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(OFFLINE_ITEMS_KEY);
     const initialState = DEFAULT_STATE;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
   }
+
 }
 
 export const storage = new StorageService();
