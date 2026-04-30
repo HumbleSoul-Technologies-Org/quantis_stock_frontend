@@ -17,12 +17,14 @@ export function Currency() {
     ratesError,
     lastRateUpdate,
     refreshExchangeRates,
+    refreshSettings,
   } = useSettings();
   const [currency, setCurrency] = useState("");
   const [saved, setSaved] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshingSettings, setRefreshingSettings] = useState(false);
 
   const { user } = useAuth();
 
@@ -86,6 +88,19 @@ export function Currency() {
     }
   };
 
+  const handleRefreshSettings = async () => {
+    try {
+      setRefreshingSettings(true);
+      await refreshSettings();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error("Failed to refresh settings:", error);
+    } finally {
+      setRefreshingSettings(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
@@ -129,6 +144,28 @@ export function Currency() {
               </p>
             </div>
           )}
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRefreshSettings}
+              disabled={refreshingSettings}
+              variant="outline"
+              size="sm"
+              className="flex-1 dark:border-slate-600 dark:text-slate-300"
+            >
+              {refreshingSettings ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Settings
+                </>
+              )}
+            </Button>
+          </div>
 
           {/* Exchange Rate Status */}
           <div className="border-t pt-4 dark:border-slate-600">

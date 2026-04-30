@@ -117,37 +117,51 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [lastRateUpdate, setLastRateUpdate] = useState<string | null>(null);
   const { user, business, updateBusiness } = useAuth();
 
-  // Initialize settings from business data or localStorage
+   
+  // Initialize settings from business data or localStorage, then refresh from backend
   useEffect(() => {
-    const businessSettings =
-      business?.settings ?? (business as any)?.businessSettings;
+    const initializeSettings = async () => {
+      const businessSettings =
+        business?.settings ?? (business as any)?.businessSettings;
 
-    if (businessSettings) {
-      // Use settings from business object (from login response)
-      setSettings((businessSettings as any) || business?.settings);
-      // Cache in localStorage for offline access
-      localStorage.setItem(
-        "businessSettings",
-        JSON.stringify(businessSettings),
-      );
-      setIsLoading(false);
-    } else {
-      // Fallback to localStorage
-      const cached = localStorage.getItem("businessSettings");
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached) as BusinessSettings;
-          setSettings(parsed);
-        } catch (error) {
-          console.error("Failed to parse cached settings:", error);
+      if (businessSettings) {
+        // Use settings from business object (from login response) as initial state
+        setSettings((businessSettings as any) || business?.settings);
+        // Cache in localStorage for offline access
+        localStorage.setItem(
+          "businessSettings",
+          JSON.stringify(businessSettings),
+        );
+      } else {
+        // Fallback to localStorage
+        const cached = localStorage.getItem("businessSettings");
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached) as BusinessSettings;
+            setSettings(parsed);
+          } catch (error) {
+            console.error("Failed to parse cached settings:", error);
+            setSettings(DEFAULT_SETTINGS);
+          }
+        } else {
           setSettings(DEFAULT_SETTINGS);
         }
-      } else {
-        setSettings(DEFAULT_SETTINGS);
       }
+
+      // Always try to refresh from backend if user is authenticated
+      if (user?.token && user?.businessId) {
+        try {
+          await refreshSettings();
+        } catch (error) {
+          console.error("Failed to refresh settings on init:", error);
+        }
+      }
+
       setIsLoading(false);
-    }
-  }, [business?.settings, (business as any)?.businessSettings]);
+    };
+
+    initializeSettings();
+  }, [business?.settings, (business as any)?.businessSettings, user?.token, user?.businessId]);
 
   // Fetch exchange rates when currency changes (stale-while-revalidate pattern)
   useEffect(() => {
@@ -182,9 +196,44 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     fetchRates();
   }, [settings?.currency?.code]);
 
-  const refreshSettings = async (): Promise<void> => {
-    return;
-  };
+  const refreshSettings = useCallback(async (): Promise<void> => {
+    if (!user?.token || !user?.businessId) return;
+
+    try {
+      const response = await apiRequest(
+        "GET",
+        `/settings/${user.businessId}`,
+        undefined,
+        user.token,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.settings) {
+          // Update settings state
+          const updatedSettings = {
+            ...data.settings,
+            businessId: user.businessId,
+          };
+          setSettings(updatedSettings);
+
+          // Cache in localStorage for offline access
+          localStorage.setItem(
+            "businessSettings",
+            JSON.stringify(updatedSettings),
+          );
+
+          // Sync AuthContext with updated business settings
+          if (business) {
+            const updatedBusiness = { ...business, settings: updatedSettings };
+            updateBusiness(updatedBusiness);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to refresh settings:", error);
+    }
+  }, [user?.token, user?.businessId, business, updateBusiness]);
 
   const updateCurrency = async (
     currency: BusinessSettings["currency"],

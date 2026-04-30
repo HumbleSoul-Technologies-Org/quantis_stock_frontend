@@ -71,6 +71,8 @@ export function StockMovementForm({
 
   const [formData, setFormData] = useState({
     productId: initialMovement?.productId || preselectedProductId || "",
+    offline_product_id: initialMovement?.offline_product_id || "",
+    offline_id: initialMovement?.offline_id || "",
     type: (initialMovement?.type || "in") as "in" | "out" | "adjustment",
     quantity: initialMovement?.quantity ? String(initialMovement.quantity) : "",
     reason: initialMovement?.reason || "",
@@ -81,7 +83,7 @@ export function StockMovementForm({
   const { theme } = useContext(ThemeContext) || { theme: "light" };
 
   const productOptions = products.map((p) => ({
-    value: p._id || p.id,
+    value: p.offline_id || p._id || p.id,
     label: `${p.name} (Stock: ${p.currentStock})`,
   }));
 
@@ -135,6 +137,8 @@ export function StockMovementForm({
 
       const movement: StockMovement = {
         id: initialMovement?.id || "", // Will be set by the backend for new movements
+        offline_id: formData.offline_id || "",
+        offline_product_id: formData.offline_product_id || "",
         productId: formData.productId,
         type: formData.type,
         quantity: parseInt(formData.quantity),
@@ -150,6 +154,8 @@ export function StockMovementForm({
       if (!isEditMode) {
         setFormData({
           productId: "",
+          offline_product_id: "",
+          offline_id: "",
           type: "in",
           quantity: "",
           reason: "",

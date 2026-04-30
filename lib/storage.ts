@@ -2,6 +2,7 @@ import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement } fr
 
 const STORAGE_KEY = 'erp_system_state';
 const OFFLINE_ITEMS_KEY = 'erp_system_offline_items';
+const MERGED_CACHE_KEY = 'erp_system_merged_cache';
 
 const DEFAULT_USERS: User[] = [
   // Removed hardcoded demo users - authentication now handled by API
@@ -131,6 +132,23 @@ class StorageService {
     }
   }
 
+  private matchesAnyId(item: any, id: string | undefined): boolean {
+    return (
+      !!id &&
+      (item.id === id || item._id === id || item.offline_id === id)
+    );
+  }
+
+  private matchesReferenceId(item: any, id: string | undefined): boolean {
+    if (!id) return false;
+    return (
+      this.matchesAnyId(item, id) ||
+      item.offline_product_id === id ||
+      item.offline_supplier_id === id ||
+      item.offline_sale_id === id
+    );
+  }
+
   saveState(state: AppState): void {
     if (typeof window === 'undefined') return;
     if (!this.isLocalStorageAvailable()) {
@@ -144,15 +162,66 @@ class StorageService {
       console.error('Error saving to localStorage:', error);
       // Try to clear some space if quota exceeded
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.warn('localStorage quota exceeded. Attempting to clear old data.');
+        console.warn('localStorage quota exceeded. Clearing only regular state to preserve offline items.');
         try {
-          // Clear the entire storage and try again
-          localStorage.clear();
+          // Only remove regular state, preserve offline items and other keys
+          localStorage.removeItem(STORAGE_KEY);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          console.log('✅ [STORAGE] Successfully saved after removing old state, offline items preserved');
         } catch (retryError) {
-          console.error('Failed to save even after clearing localStorage:', retryError);
+          console.error('Failed to save even after clearing regular state:', retryError);
         }
       }
+    }
+  }
+
+  getMergedCache(): AppState {
+    if (typeof window === 'undefined') {
+      return DEFAULT_STATE;
+    }
+
+    if (!this.isLocalStorageAvailable()) {
+      return DEFAULT_STATE;
+    }
+
+    try {
+      const stored = localStorage.getItem(MERGED_CACHE_KEY);
+      if (!stored) {
+        return DEFAULT_STATE;
+      }
+
+      const parsed = JSON.parse(stored);
+      return {
+        users: parsed.users || [],
+        currentUser: parsed.currentUser || null,
+        products: parsed.products || [],
+        suppliers: parsed.suppliers || [],
+        sales: parsed.sales || [],
+        saleReturns: parsed.saleReturns || [],
+        stockMovements: parsed.stockMovements || [],
+      };
+    } catch (error) {
+      console.error('Error reading merged cache from localStorage:', error);
+      return DEFAULT_STATE;
+    }
+  }
+
+  saveMergedCache(state: Partial<AppState>): void {
+    if (typeof window === 'undefined') return;
+    if (!this.isLocalStorageAvailable()) {
+      console.warn('localStorage is not available. Cannot save merged cache.');
+      return;
+    }
+
+    try {
+      const currentCache = this.getMergedCache();
+      const mergedCache = {
+        ...currentCache,
+        ...state,
+      };
+      localStorage.setItem(MERGED_CACHE_KEY, JSON.stringify(mergedCache));
+    } catch (error) {
+      console.error('Error saving merged cache to localStorage:', error);
     }
   }
 
@@ -260,7 +329,7 @@ class StorageService {
 
   updateProduct(id: string, product: Partial<Product>): void {
     const state = this.getState();
-    const index = state.products.findIndex((p:any) => p.id === id || p._id === id);
+    const index = state.products.findIndex((p:any) => this.matchesAnyId(p, id));
     if (index !== -1) {
       state.products[index] = { ...state.products[index], ...product, updatedAt: new Date().toISOString() };
       this.saveState(state);
@@ -269,7 +338,7 @@ class StorageService {
 
   deleteProduct(id: string): void {
     const state = this.getState();
-    state.products = state.products.filter((p:any) => p.id !== id && p._id !== id);
+    state.products = state.products.filter((p:any) => !this.matchesAnyId(p, id));
     this.saveState(state);
   }
 
@@ -286,7 +355,7 @@ class StorageService {
 
   updateSupplier(id: string, supplier: Partial<Supplier>): void {
     const state = this.getState();
-    const index = state.suppliers.findIndex((s:any) => s.id === id || s._id === id);
+    const index = state.suppliers.findIndex((s:any) => this.matchesAnyId(s, id));
     if (index !== -1) {
       state.suppliers[index] = { ...state.suppliers[index], ...supplier, updatedAt: new Date().toISOString() };
       this.saveState(state);
@@ -295,7 +364,7 @@ class StorageService {
 
   deleteSupplier(id: string): void {
     const state = this.getState();
-    state.suppliers = state.suppliers.filter((s:any) => s.id !== id && s._id !== id);
+    state.suppliers = state.suppliers.filter((s:any) => !this.matchesAnyId(s, id));
     this.saveState(state);
   }
 
@@ -310,14 +379,22 @@ class StorageService {
 
     // Deduct from stock
     sale.items.forEach((item) => {
-      const product = state.products.find((p:any) => p.id === item.productId || p._id === item.productId);
+      const product = state.products.find(
+        (p:any) =>
+          p.id === item.productId ||
+          p._id === item.productId ||
+          p.offline_id === item.productId ||
+          p.id === item.offline_product_id ||
+          p._id === item.offline_product_id ||
+          p.offline_id === item.offline_product_id,
+      );
       if (product) {
         product.currentStock -= item.quantity;
 
         // Add stock movement
         const movement: StockMovement = {
           id: Math.random().toString(36).substr(2, 9),
-          productId: item.productId,
+          productId: product.id || product._id || item.productId,
           type: 'out',
           quantity: item.quantity,
           reason: 'Sale',
@@ -334,7 +411,9 @@ class StorageService {
 
   updateSale(id: string, sale: Partial<Sale>): void {
     const state = this.getState();
-    const index = state.sales.findIndex((s) => s.id === id || s._id === id);
+    const index = state.sales.findIndex(
+      (s) => s.id === id || s._id === id || s.offline_id === id,
+    );
     if (index !== -1) {
       state.sales[index] = { ...state.sales[index], ...sale };
       this.saveState(state);
@@ -343,7 +422,7 @@ class StorageService {
 
   deleteSale(id: string): void {
     const state = this.getState();
-    state.sales = state.sales.filter((s) => s.id !== id && s._id !== id);
+    state.sales = state.sales.filter((s) => !this.matchesAnyId(s, id));
     this.saveState(state);
   }
 
@@ -356,9 +435,13 @@ class StorageService {
     const state = this.getState();
     
     // Find the original sale to validate return quantities
-    const originalSale = state.sales.find((s) => s.id === saleReturn.saleId || s._id === saleReturn.saleId);
+    const originalSale = state.sales.find(
+      (s) =>
+        this.matchesAnyId(s, saleReturn.saleId) ||
+        this.matchesAnyId(s, saleReturn.offline_sale_id),
+    );
     if (!originalSale) {
-      throw new Error(`Original sale ${saleReturn.saleId} not found`);
+      throw new Error(`Original sale ${saleReturn.saleId || saleReturn.offline_sale_id} not found`);
     }
 
     // Validate return quantities don't exceed sold quantities
@@ -377,14 +460,22 @@ class StorageService {
 
     // Update product stock and create stock movements
     saleReturn.items.forEach((item) => {
-      const product = state.products.find((p:any) => p.id === item.productId || p._id === item.productId);
+      const product = state.products.find(
+        (p:any) =>
+          p.id === item.productId ||
+          p._id === item.productId ||
+          p.offline_id === item.productId ||
+          p.id === item.offline_product_id ||
+          p._id === item.offline_product_id ||
+          p.offline_id === item.offline_product_id,
+      );
       if (product) {
         product.currentStock += item.quantity;
 
         // Add stock movement for return
         const movement: StockMovement = {
           id: Math.random().toString(36).substr(2, 9),
-          productId: item.productId,
+          productId: product.id || product._id || item.productId,
           type: 'in',
           quantity: item.quantity,
           reason: 'Return',
@@ -420,7 +511,7 @@ class StorageService {
 
     // Update product stock (support id and _id from various data sources)
     const product = state.products.find(
-      (p:any) => p.id === movement.productId || p._id === movement.productId,
+      (p:any) => this.matchesReferenceId(p, movement.productId),
     );
     if (product) {
       if (movement.type === 'in') {
@@ -518,21 +609,24 @@ class StorageService {
   removeOfflineItem(type: 'product' | 'supplier' | 'sale' | 'saleReturn' | 'stockMovement', id: string): void {
     const state = this.getOfflineState();
     
+    const matchesId = (item: any) =>
+      item.id === id || item._id === id || item.offline_id === id;
+
     switch (type) {
       case 'product':
-        state.products = state.products.filter((p: any) => p.id !== id && p._id !== id);
+        state.products = state.products.filter((p: any) => !matchesId(p));
         break;
       case 'supplier':
-        state.suppliers = state.suppliers.filter((s: any) => s.id !== id && s._id !== id);
+        state.suppliers = state.suppliers.filter((s: any) => !matchesId(s));
         break;
       case 'sale':
-        state.sales = state.sales.filter((s: any) => s.id !== id && s._id !== id);
+        state.sales = state.sales.filter((s: any) => !matchesId(s));
         break;
       case 'saleReturn':
-        state.saleReturns = state.saleReturns.filter((sr: any) => sr.id !== id && sr._id !== id);
+        state.saleReturns = state.saleReturns.filter((sr: any) => !matchesId(sr));
         break;
       case 'stockMovement':
-        state.stockMovements = state.stockMovements.filter((m: any) => m.id !== id && m._id !== id);
+        state.stockMovements = state.stockMovements.filter((m: any) => !matchesId(m));
         break;
     }
     

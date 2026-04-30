@@ -101,15 +101,17 @@ export interface ReorderStrategy {
 
 export interface Product {
   // Core Fields (Required - existing)
-  id: string;
+  id?: string;
   _id?: string; // For backward compatibility with older product objects
+  offline_id?: string; // Offline UUID for product
   name: string;
   sku: string;
   category: string;
   unitPrice: number;
   costPrice: number;
   unit: string; // kg, lbs, units, etc (base unit)
-  supplierId: string;
+  supplierId?: string; // Can be empty when offline
+  offline_supplier_id?: string; // Offline reference to supplier
   reorderLevel: number;
   currentStock: number;
   businessId?: string; // Business isolation (optional during transition)
@@ -157,7 +159,9 @@ export interface Product {
 export interface StockMovement {
   id: string;
   _id?: string; // For backward compatibility with older movement objects
-  productId: string;
+  offline_id?: string; // Offline UUID for movement
+  productId?: string; // Can be empty when offline
+  offline_product_id?: string; // Offline reference to product
   type: 'in' | 'out' | 'adjustment';
   quantity: number;
   reason: string;
@@ -180,6 +184,7 @@ export interface Category {
 export interface Sale {
   id?: string;
   _id?: string; // For backward compatibility with older sale objects
+  offline_id?: string; // Offline UUID for sale
   saleNumber: string;
   date: string;
   items: SaleItem[];
@@ -193,10 +198,13 @@ export interface Sale {
   paymentType?: string;
   txnId?: string;
   returnStatus?: 'none' | 'partial' | 'returned'; // Track return status
+  saleReturnId?: string; // Reference to associated sale return (if any)
+  offline_return_id?: string; // Offline reference to sale return
 }
 
 export interface SaleItem {
-  productId: string;
+  productId?: string; // Can be empty when offline
+  offline_product_id?: string; // Offline reference to product
   quantity: number;
   unitPrice: number;
   total: number;
@@ -206,7 +214,9 @@ export interface SaleItem {
 export interface SaleReturn {
   id?: string;
   _id?: string; // For backward compatibility with older return objects
-  saleId: string; // Reference to the original sale
+  offline_id?: string; // Offline UUID for return
+  saleId?: string; // Reference to the original sale
+  offline_sale_id?: string; // Offline reference to sale
   items: SaleReturnItem[];
   totalAmount: number;
   reason?: string; // Reason for return (e.g., "Defective", "Wrong item", "Customer change of mind")
@@ -221,7 +231,8 @@ export interface SaleReturn {
 }
 
 export interface SaleReturnItem {
-  productId: string;
+  productId?: string;
+  offline_product_id?: string; // Offline reference to product
   quantity: number;
   unitPrice: number; // Unit price at time of return (may differ from sale price)
   total: number;
@@ -231,6 +242,7 @@ export interface SaleReturnItem {
 export interface Supplier {
   id?: string;
   _id?: string; // For backward compatibility with older supplier objects
+  offline_id?: string; // Offline UUID for supplier
   name: string;
   email: string;
   phone: string;
@@ -257,6 +269,8 @@ export interface Supplier {
   website?: string;
   // Product ids or names supplied by this supplier
   products?: string[];
+  // Offline product IDs (for products created offline, tracks offline_id references)
+  offline_products?: string[];
   status?: 'active' | 'inactive' | 'blocked';
   rating?: number; // 1-5
   notes?: string;

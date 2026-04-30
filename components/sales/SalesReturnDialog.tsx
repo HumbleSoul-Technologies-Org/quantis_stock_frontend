@@ -39,6 +39,8 @@ export function SalesReturnDialog({
   const formatCurrencyShort = useFormatCurrencyShort();
   const { user } = useAuth();
   const [returnItems, setReturnItems] = useState<SaleReturnItem[]>([]);
+  const [offline_sale_id, setOfflineSaleId] = useState("");
+  const [offline_id, setOfflineId] = useState("");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [refundAmount, setRefundAmount] = useState<number | undefined>();
@@ -49,11 +51,14 @@ export function SalesReturnDialog({
     if (sale && isOpen) {
       const initialItems = sale.items.map((item) => ({
         productId: item.productId,
+        offline_product_id: item.offline_product_id || "",
         quantity: 0, // Start with 0, user can increase
         unitPrice: item.unitPrice,
         total: 0,
       }));
       setReturnItems(initialItems);
+      setOfflineSaleId(sale.offline_id || "");
+      setOfflineId("");
       setReason("");
       setNotes("");
       setRefundAmount(undefined);
@@ -61,11 +66,18 @@ export function SalesReturnDialog({
     }
   }, [sale, isOpen]);
 
-  const getProductName = (productId: string) => {
-    return products.find((p) => p._id === productId)?.name || "Unknown Product";
+  const getProductName = (productId?: string) => {
+    return (
+      products.find(
+        (p) =>
+          p.id === productId ||
+          p._id === productId ||
+          p.offline_id === productId,
+      )?.name || "Unknown Product"
+    );
   };
 
-  const getSoldQuantity = (productId: string) => {
+  const getSoldQuantity = (productId?: string) => {
     return (
       sale?.items.find((item) => item.productId === productId)?.quantity || 0
     );
@@ -98,15 +110,21 @@ export function SalesReturnDialog({
     if (!sale || !user || !hasReturnItems) return;
 
     const returnRecord: SaleReturn = {
-      saleId: sale.id || sale._id || "",
-      items: returnItems.filter((item) => item.quantity > 0),
+      saleId: sale.id || sale._id || sale.offline_id || "",
+      offline_sale_id: offline_sale_id || sale.offline_id || "",
+      offline_id: offline_id || "",
+      items: returnItems
+        .filter((item) => item.quantity > 0)
+        .map((item) => ({
+          ...item,
+          offline_product_id: item.offline_product_id || "",
+        })),
       totalAmount: totalReturnAmount,
       reason: reason || undefined,
       notes: notes || undefined,
       status: "completed",
       businessId: sale.businessId,
       createdBy: user.id,
-
       reference: `RTN-${sale.saleNumber}-${Date.now()}`,
       refundAmount: refundAmount ?? totalReturnAmount,
       refundMethod: refundMethod || undefined,
@@ -194,7 +212,7 @@ export function SalesReturnDialog({
                             value={item.quantity}
                             onChange={(e) =>
                               updateReturnQuantity(
-                                item.productId,
+                                item.productId || "",
                                 parseInt(e.target.value) || 0,
                               )
                             }

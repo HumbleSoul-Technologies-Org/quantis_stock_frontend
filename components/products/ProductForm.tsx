@@ -41,6 +41,8 @@ export function ProductForm({
       costPrice: 0,
       unit: "units",
       supplierId: "",
+      offline_id: "",
+      offline_supplier_id: "",
       reorderLevel: 10,
       currentStock: 0,
       status: "active",
@@ -130,6 +132,9 @@ export function ProductForm({
         ...prev,
         imageUrl: product.imageUrl || prev.imageUrl,
         imagePublicId: product.imagePublicId || prev.imagePublicId,
+        offline_id: product.offline_id || prev.offline_id,
+        offline_supplier_id:
+          product.offline_supplier_id || prev.offline_supplier_id,
       }));
     }
   }, [product?.id]);
@@ -284,8 +289,17 @@ export function ProductForm({
     let res = null;
     try {
       // Ensure supplierId is always trimmed to a valid supplier ID
+      const selectedSupplier = suppliers.find(
+        (s) =>
+          s.name === formData.supplierId ||
+          s.offline_id === formData.supplierId ||
+          s.id === formData.supplierId ||
+          s._id === formData.supplierId,
+      );
+
       const selectedSupplierId =
-        suppliers.find((s) => s.name === formData.supplierId)?._id ||
+        selectedSupplier?.id ||
+        selectedSupplier?._id ||
         formData.supplierId ||
         "";
 
@@ -296,7 +310,9 @@ export function ProductForm({
         unitPrice: formData.unitPrice || 0,
         costPrice: formData.costPrice || 0,
         unit: formData.unit || "units",
-        supplierId: selectedSupplierId,
+        supplierId: formData.supplierId || "",
+        offline_id: formData.offline_id || product?.offline_id || "",
+        offline_supplier_id: selectedSupplier?.offline_id || "",
         reorderLevel: formData.reorderLevel || 10,
         currentStock: formData.currentStock ?? product?.currentStock ?? 0,
 
@@ -339,7 +355,7 @@ export function ProductForm({
         // For new products, create the product object
         const newProduct: Product = {
           ...payLoad,
-          id: "", // Will be set by the backend
+          // Will be set by the backend
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };

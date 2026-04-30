@@ -260,7 +260,7 @@ export function SyncModal({
               <Button
                 variant="destructive"
                 onClick={() =>
-                  pendingActions.forEach((a) => dequeueAction(a.id))
+                  localStorage.removeItem("erp_system_offline_items")
                 }
               >
                 <Trash2 className="w-4 h-4" />

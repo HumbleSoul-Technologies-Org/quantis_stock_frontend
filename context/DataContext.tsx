@@ -249,7 +249,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const mergeServerDataWithLocal = useCallback(
-    <T extends { id?: string; _id?: string }>(
+    <T extends { id?: string; _id?: string; offline_id?: string }>(
       serverItems: T[],
       offlineItems: T[],
     ): T[] => {
@@ -257,46 +257,64 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return serverItems;
       }
 
-      const merged = [...serverItems];
-
-      offlineItems.forEach((offlineItem) => {
-        const exists = merged.some(
-          (item) =>
-            item.id === offlineItem.id ||
-            item._id === offlineItem._id ||
-            item.id === offlineItem._id ||
-            item._id === offlineItem.id,
+      // Filter offline items to only include those not already in serverItems
+      const offlineItemsToAdd = offlineItems.filter((offlineItem) => {
+        return !serverItems.some(
+          (serverItem) =>
+            (offlineItem.id && serverItem.id === offlineItem.id) ||
+            (offlineItem.id && serverItem._id === offlineItem.id) ||
+            (offlineItem.id && serverItem.offline_id === offlineItem.id) ||
+            (offlineItem._id && serverItem.id === offlineItem._id) ||
+            (offlineItem._id && serverItem._id === offlineItem._id) ||
+            (offlineItem._id && serverItem.offline_id === offlineItem._id) ||
+            (offlineItem.offline_id &&
+              serverItem.id === offlineItem.offline_id) ||
+            (offlineItem.offline_id &&
+              serverItem._id === offlineItem.offline_id) ||
+            (offlineItem.offline_id &&
+              serverItem.offline_id === offlineItem.offline_id),
         );
-        if (!exists) {
-          merged.push(offlineItem);
-        }
       });
 
-      return merged;
+      // Combine server items with only new offline items
+      return [...serverItems, ...offlineItemsToAdd];
     },
     [],
   );
 
   const refresh = useCallback(() => {
     const offlineItems = storage.getOfflineItems();
-    setProducts(
-      mergeServerDataWithLocal(storage.getProducts(), offlineItems.products),
-    );
+    const mergedCache = storage.getMergedCache();
+
+    const productsBase =
+      storage.getProducts().length > 0
+        ? storage.getProducts()
+        : mergedCache.products;
+    const suppliersBase =
+      storage.getSuppliers().length > 0
+        ? storage.getSuppliers()
+        : mergedCache.suppliers;
+    const salesBase =
+      storage.getSales().length > 0 ? storage.getSales() : mergedCache.sales;
+    const saleReturnsBase =
+      storage.getSaleReturns().length > 0
+        ? storage.getSaleReturns()
+        : mergedCache.saleReturns;
+    const stockMovementsBase =
+      storage.getStockMovements().length > 0
+        ? storage.getStockMovements()
+        : mergedCache.stockMovements;
+
+    setProducts(mergeServerDataWithLocal(productsBase, offlineItems.products));
     setSuppliers(
-      mergeServerDataWithLocal(storage.getSuppliers(), offlineItems.suppliers),
+      mergeServerDataWithLocal(suppliersBase, offlineItems.suppliers),
     );
-    setSales(mergeServerDataWithLocal(storage.getSales(), offlineItems.sales));
+    setSales(mergeServerDataWithLocal(salesBase, offlineItems.sales));
     setSaleReturns(
-      mergeServerDataWithLocal(
-        storage.getSaleReturns(),
-        offlineItems.saleReturns,
-      ),
+      mergeServerDataWithLocal(saleReturnsBase, offlineItems.saleReturns),
     );
     setStockMovements(
-      mergeServerDataWithLocal(
-        storage.getStockMovements(),
-        offlineItems.stockMovements,
-      ),
+      mergeServerDataWithLocal(stockMovementsBase, offlineItems.stockMovements),
     );
   }, [mergeServerDataWithLocal]);
 
@@ -304,27 +322,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadData = () => {
       const state = storage.getState();
+      const mergedCache = storage.getMergedCache();
       const offlineItems = storage.getOfflineItems();
 
-      // Merge synced items with offline items
+      // Log offline items persistence for debugging
+      console.log("📦 [DATACONTEXT] Offline items loaded from storage", {
+        offlineProductsCount: offlineItems.products?.length || 0,
+        offlineSuppliersCount: offlineItems.suppliers?.length || 0,
+        offlineSalesCount: offlineItems.sales?.length || 0,
+        offlineSaleReturnsCount: offlineItems.saleReturns?.length || 0,
+        offlineStockMovementsCount: offlineItems.stockMovements?.length || 0,
+      });
+
+      const productsBase =
+        Array.isArray(state.products) && state.products.length > 0
+          ? state.products
+          : mergedCache.products;
+      const suppliersBase =
+        Array.isArray(state.suppliers) && state.suppliers.length > 0
+          ? state.suppliers
+          : mergedCache.suppliers;
+      const salesBase =
+        Array.isArray(state.sales) && state.sales.length > 0
+          ? state.sales
+          : mergedCache.sales;
+      const saleReturnsBase =
+        Array.isArray(state.saleReturns) && state.saleReturns.length > 0
+          ? state.saleReturns
+          : mergedCache.saleReturns;
+      const stockMovementsBase =
+        Array.isArray(state.stockMovements) && state.stockMovements.length > 0
+          ? state.stockMovements
+          : mergedCache.stockMovements;
+
       const mergedProducts = mergeServerDataWithLocal(
-        Array.isArray(state.products) ? state.products : [],
+        productsBase,
         Array.isArray(offlineItems.products) ? offlineItems.products : [],
       );
       const mergedSuppliers = mergeServerDataWithLocal(
-        Array.isArray(state.suppliers) ? state.suppliers : [],
+        suppliersBase,
         Array.isArray(offlineItems.suppliers) ? offlineItems.suppliers : [],
       );
       const mergedSales = mergeServerDataWithLocal(
-        Array.isArray(state.sales) ? state.sales : [],
+        salesBase,
         Array.isArray(offlineItems.sales) ? offlineItems.sales : [],
       );
       const mergedSaleReturns = mergeServerDataWithLocal(
-        Array.isArray(state.saleReturns) ? state.saleReturns : [],
+        saleReturnsBase,
         Array.isArray(offlineItems.saleReturns) ? offlineItems.saleReturns : [],
       );
       const mergedStockMovements = mergeServerDataWithLocal(
-        Array.isArray(state.stockMovements) ? state.stockMovements : [],
+        stockMovementsBase,
         Array.isArray(offlineItems.stockMovements)
           ? offlineItems.stockMovements
           : [],
@@ -393,79 +441,131 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Update state when API data changes
   useEffect(() => {
-    if (suppliersData !== undefined && suppliersData !== null) {
-      const offlineItems = storage.getOfflineItems();
-      const mergedSuppliers = mergeServerDataWithLocal(
-        suppliersData,
-        offlineItems.suppliers,
-      );
-      setSuppliers(mergedSuppliers);
-      // Save only server data to main storage
+    if (isOnline && suppliersData !== undefined && suppliersData !== null) {
+      // Online + API success: Use API data directly
+      setSuppliers(suppliersData);
       const state = storage.getState();
       state.suppliers = suppliersData;
       storage.saveState(state);
+    } else if (!isOnline) {
+      // Offline: Merge offline items with main state
+      const offlineItems = storage.getOfflineItems();
+      const mainState = storage.getState().suppliers;
+      const baseSuppliers =
+        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
+      const mergedSuppliers = mergeServerDataWithLocal(
+        baseSuppliers,
+        Array.isArray(offlineItems.suppliers) ? offlineItems.suppliers : [],
+      );
+      setSuppliers(mergedSuppliers);
+      const state = storage.getState();
+      state.suppliers = mergedSuppliers;
+      storage.saveState(state);
+      storage.saveMergedCache({ suppliers: mergedSuppliers });
     }
-  }, [suppliersData, mergeServerDataWithLocal]);
+  }, [suppliersData, isOnline, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (productsData !== undefined && productsData !== null) {
-      const offlineItems = storage.getOfflineItems();
-      const mergedProducts = mergeServerDataWithLocal(
-        productsData,
-        offlineItems.products,
-      );
-      setProducts(mergedProducts);
-      // Save only server data to main storage
+    if (isOnline && productsData !== undefined && productsData !== null) {
+      // Online + API success: Use API data directly
+      setProducts(productsData);
       const state = storage.getState();
       state.products = productsData;
       storage.saveState(state);
+    } else if (!isOnline) {
+      // Offline: Merge offline items with main state
+      const offlineItems = storage.getOfflineItems();
+      const mainState = storage.getState().products;
+      const baseProducts =
+        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
+      const mergedProducts = mergeServerDataWithLocal(
+        baseProducts,
+        Array.isArray(offlineItems.products) ? offlineItems.products : [],
+      );
+      setProducts(mergedProducts);
+      const state = storage.getState();
+      state.products = mergedProducts;
+      storage.saveState(state);
+      storage.saveMergedCache({ products: mergedProducts });
     }
-  }, [productsData, mergeServerDataWithLocal]);
+  }, [productsData, isOnline, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (inventoryData !== undefined && inventoryData !== null) {
-      const offlineItems = storage.getOfflineItems();
-      const mergedStockMovements = mergeServerDataWithLocal(
-        inventoryData,
-        offlineItems.stockMovements,
-      );
-      setStockMovements(mergedStockMovements);
-      // Save only server data to main storage
+    if (isOnline && inventoryData !== undefined && inventoryData !== null) {
+      // Online + API success: Use API data directly
+      setStockMovements(inventoryData);
       const state = storage.getState();
       state.stockMovements = inventoryData;
       storage.saveState(state);
+    } else if (!isOnline) {
+      // Offline: Merge offline items with main state
+      const offlineItems = storage.getOfflineItems();
+      const mainState = storage.getState().stockMovements;
+      const baseStockMovements =
+        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
+      const mergedStockMovements = mergeServerDataWithLocal(
+        baseStockMovements,
+        Array.isArray(offlineItems.stockMovements)
+          ? offlineItems.stockMovements
+          : [],
+      );
+      setStockMovements(mergedStockMovements);
+      const state = storage.getState();
+      state.stockMovements = mergedStockMovements;
+      storage.saveState(state);
+      storage.saveMergedCache({ stockMovements: mergedStockMovements });
     }
-  }, [inventoryData, mergeServerDataWithLocal]);
+  }, [inventoryData, isOnline, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (salesData !== undefined && salesData !== null) {
-      const offlineItems = storage.getOfflineItems();
-      const mergedSales = mergeServerDataWithLocal(
-        salesData,
-        offlineItems.sales,
-      );
-      setSales(mergedSales);
-      // Save only server data to main storage
+    if (isOnline && salesData !== undefined && salesData !== null) {
+      // Online + API success: Use API data directly
+      setSales(salesData);
       const state = storage.getState();
       state.sales = salesData;
       storage.saveState(state);
+    } else if (!isOnline) {
+      // Offline: Merge offline items with main state
+      const offlineItems = storage.getOfflineItems();
+      const mainState = storage.getState().sales;
+      const baseSales =
+        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
+      const mergedSales = mergeServerDataWithLocal(
+        baseSales,
+        Array.isArray(offlineItems.sales) ? offlineItems.sales : [],
+      );
+      setSales(mergedSales);
+      const state = storage.getState();
+      state.sales = mergedSales;
+      storage.saveState(state);
+      storage.saveMergedCache({ sales: mergedSales });
     }
-  }, [salesData, mergeServerDataWithLocal]);
+  }, [salesData, isOnline, mergeServerDataWithLocal]);
 
   useEffect(() => {
-    if (saleReturnsData !== undefined && saleReturnsData !== null) {
-      const offlineItems = storage.getOfflineItems();
-      const mergedSaleReturns = mergeServerDataWithLocal(
-        saleReturnsData,
-        offlineItems.saleReturns,
-      );
-      setSaleReturns(mergedSaleReturns);
-      // Save only server data to main storage
+    if (isOnline && saleReturnsData !== undefined && saleReturnsData !== null) {
+      // Online + API success: Use API data directly
+      setSaleReturns(saleReturnsData);
       const state = storage.getState();
       state.saleReturns = saleReturnsData;
       storage.saveState(state);
+    } else if (!isOnline) {
+      // Offline: Merge offline items with main state
+      const offlineItems = storage.getOfflineItems();
+      const mainState = storage.getState().saleReturns;
+      const baseSaleReturns =
+        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
+      const mergedSaleReturns = mergeServerDataWithLocal(
+        baseSaleReturns,
+        Array.isArray(offlineItems.saleReturns) ? offlineItems.saleReturns : [],
+      );
+      setSaleReturns(mergedSaleReturns);
+      const state = storage.getState();
+      state.saleReturns = mergedSaleReturns;
+      storage.saveState(state);
+      storage.saveMergedCache({ saleReturns: mergedSaleReturns });
     }
-  }, [saleReturnsData, mergeServerDataWithLocal]);
+  }, [saleReturnsData, isOnline, mergeServerDataWithLocal]);
 
   // Refetch data from API immediately (for instant updates after creating records)
   const refetchData = useCallback(async () => {
@@ -488,7 +588,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getSaleReturns = useCallback(() => saleReturns, [saleReturns]);
   const getSaleReturnById = useCallback(
     (id: string) => {
-      return saleReturns.find((r) => r.id === id || (r as any)._id === id);
+      return saleReturns.find(
+        (r) => r.id === id || (r as any)._id === id || r.offline_id === id,
+      );
     },
     [saleReturns],
   );
@@ -496,11 +598,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Products
   const addProduct = useCallback(
     async (product: Product) => {
-      // Ensure businessId is included and generate ID if missing
+      const selectedSupplier = suppliers.find(
+        (s) =>
+          s.id === product.supplierId ||
+          s._id === product.supplierId ||
+          s.offline_id === product.supplierId,
+      );
+
       const productWithBusinessId = {
         ...product,
         id: product.id || uuidv4(), // Generate UUID if no ID
-        businessId: product.businessId || user?.businessId,
+        offline_id: product.offline_id || uuidv4(),
+        businessId: user?.businessId ?? product.businessId,
+        supplierId: "", // Empty for mongoose reference - use offline_supplier_id for local tracking
+        offline_supplier_id: selectedSupplier?.offline_id || uuidv4(),
       };
 
       console.log(
@@ -509,13 +620,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
       );
 
       const localAction = () => {
-        // Save to offline store if offline, otherwise to main store
-        if (isOnline) {
-          storage.addProduct(productWithBusinessId);
-        } else {
-          storage.addOfflineProduct(productWithBusinessId);
-        }
+        // Save to BOTH main store and offline store for dual-state persistence
+        storage.addProduct(productWithBusinessId);
+        storage.addOfflineProduct(productWithBusinessId);
         setProducts([...products, productWithBusinessId]);
+
+        // Track offline product in supplier's offline_products array
+        if (
+          selectedSupplier &&
+          (selectedSupplier.id || selectedSupplier.offline_id)
+        ) {
+          const supplierId = (selectedSupplier.id ||
+            selectedSupplier.offline_id) as string;
+          const updatedSupplier = {
+            ...selectedSupplier,
+            offline_products: [
+              ...(selectedSupplier.offline_products || []),
+              productWithBusinessId.offline_id,
+            ],
+          };
+          // Save updated supplier to both states
+          storage.updateSupplier(supplierId, updatedSupplier);
+          storage.addOfflineSupplier(updatedSupplier);
+          setSuppliers(
+            suppliers.map((s) =>
+              s.id === selectedSupplier.id ||
+              s.offline_id === selectedSupplier.offline_id
+                ? updatedSupplier
+                : s,
+            ),
+          );
+        }
       };
 
       if (openNoInternetModal("create product", localAction)) {
@@ -525,7 +660,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Proceed with normal action
       localAction();
 
-      // Send to API if online
+      // Send to API if online - use same product object for consistency
       enqueueAction({
         endpoint: "/products/new",
         method: "POST",
@@ -624,6 +759,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Ensure businessId is included
       const supplierWithBusinessId = {
         ...supplier,
+        id: supplier.id || uuidv4(),
+        offline_id: supplier.offline_id || uuidv4(),
         businessId: supplier.businessId || user?.businessId,
       };
 
@@ -743,22 +880,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (sale: Sale) => {
       const saleWithBusinessId = {
         ...sale,
-        businessId: sale.businessId || user?.businessId,
+        id: sale.id || uuidv4(),
+        offline_id: sale.offline_id || uuidv4(),
+        businessId: user?.businessId ?? sale.businessId,
+        items: sale.items.map((item) => {
+          const selectedProduct = products.find(
+            (p) =>
+              p.id === item.productId ||
+              p._id === item.productId ||
+              p.offline_id === item.productId,
+          );
+
+          return {
+            ...item,
+            productId: "", // Empty for mongoose reference - use offline_product_id for local tracking
+            offline_product_id: selectedProduct?.offline_id || uuidv4(),
+          };
+        }),
       };
 
       const localAction = () => {
-        if (isOnline) {
-          storage.addSale(saleWithBusinessId);
-        } else {
-          storage.addOfflineSale(saleWithBusinessId);
-        }
+        // Save to BOTH main store and offline store for dual-state persistence
+        storage.addSale(saleWithBusinessId);
+        storage.addOfflineSale(saleWithBusinessId);
         setSales((prev) => [...prev, saleWithBusinessId]);
 
         const updatedProducts = products.map((product) => {
           const saleItem = saleWithBusinessId.items.find(
             (item) =>
               item.productId === product.id ||
-              item.productId === (product as any)._id,
+              item.productId === (product as any)._id ||
+              item.productId === product.offline_id ||
+              item.offline_product_id === product.offline_id ||
+              item.offline_product_id === product.id ||
+              item.offline_product_id === (product as any)._id,
           );
           if (saleItem) {
             return {
@@ -773,7 +928,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const newMovements: StockMovement[] = saleWithBusinessId.items.map(
           (item) => ({
             id: Math.random().toString(36).substr(2, 9),
-            productId: item.productId,
+            productId: item.offline_product_id || item.productId,
             type: "out" as const,
             quantity: item.quantity,
             reason: "Sale",
@@ -855,11 +1010,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const updatedMap = new Map<string, number>();
 
     originalItems.forEach((item) => {
-      originalMap.set(item.productId, item.quantity);
+      const key = item.productId || item.offline_product_id || "";
+      if (key) {
+        originalMap.set(key, item.quantity);
+      }
     });
 
     updatedItems.forEach((item) => {
-      updatedMap.set(item.productId, item.quantity);
+      const key = item.productId || item.offline_product_id || "";
+      if (key) {
+        updatedMap.set(key, item.quantity);
+      }
     });
 
     // Check all products from both original and updated
@@ -898,7 +1059,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSale = useCallback(
     async (id: string, sale: Partial<Sale>) => {
       const originalSale = sales.find(
-        (s) => s.id === id || (s as any)._id === id,
+        (s) => s.id === id || (s as any)._id === id || s.offline_id === id,
       );
       if (!originalSale) {
         throw new Error("Sale not found");
@@ -906,7 +1067,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const saleWithBusinessId = {
         ...sale,
+        offline_id: sale.offline_id || originalSale.offline_id,
         businessId: sale.businessId || user?.businessId,
+        items:
+          sale.items?.map((item, index) => {
+            const oldItem = originalSale.items[index];
+            const selectedProduct = products.find(
+              (p) =>
+                p.id === item.productId ||
+                p._id === item.productId ||
+                p.offline_id === item.productId,
+            );
+
+            const isOfflineProductReference =
+              !!item.productId &&
+              selectedProduct?.offline_id === item.productId;
+
+            return {
+              ...item,
+              productId: item.productId || oldItem?.productId,
+              offline_product_id:
+                item.offline_product_id ||
+                oldItem?.offline_product_id ||
+                (isOfflineProductReference ? item.productId : undefined),
+            };
+          }) || originalSale.items,
       };
 
       const localAction = () => {
@@ -1072,29 +1257,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Sale Returns
   const processSaleReturn = useCallback(
     async (saleReturn: SaleReturn) => {
+      const selectedSale = sales.find(
+        (s) =>
+          s.id === saleReturn.saleId ||
+          s._id === saleReturn.saleId ||
+          s.offline_id === saleReturn.saleId,
+      );
+
+      const isOfflineSaleReference =
+        !!saleReturn.saleId && selectedSale?.offline_id === saleReturn.saleId;
+
       const returnWithBusinessId = {
         ...saleReturn,
-        businessId: saleReturn.businessId || user?.businessId,
+        id: saleReturn.id || uuidv4(),
+        offline_id: saleReturn.offline_id || uuidv4(),
+        businessId: user?.businessId ?? saleReturn.businessId,
+        saleId: "", // Empty for mongoose reference - use offline_sale_id for local tracking
+        offline_sale_id: isOfflineSaleReference
+          ? saleReturn.saleId
+          : saleReturn.offline_sale_id || saleReturn.saleId || uuidv4(),
       };
 
       const localAction = () => {
-        if (isOnline) {
-          storage.processSaleReturn(returnWithBusinessId);
-        } else {
-          storage.addOfflineSaleReturn(returnWithBusinessId);
-        }
+        // Save to BOTH main store and offline store for dual-state persistence
+        storage.processSaleReturn(returnWithBusinessId);
+        storage.addOfflineSaleReturn(returnWithBusinessId);
 
         const originalSale = sales.find(
           (s) =>
-            s.id === returnWithBusinessId.saleId ||
-            s._id === returnWithBusinessId.saleId,
+            s.id === returnWithBusinessId.offline_sale_id ||
+            s._id === returnWithBusinessId.offline_sale_id ||
+            s.offline_id === returnWithBusinessId.offline_sale_id,
         );
 
         const updatedProducts = products.map((product) => {
           const returnItem = returnWithBusinessId.items.find(
             (item) =>
               item.productId === product.id ||
-              item.productId === (product as any)._id,
+              item.productId === (product as any)._id ||
+              item.productId === product.offline_id ||
+              item.offline_product_id === product.offline_id ||
+              item.offline_product_id === product.id ||
+              item.offline_product_id === (product as any)._id,
           );
           if (returnItem) {
             return {
@@ -1226,23 +1430,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Stock Movements
   const addStockMovement = useCallback(
     async (movement: StockMovement) => {
+      const selectedProduct = products.find(
+        (p) =>
+          p.id === movement.productId ||
+          p._id === movement.productId ||
+          p.offline_id === movement.productId,
+      );
+
+      const isOfflineProductReference =
+        !!movement.productId &&
+        selectedProduct?.offline_id === movement.productId;
+
       const movementWithBusinessId = {
         ...movement,
-        businessId: movement.businessId || user?.businessId,
+        id: movement.id || uuidv4(),
+        offline_id: movement.offline_id || uuidv4(),
+        businessId: user?.businessId ?? movement.businessId,
+        productId: "", // Empty for mongoose reference - use offline_product_id for local tracking
+        offline_product_id: isOfflineProductReference
+          ? movement.productId
+          : movement.offline_product_id || movement.productId || uuidv4(),
       };
 
       const localAction = () => {
-        if (isOnline) {
-          storage.addStockMovement(movementWithBusinessId);
-        } else {
-          storage.addOfflineStockMovement(movementWithBusinessId);
-        }
+        // Save to BOTH main store and offline store for dual-state persistence
+        storage.addStockMovement(movementWithBusinessId);
+        storage.addOfflineStockMovement(movementWithBusinessId);
         setStockMovements((prev) => [...prev, movementWithBusinessId]);
         setProducts((prev) =>
           prev.map((product) => {
             if (
               product.id === movementWithBusinessId.productId ||
-              (product as any)._id === movementWithBusinessId.productId
+              (product as any)._id === movementWithBusinessId.productId ||
+              product.offline_id === movementWithBusinessId.productId ||
+              product.offline_id ===
+                movementWithBusinessId.offline_product_id ||
+              product.id === movementWithBusinessId.offline_product_id ||
+              (product as any)._id === movementWithBusinessId.offline_product_id
             ) {
               const adjustedStock =
                 movementWithBusinessId.type === "in"
@@ -1299,25 +1523,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Utilities
   const getProductById = useCallback(
-    (id: string) => products.find((p) => p.id === id || (p as any)._id === id),
+    (id: string) =>
+      products.find(
+        (p) => p.id === id || (p as any)._id === id || p.offline_id === id,
+      ),
     [products],
   );
 
   const getSupplierById = useCallback(
-    (id: string) => suppliers.find((s) => s.id === id || (s as any)._id === id),
+    (id: string) =>
+      suppliers.find(
+        (s) => s.id === id || (s as any)._id === id || s.offline_id === id,
+      ),
     [suppliers],
   );
 
   const getSalesForUser = useCallback(
     (userId: string) =>
-      sales.filter((s) => s.createdBy === userId || s._id === userId),
+      sales.filter(
+        (s) =>
+          s.createdBy === userId || s._id === userId || s.offline_id === userId,
+      ),
     [sales],
   );
 
   const getProductStockHistory = useCallback(
     (productId: string) =>
       stockMovements.filter(
-        (m) => m.productId === productId || m._id === productId,
+        (m) =>
+          m.productId === productId ||
+          (m as any)._id === productId ||
+          m.offline_product_id === productId,
       ),
     [stockMovements],
   );

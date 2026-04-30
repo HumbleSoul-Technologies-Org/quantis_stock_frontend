@@ -79,10 +79,14 @@ export function StockHistoryTable({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const getProductName = (productId: string) => {
+  const getProductName = (productId?: string) => {
     return (
-      products.find((p) => p.id === productId || (p as any)._id === productId)
-        ?.name || "Unknown Product"
+      products.find(
+        (p) =>
+          p.id === productId ||
+          (p as any)._id === productId ||
+          p.offline_id === productId,
+      )?.name || "Unknown Product"
     );
   };
 

@@ -50,7 +50,12 @@ export function SalesForm({
 
   const isEditing = !!sale; // Determine if we're in edit mode
 
-  const [items, setItems] = useState<SaleItem[]>(sale?.items || []);
+  const [items, setItems] = useState<SaleItem[]>(
+    sale?.items?.map((item) => ({
+      ...item,
+      offline_product_id: item.offline_product_id || "",
+    })) || [],
+  );
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [customerName, setCustomerName] = useState(sale?.customerName || "");
@@ -91,7 +96,7 @@ export function SalesForm({
       return hasStock;
     })
     .map((p) => ({
-      value: p._id || p.id,
+      value: p.offline_id || p._id || p.id,
       label: `${p.name} (${p.currentStock} available)`,
     }));
 
@@ -117,15 +122,23 @@ export function SalesForm({
       selectedProductId,
     );
     let product = products.find(
-      (p) => p.id === selectedProductId || p._id === selectedProductId,
+      (p) =>
+        p.id === selectedProductId ||
+        p._id === selectedProductId ||
+        p.offline_id === selectedProductId,
     );
 
-    // Fallback: if not found by ID, try to find by name in case of display name match
+    // Fallback: if not found by ID, try alternate identifiers
     if (!product) {
       console.warn(
         "⚠️ [SALESFORM] Product not found by ID, trying fallback lookup",
       );
-      product = products.find((p) => (p._id || p.id) === selectedProductId);
+      product = products.find(
+        (p) =>
+          p.id === selectedProductId ||
+          p._id === selectedProductId ||
+          p.offline_id === selectedProductId,
+      );
     }
 
     if (!product) {
@@ -152,7 +165,9 @@ export function SalesForm({
     }
 
     const saleItem: SaleItem = {
-      productId: product.id || product._id || selectedProductId, // Use the actual product ID
+      productId:
+        product.id || product._id || product.offline_id || selectedProductId,
+      offline_product_id: product.offline_id || undefined,
       quantity: parseInt(quantity),
       unitPrice: product.unitPrice,
       total: parseInt(quantity) * product.unitPrice,
@@ -205,9 +220,13 @@ export function SalesForm({
 
       const saleData: Sale = {
         ...(isEditing && { _id: sale._id }),
+        offline_id: isEditing ? sale.offline_id : "",
         saleNumber,
         date: saleDate,
-        items,
+        items: items.map((item) => ({
+          ...item,
+          offline_product_id: item.offline_product_id || "",
+        })),
         totalAmount,
         status: "completed",
         notes,

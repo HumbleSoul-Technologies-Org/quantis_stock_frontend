@@ -24,6 +24,7 @@ export function SupplierForm({
     supplier
       ? {
           ...supplier,
+          offline_id: supplier.offline_id || "",
           status: supplier.status || "active",
           rating: supplier.rating ?? 0,
           address: {
@@ -49,6 +50,7 @@ export function SupplierForm({
           documentPublicId: supplier.documentPublicId || "",
         }
       : {
+          offline_id: "",
           name: "",
           email: "",
           phone: "",
@@ -197,6 +199,7 @@ export function SupplierForm({
       const country = addressParts[addressParts.length - 1] || "";
 
       const payLoad: Supplier = {
+        offline_id: supplier?.offline_id || formData.offline_id || "",
         name: formData.name || "",
         email: formData.email || "",
         phone: formData.phone || "",
@@ -216,6 +219,9 @@ export function SupplierForm({
         products: formData.products?.length
           ? formData.products
           : supplier?.products || [],
+        offline_products: formData.offline_products
+          ? formData.offline_products
+          : supplier?.offline_products || [],
         status:
           (formData.status as Supplier["status"]) ||
           supplier?.status ||
@@ -291,8 +297,6 @@ export function SupplierForm({
             <p className="text-red-500 text-xs mt-1">{errors.name}</p>
           )}
         </div>
-
-
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">

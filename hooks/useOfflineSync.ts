@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { addOperation, deleteOperation, getOperationById, getPendingOperations, updateOperation } from '@/lib/offline/db';
-import { syncQueue } from '@/lib/offline/sync-engine';
+import { syncQueue, processOperation } from '@/lib/offline/sync-engine';
 import { Operation } from '@/lib/offline/types';
 import { API_BASE_URL } from '@/lib/config';
+import { getUserSession } from '@/lib/authStorage';
 
 export interface SyncConfig {
   offlineMode: boolean;
@@ -10,6 +11,20 @@ export interface SyncConfig {
 }
 
 const SYNC_QUEUE_EVENT = 'erp_system_sync_queue_updated';
+
+function getEffectiveToken(token?: string): string | undefined {
+  if (token) {
+    return token;
+  }
+
+  const storedUser = getUserSession();
+  if (storedUser?.token) {
+    console.log('🔁 [USEOFFLINESYNC] Using fallback token from stored session');
+    return storedUser.token;
+  }
+
+  return undefined;
+}
 
 /**
  * Check if device has internet connectivity
@@ -83,6 +98,47 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
     }
   }, []);
 
+  const syncPendingActions = useCallback(
+    async (): Promise<Record<string, 'success' | 'failed'>> => {
+      const effectiveToken = getEffectiveToken(authToken);
+      console.log("🔐 [useOfflineSync] syncPendingActions called", {
+        hasToken: !!effectiveToken,
+        tokenPreview: effectiveToken ? effectiveToken.substring(0, 20) + '...' : 'MISSING',
+        authTokenValue: effectiveToken,
+      });
+
+      if (!effectiveToken) {
+        console.error("🚨 [useOfflineSync] CRITICAL: Cannot sync - no auth token", {
+          authTokenIsUndefined: authToken === undefined,
+          authTokenIsNull: authToken === null,
+          authTokenIsEmpty: authToken === '',
+        });
+        return {};
+      }
+
+      try {
+        console.log("📤 [useOfflineSync] Starting sync with token", {
+          tokenLength: effectiveToken.length,
+        });
+        const results = await syncQueue(effectiveToken);
+        
+        try {
+          const updated = await getPendingOperations();
+          setPendingActions(updated);
+          dispatchQueueUpdate(updated);
+        } catch (stateError) {
+          console.error("❌ [useOfflineSync] Failed to update state after sync", { error: stateError instanceof Error ? stateError.message : String(stateError) });
+        }
+        
+        return results;
+      } catch (error) {
+        console.error("❌ [useOfflineSync] syncQueue threw error", { error: error instanceof Error ? error.message : String(error) });
+        return {};
+      }
+    },
+    [authToken, dispatchQueueUpdate],
+  );
+
   const enqueueAction = useCallback(
     async (action: Omit<Operation, 'id' | 'status' | 'retries' | 'createdAt' | 'updatedAt'>) => {
       if (!offlineMode) {
@@ -100,7 +156,42 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
       };
 
       try {
-        console.log('📥 [USEOFFLINESYNC] Enqueueing operation:', {
+        // If online, process immediately instead of queueing
+        if (isOnline) {
+          console.log('🟢 [USEOFFLINESYNC] Device is ONLINE - processing operation immediately', {
+            id: operation.id,
+            type: operation.type,
+            endpoint: operation.endpoint,
+          });
+
+          const effectiveToken = getEffectiveToken(authToken);
+          if (effectiveToken) {
+            try {
+              await processOperation(operation, effectiveToken);
+              console.log('✅ [USEOFFLINESYNC] Operation processed successfully', { id: operation.id });
+            } catch (error) {
+              console.error('❌ [USEOFFLINESYNC] Failed to process operation immediately', {
+                id: operation.id,
+                error: error instanceof Error ? error.message : String(error)
+              });
+              // If immediate processing fails, fall back to queuing
+              await addOperation(operation);
+              const updated = await getPendingOperations();
+              setPendingActions(updated);
+              dispatchQueueUpdate(updated);
+            }
+          } else {
+            console.warn('⚠️ [USEOFFLINESYNC] No auth token available for immediate processing, queuing instead', { id: operation.id });
+            await addOperation(operation);
+            const updated = await getPendingOperations();
+            setPendingActions(updated);
+            dispatchQueueUpdate(updated);
+          }
+          return;
+        }
+
+        // If offline, queue for later sync
+        console.log('📥 [USEOFFLINESYNC] Device is OFFLINE - enqueueing operation:', {
           id: operation.id,
           type: operation.type,
           endpoint: operation.endpoint,
@@ -108,7 +199,7 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
         });
 
         await addOperation(operation);
-        
+
         const updated = await getPendingOperations();
         setPendingActions(updated);
         dispatchQueueUpdate(updated);
@@ -117,19 +208,7 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
         console.error('❌ [USEOFFLINESYNC] Failed to enqueue operation', { id: operation.id, error: error instanceof Error ? error.message : String(error) });
       }
     },
-    [offlineMode, dispatchQueueUpdate],
-  );
-
-  const dequeueAction = useCallback(
-    async (id: string) => {
-      console.log('📤 [USEOFFLINESYNC] Dequeuing action:', id);
-      await deleteOperation(id);
-      const updated = await getPendingOperations();
-      setPendingActions(updated);
-      dispatchQueueUpdate(updated);
-      console.log('✓ [USEOFFLINESYNC] Action dequeued. Queue size:', updated.length);
-    },
-    [dispatchQueueUpdate],
+    [offlineMode, isOnline, authToken, dispatchQueueUpdate],
   );
 
   const incrementRetry = useCallback(
@@ -146,44 +225,16 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
     [dispatchQueueUpdate],
   );
 
-  const syncPendingActions = useCallback(
-    async (): Promise<Record<string, 'success' | 'failed'>> => {
-      console.log("🔐 [useOfflineSync] syncPendingActions called", {
-        hasToken: !!authToken,
-        tokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'MISSING',
-        authTokenValue: authToken,
-      });
-
-      if (!authToken) {
-        console.error("🚨 [useOfflineSync] CRITICAL: Cannot sync - no auth token", {
-          authTokenIsUndefined: authToken === undefined,
-          authTokenIsNull: authToken === null,
-          authTokenIsEmpty: authToken === '',
-        });
-        return {};
-      }
-
-      try {
-        console.log("📤 [useOfflineSync] Starting sync with token", {
-          tokenLength: authToken.length,
-        });
-        const results = await syncQueue(authToken);
-        
-        try {
-          const updated = await getPendingOperations();
-          setPendingActions(updated);
-          dispatchQueueUpdate(updated);
-        } catch (stateError) {
-          console.error("❌ [useOfflineSync] Failed to update state after sync", { error: stateError instanceof Error ? stateError.message : String(stateError) });
-        }
-        
-        return results;
-      } catch (error) {
-        console.error("❌ [useOfflineSync] syncQueue threw error", { error: error instanceof Error ? error.message : String(error) });
-        return {};
-      }
+  const dequeueAction = useCallback(
+    async (id: string) => {
+      console.log('📤 [USEOFFLINESYNC] Dequeuing action:', id);
+      await deleteOperation(id);
+      const updated = await getPendingOperations();
+      setPendingActions(updated);
+      dispatchQueueUpdate(updated);
+      console.log('✓ [USEOFFLINESYNC] Action dequeued. Queue size:', updated.length);
     },
-    [authToken, dispatchQueueUpdate],
+    [dispatchQueueUpdate],
   );
 
   const verifyConnectivity = useCallback(async () => {
@@ -203,7 +254,8 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
       if (isReachable && pendingActions.length > 0 && offlineMode) {
         console.log("🔄 [useOfflineSync] Backend reachable with pending actions - showing sync modal");
         setShowSyncModal(true);
-        if (authToken) {
+        const effectiveToken = getEffectiveToken(authToken);
+        if (effectiveToken) {
           console.log("🔄 [useOfflineSync] Starting auto-sync");
           await syncPendingActions();
         }

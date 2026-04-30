@@ -1,7 +1,8 @@
 import { API_BASE_URL } from "@/lib/config";
 import { addOperation, getOperationById, getPendingOperations, updateOperation } from "./db";
 import { replaceTempIds, setMapping } from "./id-mapper";
-import { cleanPayloadForSync } from "@/lib/errors";
+import { cleanPayloadForSync, isDuplicateKeyError } from "@/lib/errors";
+import { getUserSession } from "@/lib/authStorage";
 import { storage } from "@/lib/storage";
 import { Operation, OperationType } from "./types";
 
@@ -11,6 +12,23 @@ type SyncResult = Record<string, "success" | "failed">;
 
 function getPayloadId(payload: any): string {
   return payload?.id || payload?._id || payload?.saleId || payload?.productId || payload?.supplierId || "";
+}
+
+function getEffectiveToken(token?: string): string | undefined {
+  if (token) {
+    return token;
+  }
+
+  const sessionUser = getUserSession();
+  if (sessionUser?.token) {
+    console.log("🔁 [SYNC ENGINE] Loaded fallback token from stored user session", {
+      tokenPreview: sessionUser.token.substring(0, 20) + '...',
+      tokenLength: sessionUser.token.length,
+    });
+    return sessionUser.token;
+  }
+
+  return undefined;
 }
 
 function getEndpoint(op: Operation): string {
@@ -109,16 +127,16 @@ async function isDependencySatisfied(op: Operation): Promise<boolean> {
   return dependencies.every((dependency) => dependency?.status === "done");
 }
 
-async function processOperation(op: Operation, token: string): Promise<void> {
+export async function processOperation(op: Operation, token: string): Promise<void> {
   const opStartTime = performance.now();
   const endpoint = getEndpoint(op);
   const method = getMethod(op);
   
   // Build URL with businessId as query parameter for server
-  const businessId = op.payload?.businessId;
+  const currentBusinessId = getUserSession()?.businessId || op.payload?.businessId;
   const queryParams = new URLSearchParams();
-  if (businessId) {
-    queryParams.append('businessId', businessId);
+  if (currentBusinessId) {
+    queryParams.append('businessId', currentBusinessId);
   }
   const queryString = queryParams.toString();
   const fullUrl = `${API_BASE_URL}${endpoint}${queryString ? '?' + queryString : ''}`;
@@ -183,7 +201,7 @@ async function processOperation(op: Operation, token: string): Promise<void> {
     }
 
     const config: RequestInit = { method, headers };
-    if (method !== "GET" && method !== "HEAD") {
+    if (method !== "GET" && method !== "HEAD" && method !== "DELETE") {
       config.body = JSON.stringify(cleanedPayload);
     }
 
@@ -269,12 +287,20 @@ async function processOperation(op: Operation, token: string): Promise<void> {
 
     const offlineItemType = getOfflineItemType(op.type as OperationType);
     if (offlineItemType && op.payload?.id) {
-      storage.removeOfflineItem(offlineItemType, op.payload.id);
-      console.log("🗑️ [SYNC ENGINE] Removed from offline storage", {
-        id: op.id,
-        itemType: offlineItemType,
-        itemId: op.payload.id,
-      });
+      try {
+        storage.removeOfflineItem(offlineItemType, op.payload.id);
+        console.log("🗑️ [SYNC ENGINE] Removed from offline storage", {
+          id: op.id,
+          itemType: offlineItemType,
+          itemId: op.payload.id,
+        });
+      } catch (removeError) {
+        console.warn("⚠️ [SYNC ENGINE] Failed to remove offline item after sync, keeping for retry", {
+          id: op.id,
+          itemType: offlineItemType,
+          error: removeError instanceof Error ? removeError.message : String(removeError),
+        });
+      }
     }
 
     const totalDuration = performance.now() - opStartTime;
@@ -343,6 +369,48 @@ async function processOperation(op: Operation, token: string): Promise<void> {
       });
     }
 
+    // Check for MongoDB E11000 duplicate key errors
+    if (error instanceof Error && (error as any).status) {
+      const httpError = error as any;
+      
+      // Try to parse response body for better error detection
+      let enhancedError = httpError;
+      try {
+        if (httpError.responseText) {
+          const responseData = JSON.parse(httpError.responseText);
+          enhancedError = { ...httpError, response: { data: responseData } };
+        }
+      } catch (parseError) {
+        // If parsing fails, use original error
+      }
+      
+      // If this is a duplicate key error, treat as successful
+      if (isDuplicateKeyError(enhancedError)) {
+        console.log("✅ [SYNC ENGINE] Duplicate key error detected - treating as success", {
+          id: op.id,
+          type: op.type,
+          errorMsg: httpError.message,
+        });
+        
+        // Mark operation as done (successful)
+        await updateOperation(op.id, { status: "done", retries: op.retries, updatedAt: Date.now() });
+        
+        // Remove from offline storage since it already exists on server
+        const offlineItemType = getOfflineItemType(op.type as OperationType);
+        if (offlineItemType && op.payload?.id) {
+          storage.removeOfflineItem(offlineItemType, op.payload.id);
+          console.log("🗑️ [SYNC ENGINE] Removed duplicate item from offline storage", {
+            id: op.id,
+            itemType: offlineItemType,
+            itemId: op.payload.id,
+          });
+        }
+        
+        // Don't call handleFailure - exit successfully
+        return;
+      }
+    }
+
     await handleFailure(op);
     throw error;
   }
@@ -384,6 +452,7 @@ export async function syncQueue(token?: string): Promise<SyncResult> {
     return results;
   }
 
+  token = getEffectiveToken(token);
   if (!token) {
     console.error("🚨 [SYNC ENGINE] CRITICAL: Skipping sync - NO AUTH TOKEN PROVIDED", {
       tokenIsUndefined: token === undefined,

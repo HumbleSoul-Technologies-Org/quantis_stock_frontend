@@ -55,10 +55,14 @@ export function ProductTable({
     filtered = filtered.filter((p) => p.category === categoryFilter);
   }
 
-  const getSupplierName = (supplierId: string) => {
+  const getSupplierName = (supplierId?: string) => {
     return (
-      suppliers.find((s) => s._id === supplierId || s.id === supplierId)
-        ?.name || "Unknown"
+      suppliers.find(
+        (s) =>
+          s._id === supplierId ||
+          s.id === supplierId ||
+          s.offline_id === supplierId,
+      )?.name || "Unknown"
     );
   };
 
