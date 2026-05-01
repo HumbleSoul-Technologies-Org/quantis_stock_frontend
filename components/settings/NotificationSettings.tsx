@@ -9,18 +9,13 @@ import { useSettings } from "@/context/SettingsContext";
 export function NotificationSettings() {
   const { settings, updateNotifications } = useSettings();
   const [formData, setFormData] = useState({
-    creationNotifications: {
-      email: false,
-      sms: false,
-    },
-    SalesNotifications: {
-      email: false,
-      sms: false,
-    },
-    stockNotifications: {
-      email: false,
-      sms: false,
-    },
+    resourceChanges: { email: false, sms: false },
+    salesAlert: { email: false, sms: false },
+    loginFailAttempts: { email: false, sms: false },
+    systemUpdate: { email: false, sms: false },
+    returns: { email: false, sms: false },
+    lowStock: { email: false, sms: false },
+    userProfileChanges: { email: false, sms: false },
   });
   const [saved, setSaved] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -69,18 +64,121 @@ export function NotificationSettings() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Creation Notifications */}
+        {/* Resource Changes Notifications */}
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-            Creation Notifications
+            Alert Resource Changes
           </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified if a resource is created, updated, and deleted
+          </p>
           <div className="space-y-3">
             <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
               <input
                 type="checkbox"
-                checked={formData.creationNotifications.email}
+                checked={formData.resourceChanges.email}
+                onChange={() => toggleNotification("resourceChanges", "email")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    Email
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive email for resource changes
+                  </p>
+                </div>
+              </div>
+            </label>
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.resourceChanges.sms}
+                onChange={() => toggleNotification("resourceChanges", "sms")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    SMS
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive SMS for resource changes
+                  </p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Sales Alert Notifications */}
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+            Sales Alert
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified each time a sale is made
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.salesAlert.email}
+                onChange={() => toggleNotification("salesAlert", "email")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    Email
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive email when sales are made
+                  </p>
+                </div>
+              </div>
+            </label>
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.salesAlert.sms}
+                onChange={() => toggleNotification("salesAlert", "sms")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    SMS
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive SMS when sales are made
+                  </p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Login Fail Attempts */}
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+            Login Fail Attempts
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified when there is a login fail attempt
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.loginFailAttempts.email}
                 onChange={() =>
-                  toggleNotification("creationNotifications", "email")
+                  toggleNotification("loginFailAttempts", "email")
                 }
                 className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
               />
@@ -91,19 +189,16 @@ export function NotificationSettings() {
                     Email
                   </p>
                   <p className="text-sm text-gray-600 dark:text-slate-400">
-                    Receive email when new items are created
+                    Receive email for failed login attempts
                   </p>
                 </div>
               </div>
             </label>
-
             <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
               <input
                 type="checkbox"
-                checked={formData.creationNotifications.sms}
-                onChange={() =>
-                  toggleNotification("creationNotifications", "sms")
-                }
+                checked={formData.loginFailAttempts.sms}
+                onChange={() => toggleNotification("loginFailAttempts", "sms")}
                 className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
               />
               <div className="ml-3 flex items-center gap-2">
@@ -113,7 +208,7 @@ export function NotificationSettings() {
                     SMS
                   </p>
                   <p className="text-sm text-gray-600 dark:text-slate-400">
-                    Receive SMS when new items are created
+                    Receive SMS for failed login attempts
                   </p>
                 </div>
               </div>
@@ -121,19 +216,20 @@ export function NotificationSettings() {
           </div>
         </div>
 
-        {/* Sale Notifications */}
+        {/* System Update */}
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-            Sale Notifications
+            System Update
           </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified each time a new system update is released
+          </p>
           <div className="space-y-3">
             <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
               <input
                 type="checkbox"
-                checked={formData.SalesNotifications.email}
-                onChange={() =>
-                  toggleNotification("SalesNotifications", "email")
-                }
+                checked={formData.systemUpdate.email}
+                onChange={() => toggleNotification("systemUpdate", "email")}
                 className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
               />
               <div className="ml-3 flex items-center gap-2">
@@ -143,17 +239,16 @@ export function NotificationSettings() {
                     Email
                   </p>
                   <p className="text-sm text-gray-600 dark:text-slate-400">
-                    Receive email when sales are completed
+                    Receive email for system updates
                   </p>
                 </div>
               </div>
             </label>
-
             <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
               <input
                 type="checkbox"
-                checked={formData.SalesNotifications.sms}
-                onChange={() => toggleNotification("SalesNotifications", "sms")}
+                checked={formData.systemUpdate.sms}
+                onChange={() => toggleNotification("systemUpdate", "sms")}
                 className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
               />
               <div className="ml-3 flex items-center gap-2">
@@ -163,7 +258,7 @@ export function NotificationSettings() {
                     SMS
                   </p>
                   <p className="text-sm text-gray-600 dark:text-slate-400">
-                    Receive SMS when sales are completed
+                    Receive SMS for system updates
                   </p>
                 </div>
               </div>
@@ -171,19 +266,70 @@ export function NotificationSettings() {
           </div>
         </div>
 
-        {/* Stock Notifications */}
+        {/* Returns */}
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-            Stock Notifications
+            Returns
           </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified when there is a sale return
+          </p>
           <div className="space-y-3">
             <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
               <input
                 type="checkbox"
-                checked={formData.stockNotifications.email}
-                onChange={() =>
-                  toggleNotification("stockNotifications", "email")
-                }
+                checked={formData.returns.email}
+                onChange={() => toggleNotification("returns", "email")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    Email
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive email for sale returns
+                  </p>
+                </div>
+              </div>
+            </label>
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.returns.sms}
+                onChange={() => toggleNotification("returns", "sms")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    SMS
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive SMS for sale returns
+                  </p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Low Stock */}
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+            Low Stock
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified when a product hits its reorder level
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.lowStock.email}
+                onChange={() => toggleNotification("lowStock", "email")}
                 className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
               />
               <div className="ml-3 flex items-center gap-2">
@@ -198,12 +344,11 @@ export function NotificationSettings() {
                 </div>
               </div>
             </label>
-
             <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
               <input
                 type="checkbox"
-                checked={formData.stockNotifications.sms}
-                onChange={() => toggleNotification("stockNotifications", "sms")}
+                checked={formData.lowStock.sms}
+                onChange={() => toggleNotification("lowStock", "sms")}
                 className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
               />
               <div className="ml-3 flex items-center gap-2">
@@ -214,6 +359,59 @@ export function NotificationSettings() {
                   </p>
                   <p className="text-sm text-gray-600 dark:text-slate-400">
                     Receive SMS for low stock alerts
+                  </p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* User Profile Changes */}
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+            User Profile Changes
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+            Get notified when a new user profile is created, updated, banned,
+            and deleted
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.userProfileChanges.email}
+                onChange={() =>
+                  toggleNotification("userProfileChanges", "email")
+                }
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    Email
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive email for user profile changes
+                  </p>
+                </div>
+              </div>
+            </label>
+            <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.userProfileChanges.sms}
+                onChange={() => toggleNotification("userProfileChanges", "sms")}
+                className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+              />
+              <div className="ml-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-slate-100">
+                    SMS
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Receive SMS for user profile changes
                   </p>
                 </div>
               </div>

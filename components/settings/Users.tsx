@@ -20,6 +20,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useResourceNotifications } from "@/hooks/useResourceNotifications";
 import { useSettings } from "@/context/SettingsContext";
+import { encryptedStorageService } from "@/lib/encryptedStorage";
+import { sessionKeyManager } from "@/lib/sessionKeyManager";
 import { toast } from "sonner";
 import {
   CheckCircle,
@@ -93,23 +95,54 @@ export function Users() {
   });
 
   useEffect(() => {
-    if (usersData) {
-      setTeamUsers(
-        usersData.map((user: any) => ({
+    const persistUsers = async () => {
+      if (usersData) {
+        const normalizedUsers = usersData.map((user: any) => ({
           ...user,
           id: (user as any).id || (user as any)._id,
-        })),
-      );
+        }));
 
-      localStorage.setItem("teamUsers", JSON.stringify(usersData));
-    } else {
-      const storedUsers = localStorage.getItem("teamUsers");
-      if (storedUsers) {
-        setTeamUsers(JSON.parse(storedUsers));
-      } else {
-        setTeamUsers([]);
+        setTeamUsers(normalizedUsers);
+
+        if (typeof window !== "undefined") {
+          if (sessionKeyManager.isInitialized()) {
+            await encryptedStorageService.setEncrypted(
+              "teamUsers",
+              normalizedUsers,
+            );
+          } else {
+            localStorage.setItem("teamUsers", JSON.stringify(normalizedUsers));
+          }
+        }
+
+        return;
       }
-    }
+
+      if (typeof window !== "undefined") {
+        if (sessionKeyManager.isInitialized()) {
+          const storedUsers =
+            await encryptedStorageService.getDecrypted<TeamUser[]>("teamUsers");
+          if (storedUsers) {
+            setTeamUsers(storedUsers);
+            return;
+          }
+        }
+
+        const storedUsers = localStorage.getItem("teamUsers");
+        if (storedUsers) {
+          try {
+            setTeamUsers(JSON.parse(storedUsers));
+            return;
+          } catch (error) {
+            console.error("Failed to parse cached team users:", error);
+          }
+        }
+      }
+
+      setTeamUsers([]);
+    };
+
+    persistUsers();
   }, [usersData]);
 
   const validateCreateUserForm = (): boolean => {

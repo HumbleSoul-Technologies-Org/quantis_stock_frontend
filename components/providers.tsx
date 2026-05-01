@@ -10,6 +10,8 @@ import { DataProvider } from "@/context/DataContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { InactivityTimer } from "@/components/InactivityTimer";
 import ThemeProvider from "@/components/theme-provider";
+import { useEncryptionStatus } from "@/hooks/useEncryptionStatus";
+import { EncryptionStatusMonitor } from "@/components/EncryptionStatusMonitor";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -23,7 +25,10 @@ export function Providers({ children }: ProvidersProps) {
           <SettingsProvider>
             <InactivityTimer />
             <DataProvider>
-              <NotificationProvider>{children}</NotificationProvider>
+              <NotificationProvider>
+                {children}
+                <EncryptionStatusMonitor />
+              </NotificationProvider>
             </DataProvider>
           </SettingsProvider>
         </AuthProvider>

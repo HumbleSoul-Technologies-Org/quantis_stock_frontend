@@ -49,7 +49,8 @@ export function SyncData() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 dark:text-teal-100">
             <RefreshCw className="w-5 h-5" />
-            Data Synchronization
+            Data Synchronization{" "}
+            <b className="text-muted-foreground">(coming soon...)</b>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -60,10 +61,14 @@ export function SyncData() {
                 Allow the app to work offline and sync data when online
               </p>
             </div>
-            <Switch checked={offlineMode} onCheckedChange={setOfflineMode} />
+            <Switch
+              disabled={true}
+              checked={offlineMode}
+              onCheckedChange={setOfflineMode}
+            />
           </div>
 
-          <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
+          <div className="pt-4 hidden border-t border-gray-200 dark:border-teal-700">
             <Label className="text-base">Sync Interval (minutes)</Label>
             <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
               How often to sync data when online

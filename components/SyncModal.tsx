@@ -197,7 +197,7 @@ export function SyncModal({
                         <AlertCircle className="w-4 h-4 text-red-600" />
                       )}
                       {action.type} -{" "}
-                      {new Date(action.createdAt).toLocaleString()}
+                      {new Date(action.createdAt!).toLocaleString()}
                     </li>
                   ))}
                 </ul>

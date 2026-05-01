@@ -14,18 +14,22 @@ function getPayloadId(payload: any): string {
   return payload?.id || payload?._id || payload?.saleId || payload?.productId || payload?.supplierId || "";
 }
 
-function getEffectiveToken(token?: string): string | undefined {
+async function getEffectiveToken(token?: string): Promise<string | undefined> {
   if (token) {
     return token;
   }
 
-  const sessionUser = getUserSession();
-  if (sessionUser?.token) {
-    console.log("🔁 [SYNC ENGINE] Loaded fallback token from stored user session", {
-      tokenPreview: sessionUser.token.substring(0, 20) + '...',
-      tokenLength: sessionUser.token.length,
-    });
-    return sessionUser.token;
+  try {
+    const sessionUser = await getUserSession();
+    if (sessionUser?.token) {
+      console.log("🔁 [SYNC ENGINE] Loaded fallback token from stored user session", {
+        tokenPreview: sessionUser.token.substring(0, 20) + '...',
+        tokenLength: sessionUser.token.length,
+      });
+      return sessionUser.token;
+    }
+  } catch (error) {
+    console.error("🔁 [SYNC ENGINE] Error getting stored user session:", error);
   }
 
   return undefined;
@@ -133,7 +137,8 @@ export async function processOperation(op: Operation, token: string): Promise<vo
   const method = getMethod(op);
   
   // Build URL with businessId as query parameter for server
-  const currentBusinessId = getUserSession()?.businessId || op.payload?.businessId;
+  const currentUser = await getUserSession();
+  const currentBusinessId = currentUser?.businessId || op.payload?.businessId;
   const queryParams = new URLSearchParams();
   if (currentBusinessId) {
     queryParams.append('businessId', currentBusinessId);
@@ -165,12 +170,77 @@ export async function processOperation(op: Operation, token: string): Promise<vo
     }
 
     const payload = await replaceTempIds(op.payload);
-    const cleanedPayload = cleanPayloadForSync(payload, method);
+    const cleanedPayload = cleanPayloadForSync(payload, method, op.type);
 
     console.log("🧹 [SYNC ENGINE] Payload cleaned for sync", {
       id: op.id,
       payloadKeys: Object.keys(cleanedPayload || {}),
       payloadSize: JSON.stringify(cleanedPayload).length,
+    });
+
+    // Phase 3: Payload validation logging
+    const referenceFields: Record<string, string | undefined> = {
+      supplierId: cleanedPayload?.supplierId,
+      productId: cleanedPayload?.productId,
+      saleId: cleanedPayload?.saleId,
+    };
+    
+    const hasReferenceFields = Object.values(referenceFields).some(v => v);
+    const emptyReferenceFields = Object.entries(referenceFields)
+      .filter(([, value]) => value === "" || value === undefined || value === null)
+      .map(([key]) => key);
+
+    console.log("🔍 [SYNC ENGINE] Reference field validation", {
+      id: op.id,
+      type: op.type,
+      hasAnyReferences: hasReferenceFields,
+      referenceFields,
+      emptyReferenceFields: emptyReferenceFields.length > 0 ? emptyReferenceFields : "none",
+      criticalFields: {
+        supplierId: cleanedPayload?.supplierId || "EMPTY",
+        productId: cleanedPayload?.productId || "EMPTY",
+        saleId: cleanedPayload?.saleId || "EMPTY",
+      },
+    });
+
+    // Warn if operation type requires references but has empty fields
+    const requiresSupplier = ["CREATE_PRODUCT", "UPDATE_PRODUCT"].includes(op.type);
+    const requiresProduct = ["CREATE_SALE", "UPDATE_SALE", "STOCK_IN"].includes(op.type);
+    const requiresSale = ["PROCESS_SALE_RETURN"].includes(op.type);
+
+    if (requiresSupplier && !cleanedPayload?.supplierId) {
+      console.warn("⚠️ [SYNC ENGINE] WARNING: Operation requires supplierId but it's empty", {
+        id: op.id,
+        type: op.type,
+        supplierId: cleanedPayload?.supplierId,
+        payload: cleanedPayload,
+      });
+    }
+
+    if (requiresProduct && !cleanedPayload?.productId) {
+      console.warn("⚠️ [SYNC ENGINE] WARNING: Operation requires productId but it's empty", {
+        id: op.id,
+        type: op.type,
+        productId: cleanedPayload?.productId,
+        payload: cleanedPayload,
+      });
+    }
+
+    if (requiresSale && !cleanedPayload?.saleId) {
+      console.warn("⚠️ [SYNC ENGINE] WARNING: Operation requires saleId but it's empty", {
+        id: op.id,
+        type: op.type,
+        saleId: cleanedPayload?.saleId,
+        payload: cleanedPayload,
+      });
+    }
+
+    console.log("📋 [SYNC ENGINE] Full payload before sync", {
+      id: op.id,
+      type: op.type,
+      method,
+      endpoint,
+      payload: cleanedPayload,
     });
 
     const headers: Record<string, string> = {
@@ -369,7 +439,9 @@ export async function processOperation(op: Operation, token: string): Promise<vo
       });
     }
 
-    // Check for MongoDB E11000 duplicate key errors
+    // Handle errors: treat all HTTP response errors as success (server responded with error)
+    // Only retry on network errors (no response). Rationale: if server rejected the request,
+    // retrying won't help. Better to mark as done and remove from queue.
     if (error instanceof Error && (error as any).status) {
       const httpError = error as any;
       
@@ -384,33 +456,49 @@ export async function processOperation(op: Operation, token: string): Promise<vo
         // If parsing fails, use original error
       }
       
-      // If this is a duplicate key error, treat as successful
-      if (isDuplicateKeyError(enhancedError)) {
-        console.log("✅ [SYNC ENGINE] Duplicate key error detected - treating as success", {
-          id: op.id,
-          type: op.type,
-          errorMsg: httpError.message,
-        });
-        
-        // Mark operation as done (successful)
-        await updateOperation(op.id, { status: "done", retries: op.retries, updatedAt: Date.now() });
-        
-        // Remove from offline storage since it already exists on server
-        const offlineItemType = getOfflineItemType(op.type as OperationType);
-        if (offlineItemType && op.payload?.id) {
+      // All HTTP response errors are treated as success (including E11000)
+      // Server got the request and responded, so retrying won't help
+      const isDuplicate = isDuplicateKeyError(enhancedError);
+      const errorType = isDuplicate ? "Duplicate Key (E11000)" : `HTTP ${httpError.status}`;
+      
+      console.log("✅ [SYNC ENGINE] HTTP response error - treating as success and removing from queue", {
+        id: op.id,
+        type: op.type,
+        status: httpError.status,
+        statusText: httpError.statusText,
+        errorType,
+        reason: "Server responded with error, retrying won't help. Removing from offline queue.",
+        errorMsg: httpError.message,
+      });
+      
+      // Mark operation as done (successful)
+      await updateOperation(op.id, { status: "done", retries: op.retries, updatedAt: Date.now() });
+      
+      // Remove from offline storage
+      const offlineItemType = getOfflineItemType(op.type as OperationType);
+      if (offlineItemType && op.payload?.id) {
+        try {
           storage.removeOfflineItem(offlineItemType, op.payload.id);
-          console.log("🗑️ [SYNC ENGINE] Removed duplicate item from offline storage", {
+          console.log("🗑️ [SYNC ENGINE] Removed item from offline storage after HTTP error", {
             id: op.id,
             itemType: offlineItemType,
             itemId: op.payload.id,
+            errorStatus: httpError.status,
+          });
+        } catch (removeError) {
+          console.warn("⚠️ [SYNC ENGINE] Failed to remove offline item after HTTP error", {
+            id: op.id,
+            itemType: offlineItemType,
+            removeError: removeError instanceof Error ? removeError.message : String(removeError),
           });
         }
-        
-        // Don't call handleFailure - exit successfully
-        return;
       }
+      
+      // Exit successfully - don't retry
+      return;
     }
 
+    // Network errors (no response status) should be retried with backoff
     await handleFailure(op);
     throw error;
   }
@@ -420,13 +508,37 @@ async function handleFailure(op: Operation): Promise<void> {
   const retries = op.retries + 1;
 
   if (retries > 5) {
-    console.log("⛔ [SYNC ENGINE] Max retries exceeded", { id: op.id, type: op.type, totalRetries: retries });
+    console.error("⛔ [SYNC ENGINE] Max retries exceeded - operation will not be retried", { 
+      id: op.id, 
+      type: op.type, 
+      totalRetries: retries,
+      escalationStatus: "PERMANENT_FAILURE",
+    });
     await updateOperation(op.id, { status: "failed", retries, updatedAt: Date.now() });
     return;
   }
 
-  const backoffMs = 2 ** retries * 1000;
-  console.warn("⏳ [SYNC ENGINE] Retry scheduled", { id: op.id, retry: retries, maxRetries: 5, backoffSec: (backoffMs / 1000).toFixed(1) });
+  // Phase 4 Preparation: Error escalation tracking
+  // Log if this operation is on its 3rd, 4th, or 5th failure
+  if (retries >= 3) {
+    console.error("🚨 [SYNC ENGINE] ESCALATION: Operation has failed multiple times", {
+      id: op.id,
+      type: op.type,
+      failureCount: retries,
+      escalationLevel: retries === 3 ? "ESCALATED_L1" : retries === 4 ? "ESCALATED_L2" : "ESCALATED_L3",
+      recommendation: retries === 3 ? "User should be alerted if issue persists" : "This operation likely needs manual intervention",
+      operationType: op.type,
+      payloadId: op.payload?.id,
+    });
+  } else {
+    console.warn("⏳ [SYNC ENGINE] Retry scheduled", { 
+      id: op.id, 
+      retry: retries, 
+      maxRetries: 5, 
+      backoffSec: (2 ** retries * 1000 / 1000).toFixed(1),
+      escalationStatus: "RETRYING",
+    });
+  }
 
   await updateOperation(op.id, {
     status: "pending",
@@ -434,6 +546,7 @@ async function handleFailure(op: Operation): Promise<void> {
     updatedAt: Date.now(),
   });
 
+  const backoffMs = 2 ** retries * 1000;
   await delay(backoffMs);
 }
 
@@ -452,7 +565,7 @@ export async function syncQueue(token?: string): Promise<SyncResult> {
     return results;
   }
 
-  token = getEffectiveToken(token);
+  token = await getEffectiveToken(token);
   if (!token) {
     console.error("🚨 [SYNC ENGINE] CRITICAL: Skipping sync - NO AUTH TOKEN PROVIDED", {
       tokenIsUndefined: token === undefined,

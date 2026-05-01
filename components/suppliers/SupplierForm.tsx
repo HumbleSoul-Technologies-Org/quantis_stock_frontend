@@ -248,7 +248,6 @@ export function SupplierForm({
           ...supplier,
           ...payLoad,
           id: supplier.id || supplier._id || "", // Ensure we have an id for updates
-          updatedAt: new Date().toISOString(),
         };
         await onSubmit(updatedSupplier);
       } else {
@@ -256,8 +255,6 @@ export function SupplierForm({
         const newSupplier: Supplier = {
           ...payLoad,
           id: "", // Will be set by the backend
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         };
         await onSubmit(newSupplier);
       }

@@ -27,6 +27,9 @@ export function Profile() {
   const [editForm, setEditForm] = useState({
     businessName: business?.businessName || "",
     businessType: business?.businessType || "retail",
+    businessEmail: business?.businessEmail || "",
+    businessPhone: business?.businessPhone || "",
+    businessAddress: business?.businessAddress || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -48,6 +51,9 @@ export function Profile() {
         const payLoad = {
           businessName: editForm.businessName,
           businessType: editForm.businessType,
+          businessEmail: editForm.businessEmail,
+          businessPhone: editForm.businessPhone,
+          businessAddress: editForm.businessAddress,
         };
         const res = await apiRequest(
           "PUT",
@@ -62,6 +68,9 @@ export function Profile() {
             ...business,
             businessName: editForm.businessName,
             businessType: editForm.businessType,
+            businessEmail: editForm.businessEmail,
+            businessPhone: editForm.businessPhone,
+            businessAddress: editForm.businessAddress,
           };
           updateBusiness(updatedBusiness);
         }
@@ -103,6 +112,30 @@ export function Profile() {
                 {business?.businessType === "retail"
                   ? "Retail - Optimized for retail stores"
                   : "Other"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Business Email
+              </label>
+              <p className="text-sm text-gray-900 dark:text-slate-100">
+                {business?.businessEmail || "Not set"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Business Phone
+              </label>
+              <p className="text-sm text-gray-900 dark:text-slate-100">
+                {business?.businessPhone || "Not set"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Business Address
+              </label>
+              <p className="text-sm text-gray-900 dark:text-slate-100">
+                {business?.businessAddress || "Not set"}
               </p>
             </div>
           </div>
@@ -180,6 +213,7 @@ export function Profile() {
                   <div>
                     <Label htmlFor="businessType">Business Type</Label>
                     <select
+                      disabled={true}
                       id="businessType"
                       value={editForm.businessType}
                       onChange={(e) =>
@@ -193,6 +227,50 @@ export function Profile() {
                       <option value="retail">Retail</option>
                       <option value="other">Other</option>
                     </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="businessEmail">Business Email</Label>
+                    <Input
+                      id="businessEmail"
+                      type="email"
+                      value={editForm.businessEmail}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          businessEmail: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="businessPhone">Business Phone</Label>
+                    <Input
+                      id="businessPhone"
+                      type="tel"
+                      value={editForm.businessPhone}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          businessPhone: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="businessAddress">Business Address</Label>
+                    <Input
+                      id="businessAddress"
+                      value={editForm.businessAddress}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          businessAddress: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">

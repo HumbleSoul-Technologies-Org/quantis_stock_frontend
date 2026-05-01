@@ -22,9 +22,13 @@ export interface BusinessSettings {
     lastSyncedAt?: string;
   };
   notifications: {
-    creationNotifications: { email: boolean; sms: boolean };
-    SalesNotifications: { email: boolean; sms: boolean };
-    stockNotifications: { email: boolean; sms: boolean };
+    resourceChanges: { email: boolean; sms: boolean };
+    salesAlert: { email: boolean; sms: boolean };
+    loginFailAttempts: { email: boolean; sms: boolean };
+    systemUpdate: { email: boolean; sms: boolean };
+    returns: { email: boolean; sms: boolean };
+    lowStock: { email: boolean; sms: boolean };
+    userProfileChanges: { email: boolean; sms: boolean };
   };
   security: {
     autoLogoutTimeout: number;
@@ -34,13 +38,21 @@ export interface BusinessSettings {
 export interface BusinessSetup {
   businessName: string;
   businessType: BusinessType;
+  businessEmail?: string; // Optional business email
+  businessPhone?: string; // Optional business phone
+  businessAddress?: string; // Optional business address
   retailSubType?: RetailSubType; // Optional for backward compatibility
   currency: string; // Currency code (KES, USD, EUR, etc)
   lowStockThreshold: number; // Percentage of reorder level
-  emailAlerts: boolean;
-  smsAlerts: boolean;
-  lowStockAlerts: boolean;
-  saleNotifications: boolean;
+  notifications?: {
+    resourceChanges?: { email: boolean; sms: boolean };
+    salesAlert?: { email: boolean; sms: boolean };
+    loginFailAttempts?: { email: boolean; sms: boolean };
+    systemUpdate?: { email: boolean; sms: boolean };
+    returns?: { email: boolean; sms: boolean };
+    lowStock?: { email: boolean; sms: boolean };
+    userProfileChanges?: { email: boolean; sms: boolean };
+  };
   setupCompletedAt: string;
 }
 
@@ -50,8 +62,11 @@ export interface Business {
   ownerId: string; // Reference to admin user who owns the business
   businessName: string;
   businessType: BusinessType;
-  address?: string; // Optional business address
-  phone?: string; // Optional business phone
+  businessEmail?: string; // Optional business email
+  businessPhone?: string; // Optional business phone
+  businessAddress?: string; // Optional business address
+  address?: string; // Optional business address (legacy)
+  phone?: string; // Optional business phone (legacy)
   setupCompletedAt: string;
   settings: BusinessSettings; // New: embedded business settings
   user?: any; // Array of user IDs associated with this business
@@ -168,7 +183,7 @@ export interface StockMovement {
   reference: string; // Purchase order, Sales order, etc
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string | User;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface Category {
@@ -193,7 +208,7 @@ export interface Sale {
   notes: string;
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
-  createdAt: string;
+  createdAt?: string;
   customerName?: string;
   paymentType?: string;
   txnId?: string;

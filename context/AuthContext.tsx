@@ -13,6 +13,8 @@ import {
   saveUserSession,
   clearUserSession,
 } from "@/lib/authStorage";
+import { useSessionKey } from "@/hooks/useSessionKey";
+import { sessionKeyManager } from "@/lib/sessionKeyManager";
 
 interface AuthContextType {
   user: User | null;
@@ -39,29 +41,37 @@ const normalizeBusiness = (businessData: any): Business | null => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [business, setBusiness] = useState<Business | null>(null); // New: business state
+  const [business, setBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { isInitialized: keyInitialized, error: keyInitError } =
+    useSessionKey();
 
-  // Initialize from user session on mount
+  // Initialize from encrypted user session on mount
   useEffect(() => {
-    const cachedUserdata = localStorage.getItem("userData");
-    if (cachedUserdata) {
-      const parsed = JSON.parse(cachedUserdata) as User;
-      setUser(parsed);
-      setBusiness(normalizeBusiness(parsed.business));
-      setIsLoading(false);
-    } else {
-      const currentUser = getUserSession();
-
-      if (currentUser) {
-        setUser(currentUser);
-        setBusiness(normalizeBusiness(currentUser.business));
-        localStorage.setItem("userData", JSON.stringify(currentUser));
-      }
+    if (!keyInitialized && !keyInitError) {
+      console.log("[AUTH_CONTEXT] Waiting for encryption key to initialize...");
+      return; // Wait for key to initialize or fail
     }
 
-    setIsLoading(false);
-  }, []);
+    const initializeAuth = async () => {
+      try {
+        // Try encrypted session first
+        const currentUser = await getUserSession();
+
+        if (currentUser) {
+          console.log("[AUTH_CONTEXT] Loaded user from encrypted session");
+          setUser(currentUser);
+          setBusiness(normalizeBusiness(currentUser.business));
+        }
+      } catch (error) {
+        console.error("[AUTH_CONTEXT] Error loading user session:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, [keyInitialized]);
 
   const loginWithApiData = (userData: User): void => {
     const sanitizedUserData = { ...userData } as User;
@@ -69,13 +79,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(sanitizedUserData);
     setBusiness(normalizeBusiness(sanitizedUserData.business));
-    saveUserSession(sanitizedUserData);
-    localStorage.setItem("userData", JSON.stringify(sanitizedUserData));
+
+    // Save encrypted session (fire and forget, with error logging)
+    saveUserSession(sanitizedUserData).catch((error) => {
+      console.error("[AUTH_CONTEXT] Failed to save user session:", error);
+    });
   };
+
   const logout = (): void => {
-    clearUserSession();
     setUser(null);
-    setBusiness(null); // Clear business on logout
+    setBusiness(null);
+
+    // Clear encrypted session (fire and forget, with error logging)
+    clearUserSession().catch((error) => {
+      console.error("[AUTH_CONTEXT] Failed to clear user session:", error);
+    });
+
+    // Clear encryption key from session
+    try {
+      sessionKeyManager.clearKey();
+    } catch (error) {
+      console.error("[AUTH_CONTEXT] Failed to clear encryption key:", error);
+    }
   };
 
   const updateCredentials = (
@@ -100,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateBusiness = (newBusiness: Business | null): void => {
     setBusiness(newBusiness);
+
     const updatedUser = user ? { ...user, business: newBusiness as any } : null;
     if (updatedUser) {
       setUser(updatedUser);

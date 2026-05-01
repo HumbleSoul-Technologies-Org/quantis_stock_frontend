@@ -11,6 +11,8 @@ import {
 import { BusinessSettings } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { encryptedStorageService } from "@/lib/encryptedStorage";
+import { sessionKeyManager } from "@/lib/sessionKeyManager";
 import {
   fetchExchangeRates,
   convertCurrency,
@@ -88,9 +90,13 @@ const DEFAULT_SYNC_DATA = {
 };
 
 const DEFAULT_NOTIFICATIONS = {
-  creationNotifications: { email: false, sms: false },
-  SalesNotifications: { email: false, sms: false },
-  stockNotifications: { email: false, sms: false },
+  resourceChanges: { email: false, sms: false },
+  salesAlert: { email: false, sms: false },
+  loginFailAttempts: { email: false, sms: false },
+  systemUpdate: { email: false, sms: false },
+  returns: { email: false, sms: false },
+  lowStock: { email: false, sms: false },
+  userProfileChanges: { email: false, sms: false },
 };
 
 const DEFAULT_SECURITY = {
@@ -106,6 +112,45 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   security: DEFAULT_SECURITY,
 };
 
+async function loadCachedBusinessSettings(): Promise<BusinessSettings | null> {
+  if (typeof window === "undefined") return null;
+
+  if (sessionKeyManager.isInitialized()) {
+    const decrypted =
+      await encryptedStorageService.getDecrypted<BusinessSettings>(
+        "businessSettings",
+      );
+    if (decrypted) {
+      return decrypted;
+    }
+  }
+
+  const cached = localStorage.getItem("businessSettings");
+  if (!cached) return null;
+
+  try {
+    return JSON.parse(cached) as BusinessSettings;
+  } catch (error) {
+    console.error(
+      "[SETTINGS_CONTEXT] Failed to parse cached business settings:",
+      error,
+    );
+    return null;
+  }
+}
+
+async function persistBusinessSettings(
+  settings: BusinessSettings,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  if (sessionKeyManager.isInitialized()) {
+    await encryptedStorageService.setEncrypted("businessSettings", settings);
+  } else {
+    localStorage.setItem("businessSettings", JSON.stringify(settings));
+  }
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,7 +162,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [lastRateUpdate, setLastRateUpdate] = useState<string | null>(null);
   const { user, business, updateBusiness } = useAuth();
 
-   
   // Initialize settings from business data or localStorage, then refresh from backend
   useEffect(() => {
     const initializeSettings = async () => {
@@ -127,22 +171,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (businessSettings) {
         // Use settings from business object (from login response) as initial state
         setSettings((businessSettings as any) || business?.settings);
-        // Cache in localStorage for offline access
-        localStorage.setItem(
-          "businessSettings",
-          JSON.stringify(businessSettings),
+        await persistBusinessSettings(
+          (businessSettings as any) || business?.settings,
         );
       } else {
-        // Fallback to localStorage
-        const cached = localStorage.getItem("businessSettings");
+        const cached = await loadCachedBusinessSettings();
         if (cached) {
-          try {
-            const parsed = JSON.parse(cached) as BusinessSettings;
-            setSettings(parsed);
-          } catch (error) {
-            console.error("Failed to parse cached settings:", error);
-            setSettings(DEFAULT_SETTINGS);
-          }
+          setSettings(cached);
         } else {
           setSettings(DEFAULT_SETTINGS);
         }
@@ -161,7 +196,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     initializeSettings();
-  }, [business?.settings, (business as any)?.businessSettings, user?.token, user?.businessId]);
+  }, [
+    business?.settings,
+    (business as any)?.businessSettings,
+    user?.token,
+    user?.businessId,
+  ]);
 
   // Fetch exchange rates when currency changes (stale-while-revalidate pattern)
   useEffect(() => {
@@ -216,12 +256,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             businessId: user.businessId,
           };
           setSettings(updatedSettings);
-
-          // Cache in localStorage for offline access
-          localStorage.setItem(
-            "businessSettings",
-            JSON.stringify(updatedSettings),
-          );
+          await persistBusinessSettings(updatedSettings);
 
           // Sync AuthContext with updated business settings
           if (business) {
@@ -251,10 +286,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const updatedSettings = { ...settings, currency };
         setSettings(updatedSettings);
-        localStorage.setItem(
-          "businessSettings",
-          JSON.stringify(updatedSettings),
-        );
+        await persistBusinessSettings(updatedSettings);
 
         // Sync AuthContext with updated business settings
         if (business) {
@@ -293,10 +325,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const updatedSettings = { ...settings, notifications };
         setSettings(updatedSettings);
-        localStorage.setItem(
-          "businessSettings",
-          JSON.stringify(updatedSettings),
-        );
+        await persistBusinessSettings(updatedSettings);
 
         // Sync AuthContext with updated business settings
         if (business) {
@@ -329,10 +358,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const updatedSettings = { ...settings, syncData };
         setSettings(updatedSettings);
-        localStorage.setItem(
-          "businessSettings",
-          JSON.stringify(updatedSettings),
-        );
+        await persistBusinessSettings(updatedSettings);
 
         // Sync AuthContext with updated business settings
         if (business) {
@@ -365,10 +391,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const updatedSettings = { ...settings, units };
         setSettings(updatedSettings);
-        localStorage.setItem(
-          "businessSettings",
-          JSON.stringify(updatedSettings),
-        );
+        await persistBusinessSettings(updatedSettings);
 
         // Sync AuthContext with updated business settings
         if (business) {
@@ -401,10 +424,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const updatedSettings = { ...settings, security };
         setSettings(updatedSettings);
-        localStorage.setItem(
-          "businessSettings",
-          JSON.stringify(updatedSettings),
-        );
+        await persistBusinessSettings(updatedSettings);
 
         // Sync AuthContext with updated business settings
         if (business) {
@@ -422,16 +442,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   };
 
   const formatCurrency = (amount: number): string => {
-    if (!settings?.currency) return `$${amount.toFixed(2)}`;
+    if (!settings?.currency) return `$${amount.toLocaleString()}`;
 
     // Handle both object and string currency formats for backward compatibility
     const currency = settings.currency;
     if (typeof currency === "string") {
       // Fallback for old format - assume USD
-      return `$${amount.toFixed(2)}`;
+      return `$${amount.toLocaleString()}`;
     }
 
-    const formatted = amount.toFixed(currency.decimalPlaces || 2);
+    const formatted = amount.toLocaleString();
     return `${currency.symbol || "$"} ${formatted}`;
   };
 

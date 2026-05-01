@@ -61,7 +61,7 @@ export function SalesReturnsList({
                     </p>
                     <p className="text-sm text-gray-900 dark:text-slate-100">
                       {saleReturn.createdAt
-                        ? new Date(saleReturn.createdAt).toLocaleDateString()
+                        ? new Date(saleReturn.createdAt!).toLocaleDateString()
                         : "—"}
                     </p>
                   </div>

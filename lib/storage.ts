@@ -1,4 +1,5 @@
 import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement } from './types';
+import { encryptedStorageService } from './encryptedStorage';
 
 const STORAGE_KEY = 'erp_system_state';
 const OFFLINE_ITEMS_KEY = 'erp_system_offline_items';
@@ -37,6 +38,12 @@ const DEFAULT_STATE: AppState = {
 };
 
 class StorageService {
+  // Private in-memory cache for decrypted data
+  private cache: AppState = DEFAULT_STATE;
+  private offlineCache: OfflineItemsState = DEFAULT_OFFLINE_STATE;
+  private mergedCache: AppState = DEFAULT_STATE;
+  private initialized = false;
+
   // Check if localStorage is available and working
   private isLocalStorageAvailable(): boolean {
     try {
@@ -49,12 +56,27 @@ class StorageService {
     }
   }
 
+  // Check if Web Crypto API is available
+  private isCryptoAvailable(): boolean {
+    try {
+      return typeof window !== 'undefined' &&
+             window.crypto !== undefined &&
+             window.crypto.subtle !== undefined &&
+             typeof window.crypto.subtle.generateKey === 'function' &&
+             typeof window.crypto.subtle.encrypt === 'function' &&
+             typeof window.crypto.subtle.decrypt === 'function';
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Get browser compatibility info
-  getBrowserCompatibility(): { localStorage: boolean; json: boolean; fetch: boolean } {
+  getBrowserCompatibility(): { localStorage: boolean; json: boolean; fetch: boolean; crypto: boolean } {
     const compatibility = {
       localStorage: this.isLocalStorageAvailable(),
       json: typeof JSON !== 'undefined',
       fetch: typeof fetch !== 'undefined',
+      crypto: this.isCryptoAvailable(),
     };
 
     if (!compatibility.localStorage) {
@@ -66,8 +88,58 @@ class StorageService {
     if (!compatibility.fetch) {
       console.warn('Browser compatibility issue: fetch API is not available');
     }
+    if (!compatibility.crypto) {
+      console.warn('Browser compatibility issue: Web Crypto API is not available - encryption features will be disabled');
+    }
 
     return compatibility;
+  }
+
+  /**
+   * Initialize storage by loading encrypted data from localStorage
+   * Should be called on app startup before using getState()
+   */
+  async initialize(): Promise<void> {
+    if (typeof window === 'undefined' || this.initialized) {
+      return;
+    }
+
+    if (!this.isLocalStorageAvailable()) {
+      console.warn('localStorage is not available. Using default state.');
+      this.initialized = true;
+      return;
+    }
+
+    try {
+      console.log('[STORAGE] Initializing encrypted storage...');
+      
+      // Load main state
+      const stored = await encryptedStorageService.getDecrypted<AppState>(STORAGE_KEY);
+      if (stored) {
+        this.cache = stored;
+        console.log('✅ [STORAGE] Loaded encrypted main state');
+      }
+
+      // Load offline items
+      const offlineStored = await encryptedStorageService.getDecrypted<OfflineItemsState>(OFFLINE_ITEMS_KEY);
+      if (offlineStored) {
+        this.offlineCache = offlineStored;
+        console.log('✅ [STORAGE] Loaded encrypted offline items');
+      }
+
+      // Load merged cache
+      const mergedStored = await encryptedStorageService.getDecrypted<AppState>(MERGED_CACHE_KEY);
+      if (mergedStored) {
+        this.mergedCache = mergedStored;
+        console.log('✅ [STORAGE] Loaded encrypted merged cache');
+      }
+
+      this.initialized = true;
+      console.log('[STORAGE] Initialization complete');
+    } catch (error) {
+      console.error('[STORAGE] Failed to initialize encrypted storage:', error);
+      this.initialized = true;
+    }
   }
 
   getState(): AppState {
@@ -75,61 +147,8 @@ class StorageService {
       return DEFAULT_STATE;
     }
 
-    if (!this.isLocalStorageAvailable()) {
-      console.warn('localStorage is not available. Using default state.');
-      return {
-        users: [],
-        currentUser: null,
-        products: [],
-        suppliers: [],
-        sales: [],
-        saleReturns: [],
-        stockMovements: [],
-        // settings removed - now handled by SettingsContext
-      };
-    }
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        // Return empty state instead of initializing - only initialize after successful registration
-        return {
-          users: [],
-          currentUser: null,
-          products: [],
-          suppliers: [],
-          sales: [],
-          saleReturns: [],
-          stockMovements: [],
-          // settings removed - now handled by SettingsContext
-        };
-      }
-
-      const parsed = JSON.parse(stored);
-      // Ensure all required properties exist with defaults
-      return {
-        users: parsed.users || [],
-        currentUser: parsed.currentUser || null,
-        products: parsed.products || [],
-        suppliers: parsed.suppliers || [],
-        sales: parsed.sales || [],
-        saleReturns: parsed.saleReturns || [], // Add sale returns tracking
-        stockMovements: parsed.stockMovements || [],
-        // settings removed - now handled by SettingsContext
-      };
-    } catch (error) {
-      console.error('Error reading from localStorage:', error);
-      return {
-        users: [],
-        currentUser: null,
-        products: [],
-        suppliers: [],
-        sales: [],
-        saleReturns: [], // Add sale returns tracking
-        stockMovements: [],
-        // settings removed - now handled by SettingsContext
-      };
-    }
+    // Return cached state (should be populated by initialize())
+    return this.cache;
   }
 
   private matchesAnyId(item: any, id: string | undefined): boolean {
@@ -157,21 +176,15 @@ class StorageService {
     }
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // Update in-memory cache immediately (synchronous)
+      this.cache = state;
+      
+      // Fire off encryption asynchronously (don't wait)
+      encryptedStorageService.setEncrypted(STORAGE_KEY, state).catch(error => {
+        console.error('Error saving state to encrypted storage:', error);
+      });
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
-      // Try to clear some space if quota exceeded
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.warn('localStorage quota exceeded. Clearing only regular state to preserve offline items.');
-        try {
-          // Only remove regular state, preserve offline items and other keys
-          localStorage.removeItem(STORAGE_KEY);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-          console.log('✅ [STORAGE] Successfully saved after removing old state, offline items preserved');
-        } catch (retryError) {
-          console.error('Failed to save even after clearing regular state:', retryError);
-        }
-      }
+      console.error('Error updating cache:', error);
     }
   }
 
@@ -184,26 +197,8 @@ class StorageService {
       return DEFAULT_STATE;
     }
 
-    try {
-      const stored = localStorage.getItem(MERGED_CACHE_KEY);
-      if (!stored) {
-        return DEFAULT_STATE;
-      }
-
-      const parsed = JSON.parse(stored);
-      return {
-        users: parsed.users || [],
-        currentUser: parsed.currentUser || null,
-        products: parsed.products || [],
-        suppliers: parsed.suppliers || [],
-        sales: parsed.sales || [],
-        saleReturns: parsed.saleReturns || [],
-        stockMovements: parsed.stockMovements || [],
-      };
-    } catch (error) {
-      console.error('Error reading merged cache from localStorage:', error);
-      return DEFAULT_STATE;
-    }
+    // Return cached merged state
+    return this.mergedCache;
   }
 
   saveMergedCache(state: Partial<AppState>): void {
@@ -214,14 +209,20 @@ class StorageService {
     }
 
     try {
-      const currentCache = this.getMergedCache();
       const mergedCache = {
-        ...currentCache,
+        ...this.mergedCache,
         ...state,
       };
-      localStorage.setItem(MERGED_CACHE_KEY, JSON.stringify(mergedCache));
+      
+      // Update in-memory cache immediately
+      this.mergedCache = mergedCache;
+      
+      // Fire off encryption asynchronously
+      encryptedStorageService.setEncrypted(MERGED_CACHE_KEY, mergedCache).catch(error => {
+        console.error('Error saving merged cache to encrypted storage:', error);
+      });
     } catch (error) {
-      console.error('Error saving merged cache to localStorage:', error);
+      console.error('Error updating merged cache:', error);
     }
   }
 
@@ -254,8 +255,7 @@ class StorageService {
     const state = this.getState();
     state.currentUser = null;
     this.saveState(state);
-    localStorage.removeItem(STORAGE_KEY);
-    // localStorage.removeItem('erp_system_sync_queue');  
+    // Encrypted data will be cleared on browser session end
   }
 
   getCurrentUser(): User | null {
@@ -538,24 +538,8 @@ class StorageService {
       return DEFAULT_OFFLINE_STATE;
     }
 
-    try {
-      const stored = localStorage.getItem(OFFLINE_ITEMS_KEY);
-      if (!stored) {
-        return DEFAULT_OFFLINE_STATE;
-      }
-
-      const parsed = JSON.parse(stored);
-      return {
-        products: parsed.products || [],
-        suppliers: parsed.suppliers || [],
-        sales: parsed.sales || [],
-        saleReturns: parsed.saleReturns || [],
-        stockMovements: parsed.stockMovements || [],
-      };
-    } catch (error) {
-      console.error('Error reading offline items from localStorage:', error);
-      return DEFAULT_OFFLINE_STATE;
-    }
+    // Return cached offline state
+    return this.offlineCache;
   }
 
   private saveOfflineState(state: OfflineItemsState): void {
@@ -566,9 +550,15 @@ class StorageService {
     }
 
     try {
-      localStorage.setItem(OFFLINE_ITEMS_KEY, JSON.stringify(state));
+      // Update in-memory cache
+      this.offlineCache = state;
+      
+      // Fire off encryption asynchronously
+      encryptedStorageService.setEncrypted(OFFLINE_ITEMS_KEY, state).catch(error => {
+        console.error('Error saving offline items to encrypted storage:', error);
+      });
     } catch (error) {
-      console.error('Error saving offline items to localStorage:', error);
+      console.error('Error updating offline cache:', error);
     }
   }
 
@@ -640,7 +630,13 @@ class StorageService {
     }
 
     try {
-      localStorage.removeItem(OFFLINE_ITEMS_KEY);
+      // Clear in-memory cache
+      this.offlineCache = DEFAULT_OFFLINE_STATE;
+      
+      // Clear from encrypted storage
+      encryptedStorageService.setEncrypted(OFFLINE_ITEMS_KEY, DEFAULT_OFFLINE_STATE).catch(error => {
+        console.error('Error clearing offline items from encrypted storage:', error);
+      });
     } catch (error) {
       console.error('Error clearing offline items:', error);
     }
@@ -648,10 +644,22 @@ class StorageService {
 
   // Reset
   resetToDefaults(): void {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(OFFLINE_ITEMS_KEY);
+    // Clear all caches
+    this.cache = DEFAULT_STATE;
+    this.offlineCache = DEFAULT_OFFLINE_STATE;
+    this.mergedCache = DEFAULT_STATE;
+    
+    // Fire off clearing to encrypted storage
     const initialState = DEFAULT_STATE;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
+    encryptedStorageService.setEncrypted(STORAGE_KEY, initialState).catch(error => {
+      console.error('Error resetting state to encrypted storage:', error);
+    });
+    encryptedStorageService.setEncrypted(OFFLINE_ITEMS_KEY, DEFAULT_OFFLINE_STATE).catch(error => {
+      console.error('Error resetting offline items to encrypted storage:', error);
+    });
+    encryptedStorageService.setEncrypted(MERGED_CACHE_KEY, DEFAULT_STATE).catch(error => {
+      console.error('Error resetting merged cache to encrypted storage:', error);
+    });
   }
 
 }

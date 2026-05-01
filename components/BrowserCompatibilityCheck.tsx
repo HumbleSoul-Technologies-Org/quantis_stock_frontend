@@ -7,6 +7,7 @@ interface BrowserCompatibility {
   localStorage: boolean;
   json: boolean;
   fetch: boolean;
+  crypto: boolean;
 }
 
 export function BrowserCompatibilityCheck() {
@@ -22,7 +23,10 @@ export function BrowserCompatibilityCheck() {
   if (!compatibility) return null;
 
   const allCompatible =
-    compatibility.localStorage && compatibility.json && compatibility.fetch;
+    compatibility.localStorage &&
+    compatibility.json &&
+    compatibility.fetch &&
+    compatibility.crypto;
 
   if (allCompatible && !showDetails) return null;
 
@@ -86,11 +90,28 @@ export function BrowserCompatibilityCheck() {
               </span>
               <span>Fetch API</span>
             </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={
+                  compatibility.crypto ? "text-green-600" : "text-red-600"
+                }
+              >
+                {compatibility.crypto ? "✓" : "✗"}
+              </span>
+              <span>Web Crypto API</span>
+            </div>
             {!allCompatible && (
               <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-xs">
                 <strong>Recommendation:</strong> Try disabling browser
                 extensions or using incognito mode. If issues persist, contact
                 support.
+                {!compatibility.crypto && (
+                  <div className="mt-1">
+                    <strong>Security Note:</strong> Web Crypto API not
+                    supported. Data encryption features will be disabled for
+                    security.
+                  </div>
+                )}
               </div>
             )}
           </div>

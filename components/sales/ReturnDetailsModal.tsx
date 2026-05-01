@@ -83,7 +83,7 @@ export function ReturnDetailsModal({
                   </label>
                   <p className="text-lg font-semibold text-gray-900 dark:text-slate-100 mt-1">
                     {saleReturn.createdAt
-                      ? new Date(saleReturn.createdAt).toLocaleDateString(
+                      ? new Date(saleReturn.createdAt!).toLocaleDateString(
                           "en-US",
                           {
                             weekday: "short",

@@ -4,6 +4,7 @@ import { syncQueue, processOperation } from '@/lib/offline/sync-engine';
 import { Operation } from '@/lib/offline/types';
 import { API_BASE_URL } from '@/lib/config';
 import { getUserSession } from '@/lib/authStorage';
+import { storage } from '@/lib/storage';
 
 export interface SyncConfig {
   offlineMode: boolean;
@@ -12,15 +13,19 @@ export interface SyncConfig {
 
 const SYNC_QUEUE_EVENT = 'erp_system_sync_queue_updated';
 
-function getEffectiveToken(token?: string): string | undefined {
+async function getEffectiveToken(token?: string): Promise<string | undefined> {
   if (token) {
     return token;
   }
 
-  const storedUser = getUserSession();
-  if (storedUser?.token) {
-    console.log('🔁 [USEOFFLINESYNC] Using fallback token from stored session');
-    return storedUser.token;
+  try {
+    const storedUser = await getUserSession();
+    if (storedUser?.token) {
+      console.log('🔁 [USEOFFLINESYNC] Using fallback token from stored session');
+      return storedUser.token;
+    }
+  } catch (error) {
+    console.error('🔁 [USEOFFLINESYNC] Error getting stored user session:', error);
   }
 
   return undefined;
@@ -88,19 +93,47 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
     window.dispatchEvent(new CustomEvent(SYNC_QUEUE_EVENT, { detail: actions }));
   }, []);
 
-  const loadPendingActions = useCallback(async (): Promise<Operation[]> => {
-    if (typeof window === 'undefined') return [];
+  // Count actual offline items in localStorage
+  const countOfflineItems = useCallback((): number => {
+    if (typeof window === 'undefined') return 0;
     try {
-      return await getPendingOperations();
+      const offlineItems = storage.getOfflineItems();
+      const count = (offlineItems.products?.length || 0) +
+                    (offlineItems.suppliers?.length || 0) +
+                    (offlineItems.sales?.length || 0) +
+                    (offlineItems.saleReturns?.length || 0) +
+                    (offlineItems.stockMovements?.length || 0);
+      return count;
     } catch (error) {
-      console.error('Error loading pending actions from IndexedDB:', error);
-      return [];
+      console.error('Error counting offline items:', error);
+      return 0;
     }
   }, []);
 
+  const loadPendingActions = useCallback(async (): Promise<Operation[]> => {
+    if (typeof window === 'undefined') return [];
+    try {
+      // Return array with dummy operations matching the offline item count
+      // This is used by the UI to display pending count
+      const count = countOfflineItems();
+      return Array(count).fill(null).map((_, i) => ({
+        id: `offline-item-${i}`,
+        type: 'OFFLINE_ITEM' as any,
+        payload: {},
+        status: 'pending',
+        retries: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }));
+    } catch (error) {
+      console.error('Error loading pending actions:', error);
+      return [];
+    }
+  }, [countOfflineItems]);
+
   const syncPendingActions = useCallback(
     async (): Promise<Record<string, 'success' | 'failed'>> => {
-      const effectiveToken = getEffectiveToken(authToken);
+      const effectiveToken = await getEffectiveToken(authToken);
       console.log("🔐 [useOfflineSync] syncPendingActions called", {
         hasToken: !!effectiveToken,
         tokenPreview: effectiveToken ? effectiveToken.substring(0, 20) + '...' : 'MISSING',
@@ -123,7 +156,7 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
         const results = await syncQueue(effectiveToken);
         
         try {
-          const updated = await getPendingOperations();
+          const updated = await loadPendingActions();
           setPendingActions(updated);
           dispatchQueueUpdate(updated);
         } catch (stateError) {
@@ -136,16 +169,11 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
         return {};
       }
     },
-    [authToken, dispatchQueueUpdate],
+    [authToken, dispatchQueueUpdate, loadPendingActions],
   );
 
   const enqueueAction = useCallback(
     async (action: Omit<Operation, 'id' | 'status' | 'retries' | 'createdAt' | 'updatedAt'>) => {
-      if (!offlineMode) {
-        console.warn('⚠️ [USEOFFLINESYNC] Offline mode disabled. Not queuing action:', action);
-        return;
-      }
-
       const operation: Operation = {
         ...action,
         id: crypto.randomUUID?.() ?? Math.random().toString(36).substr(2, 9),
@@ -164,7 +192,7 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
             endpoint: operation.endpoint,
           });
 
-          const effectiveToken = getEffectiveToken(authToken);
+          const effectiveToken = await getEffectiveToken(authToken);
           if (effectiveToken) {
             try {
               await processOperation(operation, effectiveToken);
@@ -174,23 +202,40 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
                 id: operation.id,
                 error: error instanceof Error ? error.message : String(error)
               });
-              // If immediate processing fails, fall back to queuing
-              await addOperation(operation);
-              const updated = await getPendingOperations();
-              setPendingActions(updated);
-              dispatchQueueUpdate(updated);
+              // Only queue if offline mode is enabled
+              if (offlineMode) {
+                console.log('📥 [USEOFFLINESYNC] Offline mode enabled - queuing failed operation');
+                await addOperation(operation);
+                const updated = await loadPendingActions();
+                setPendingActions(updated);
+                dispatchQueueUpdate(updated);
+              } else {
+                // Offline mode disabled - throw error instead of queuing
+                console.log('❌ [USEOFFLINESYNC] Offline mode disabled - throwing error instead of queuing');
+                throw error;
+              }
             }
           } else {
-            console.warn('⚠️ [USEOFFLINESYNC] No auth token available for immediate processing, queuing instead', { id: operation.id });
-            await addOperation(operation);
-            const updated = await getPendingOperations();
-            setPendingActions(updated);
-            dispatchQueueUpdate(updated);
+            console.warn('⚠️ [USEOFFLINESYNC] No auth token available for immediate processing', { id: operation.id });
+            if (offlineMode) {
+              console.log('📥 [USEOFFLINESYNC] Offline mode enabled - queuing operation without token');
+              await addOperation(operation);
+              const updated = await loadPendingActions();
+              setPendingActions(updated);
+              dispatchQueueUpdate(updated);
+            } else {
+              throw new Error('No auth token available and offline mode is disabled');
+            }
           }
           return;
         }
 
-        // If offline, queue for later sync
+        // If offline, queue for later sync (only if offline mode is enabled)
+        if (!offlineMode) {
+          console.warn('⚠️ [USEOFFLINESYNC] Device is OFFLINE and offline mode is disabled. Cannot queue action:', action);
+          throw new Error('Device is offline and offline sync is not enabled');
+        }
+
         console.log('📥 [USEOFFLINESYNC] Device is OFFLINE - enqueueing operation:', {
           id: operation.id,
           type: operation.type,
@@ -200,15 +245,16 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
 
         await addOperation(operation);
 
-        const updated = await getPendingOperations();
+        const updated = await loadPendingActions();
         setPendingActions(updated);
         dispatchQueueUpdate(updated);
         console.log('✓ [USEOFFLINESYNC] Operation enqueued. Queue size:', updated.length);
       } catch (error) {
-        console.error('❌ [USEOFFLINESYNC] Failed to enqueue operation', { id: operation.id, error: error instanceof Error ? error.message : String(error) });
+        console.error('❌ [USEOFFLINESYNC] Error in enqueueAction', { id: operation.id, error: error instanceof Error ? error.message : String(error) });
+        throw error;
       }
     },
-    [offlineMode, isOnline, authToken, dispatchQueueUpdate],
+    [offlineMode, isOnline, authToken, dispatchQueueUpdate, loadPendingActions],
   );
 
   const incrementRetry = useCallback(
@@ -218,23 +264,23 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
       console.log('🔁 [USEOFFLINESYNC] Incrementing retry for action:', { id, newRetryCount });
 
       await updateOperation(id, { retries: newRetryCount, updatedAt: Date.now() });
-      const updated = await getPendingOperations();
+      const updated = await loadPendingActions();
       setPendingActions(updated);
       dispatchQueueUpdate(updated);
     },
-    [dispatchQueueUpdate],
+    [dispatchQueueUpdate, loadPendingActions],
   );
 
   const dequeueAction = useCallback(
     async (id: string) => {
       console.log('📤 [USEOFFLINESYNC] Dequeuing action:', id);
       await deleteOperation(id);
-      const updated = await getPendingOperations();
+      const updated = await loadPendingActions();
       setPendingActions(updated);
       dispatchQueueUpdate(updated);
       console.log('✓ [USEOFFLINESYNC] Action dequeued. Queue size:', updated.length);
     },
-    [dispatchQueueUpdate],
+    [dispatchQueueUpdate, loadPendingActions],
   );
 
   const verifyConnectivity = useCallback(async () => {
@@ -254,7 +300,7 @@ export function useOfflineSync(syncConfig?: SyncConfig, authToken?: string) {
       if (isReachable && pendingActions.length > 0 && offlineMode) {
         console.log("🔄 [useOfflineSync] Backend reachable with pending actions - showing sync modal");
         setShowSyncModal(true);
-        const effectiveToken = getEffectiveToken(authToken);
+        const effectiveToken = await getEffectiveToken(authToken);
         if (effectiveToken) {
           console.log("🔄 [useOfflineSync] Starting auto-sync");
           await syncPendingActions();

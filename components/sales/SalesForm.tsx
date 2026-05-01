@@ -231,7 +231,6 @@ export function SalesForm({
         status: "completed",
         notes,
         createdBy: currentUserId,
-        createdAt: isEditing ? sale.createdAt : new Date().toISOString(),
         customerName,
         paymentType,
         txnId: newTxnId,

@@ -15,8 +15,8 @@ function RecentActivityContent() {
   const recentSales = [...safeSales]
     .filter((sale) => sale?.createdAt)
     .sort((a, b) => {
-      const aDate = new Date(a.createdAt).getTime();
-      const bDate = new Date(b.createdAt).getTime();
+      const aDate = new Date(a.createdAt!).getTime();
+      const bDate = new Date(b.createdAt!).getTime();
       return Number.isFinite(bDate) && Number.isFinite(aDate)
         ? bDate - aDate
         : 0;
@@ -26,8 +26,8 @@ function RecentActivityContent() {
   const recentMovements = [...safeMovements]
     .filter((movement) => movement?.createdAt)
     .sort((a, b) => {
-      const aDate = new Date(a.createdAt).getTime();
-      const bDate = new Date(b.createdAt).getTime();
+      const aDate = new Date(a.createdAt!).getTime();
+      const bDate = new Date(b.createdAt!).getTime();
       return Number.isFinite(bDate) && Number.isFinite(aDate)
         ? bDate - aDate
         : 0;

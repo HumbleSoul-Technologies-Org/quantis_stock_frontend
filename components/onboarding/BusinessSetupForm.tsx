@@ -38,19 +38,19 @@ export function BusinessSetupForm({
   isLoading = false,
 }: BusinessSetupFormProps) {
   const [businessName, setBusinessName] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
   const [currency, setCurrency] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState(20);
-  const [creationNotifications, setCreationNotifications] = useState({
-    email: false,
-    sms: false,
-  });
-  const [SalesNotifications, setSalesNotifications] = useState({
-    email: false,
-    sms: false,
-  });
-  const [stockNotifications, setStockNotifications] = useState({
-    email: false,
-    sms: false,
+  const [notifications, setNotifications] = useState({
+    resourceChanges: { email: false, sms: false },
+    salesAlert: { email: false, sms: false },
+    loginFailAttempts: { email: false, sms: false },
+    systemUpdate: { email: false, sms: false },
+    returns: { email: false, sms: false },
+    lowStock: { email: false, sms: false },
+    userProfileChanges: { email: false, sms: false },
   });
   const [offlineMode, setOfflineMode] = useState(false);
   const [syncInterval, setSyncInterval] = useState("15");
@@ -92,6 +92,15 @@ export function BusinessSetupForm({
       if (!businessName?.trim()) {
         newErrors.businessName = "Business name is required";
       }
+      if (!businessEmail?.trim()) {
+        newErrors.businessEmail = "Business email is required";
+      }
+      if (!businessPhone?.trim()) {
+        newErrors.businessPhone = "Business phone is required";
+      }
+      if (!businessAddress?.trim()) {
+        newErrors.businessAddress = "Business address is required";
+      }
     } else if (step === 2) {
       if (!currency?.trim()) {
         newErrors.currency = "Currency is required";
@@ -113,28 +122,16 @@ export function BusinessSetupForm({
   };
 
   const toggleNotification = (
-    category:
-      | "creationNotifications"
-      | "SalesNotifications"
-      | "stockNotifications",
+    category: keyof typeof notifications,
     channel: "email" | "sms",
   ) => {
-    if (category === "creationNotifications") {
-      setCreationNotifications({
-        ...creationNotifications,
-        [channel]: !creationNotifications[channel],
-      });
-    } else if (category === "SalesNotifications") {
-      setSalesNotifications({
-        ...SalesNotifications,
-        [channel]: !SalesNotifications[channel],
-      });
-    } else if (category === "stockNotifications") {
-      setStockNotifications({
-        ...stockNotifications,
-        [channel]: !stockNotifications[channel],
-      });
-    }
+    setNotifications({
+      ...notifications,
+      [category]: {
+        ...notifications[category],
+        [channel]: !notifications[category][channel],
+      },
+    });
   };
 
   const handleCompleteSetup = () => {
@@ -142,12 +139,13 @@ export function BusinessSetupForm({
     // The settings should be saved separately using Save Settings button
     const businessSetup = {
       businessName,
+      businessEmail,
+      businessPhone,
+      businessAddress,
       businessType: "retail",
       currency,
       lowStockThreshold,
-      stockNotifications,
-      SalesNotifications,
-      creationNotifications,
+      notifications,
       setupCompletedAt: new Date().toISOString(),
     };
     onSubmit(businessSetup as any);
@@ -160,6 +158,15 @@ export function BusinessSetupForm({
     // Validate all required fields
     if (!businessName?.trim()) {
       newErrors.businessName = "Business name is required";
+    }
+    if (!businessEmail?.trim()) {
+      newErrors.businessEmail = "Business email is required";
+    }
+    if (!businessPhone?.trim()) {
+      newErrors.businessPhone = "Business phone is required";
+    }
+    if (!businessAddress?.trim()) {
+      newErrors.businessAddress = "Business address is required";
     }
     if (!currency?.trim()) {
       newErrors.currency = "Currency is required";
@@ -295,6 +302,80 @@ export function BusinessSetupForm({
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                    Business Email <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={businessEmail}
+                    onChange={(e) => setBusinessEmail(e.target.value)}
+                    placeholder="e.g., contact@mybusiness.com"
+                    type="email"
+                    className={`border-2 focus:ring-2 focus:ring-teal-500 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${
+                      errors.businessEmail
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-teal-200 dark:border-teal-700"
+                    }`}
+                  />
+                  {errors.businessEmail && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                      <p className="text-red-500 text-sm">
+                        {errors.businessEmail}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                    Business Phone <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={businessPhone}
+                    onChange={(e) => setBusinessPhone(e.target.value)}
+                    placeholder="e.g., +254 700 123 456"
+                    type="tel"
+                    className={`border-2 focus:ring-2 focus:ring-teal-500 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${
+                      errors.businessPhone
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-teal-200 dark:border-teal-700"
+                    }`}
+                  />
+                  {errors.businessPhone && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                      <p className="text-red-500 text-sm">
+                        {errors.businessPhone}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                    Business Address <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={businessAddress}
+                    onChange={(e) => setBusinessAddress(e.target.value)}
+                    placeholder="e.g., 123 Market Street, Nairobi"
+                    className={`border-2 focus:ring-2 focus:ring-teal-500 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${
+                      errors.businessAddress
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-teal-200 dark:border-teal-700"
+                    }`}
+                  />
+                  {errors.businessAddress && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                      <p className="text-red-500 text-sm">
+                        {errors.businessAddress}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
                     Business Type
                   </label>
                   <div className="px-4 py-3 bg-teal-50 dark:bg-slate-800 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm font-medium text-gray-700 dark:text-slate-200">
@@ -379,157 +460,300 @@ export function BusinessSetupForm({
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Creation Notifications */}
+                {/* Resource Changes Notifications */}
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-                    Creation Notifications
+                    Alert Resource Changes
                   </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified if a resource is created, updated, and deleted
+                  </p>
                   <div className="space-y-3">
                     <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
                       <input
                         type="checkbox"
-                        checked={creationNotifications.email}
+                        checked={notifications.resourceChanges.email}
                         onChange={() =>
-                          toggleNotification("creationNotifications", "email")
+                          toggleNotification("resourceChanges", "email")
                         }
                         className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
                       />
                       <div className="ml-3 flex items-center gap-2">
                         <Mail className="w-4 h-4" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">
-                            Email
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">
-                            Receive email when new items are created
-                          </p>
-                        </div>
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
                       </div>
                     </label>
-
                     <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
                       <input
                         type="checkbox"
-                        checked={creationNotifications.sms}
+                        checked={notifications.resourceChanges.sms}
                         onChange={() =>
-                          toggleNotification("creationNotifications", "sms")
+                          toggleNotification("resourceChanges", "sms")
                         }
                         className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
                       />
                       <div className="ml-3 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">
-                            SMS
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">
-                            Receive SMS when new items are created
-                          </p>
-                        </div>
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
                       </div>
                     </label>
                   </div>
                 </div>
 
-                {/* Sale Notifications */}
+                {/* Sales Alert Notifications */}
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-                    Sale Notifications
+                    Sales Alert
                   </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified each time a sale is made
+                  </p>
                   <div className="space-y-3">
                     <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
                       <input
                         type="checkbox"
-                        checked={SalesNotifications.email}
+                        checked={notifications.salesAlert.email}
                         onChange={() =>
-                          toggleNotification("SalesNotifications", "email")
+                          toggleNotification("salesAlert", "email")
                         }
                         className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
                       />
                       <div className="ml-3 flex items-center gap-2">
                         <Mail className="w-4 h-4" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">
-                            Email
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">
-                            Receive email when sales are completed
-                          </p>
-                        </div>
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
                       </div>
                     </label>
-
                     <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
                       <input
                         type="checkbox"
-                        checked={SalesNotifications.sms}
-                        onChange={() =>
-                          toggleNotification("SalesNotifications", "sms")
-                        }
+                        checked={notifications.salesAlert.sms}
+                        onChange={() => toggleNotification("salesAlert", "sms")}
                         className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
                       />
                       <div className="ml-3 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">
-                            SMS
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">
-                            Receive SMS when sales are completed
-                          </p>
-                        </div>
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
                       </div>
                     </label>
                   </div>
                 </div>
 
-                {/* Stock Notifications */}
+                {/* Login Fail Attempts Notifications */}
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
-                    Stock Notifications
+                    Login Fail Attempts
                   </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified when there is a login fail attempt
+                  </p>
                   <div className="space-y-3">
                     <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
                       <input
                         type="checkbox"
-                        checked={stockNotifications.email}
+                        checked={notifications.loginFailAttempts.email}
                         onChange={() =>
-                          toggleNotification("stockNotifications", "email")
+                          toggleNotification("loginFailAttempts", "email")
                         }
                         className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
                       />
                       <div className="ml-3 flex items-center gap-2">
                         <Mail className="w-4 h-4" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">
-                            Email
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">
-                            Receive email for low stock alerts
-                          </p>
-                        </div>
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
                       </div>
                     </label>
-
                     <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
                       <input
                         type="checkbox"
-                        checked={stockNotifications.sms}
+                        checked={notifications.loginFailAttempts.sms}
                         onChange={() =>
-                          toggleNotification("stockNotifications", "sms")
+                          toggleNotification("loginFailAttempts", "sms")
                         }
                         className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
                       />
                       <div className="ml-3 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">
-                            SMS
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">
-                            Receive SMS for low stock alerts
-                          </p>
-                        </div>
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* System Update Notifications */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+                    System Update
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified each time a new system update is released
+                  </p>
+                  <div className="space-y-3">
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.systemUpdate.email}
+                        onChange={() =>
+                          toggleNotification("systemUpdate", "email")
+                        }
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.systemUpdate.sms}
+                        onChange={() =>
+                          toggleNotification("systemUpdate", "sms")
+                        }
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Returns Notifications */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+                    Returns
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified when there is a sale return
+                  </p>
+                  <div className="space-y-3">
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.returns.email}
+                        onChange={() => toggleNotification("returns", "email")}
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.returns.sms}
+                        onChange={() => toggleNotification("returns", "sms")}
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Low Stock Notifications */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+                    Low Stock
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified when a product hits its reorder level
+                  </p>
+                  <div className="space-y-3">
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.lowStock.email}
+                        onChange={() => toggleNotification("lowStock", "email")}
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.lowStock.sms}
+                        onChange={() => toggleNotification("lowStock", "sms")}
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* User Profile Changes Notifications */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
+                    User Profile Changes
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                    Get notified when a new user profile is created, updated,
+                    banned, and deleted
+                  </p>
+                  <div className="space-y-3">
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.userProfileChanges.email}
+                        onChange={() =>
+                          toggleNotification("userProfileChanges", "email")
+                        }
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          Email
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={notifications.userProfileChanges.sms}
+                        onChange={() =>
+                          toggleNotification("userProfileChanges", "sms")
+                        }
+                        className="w-4 h-4 text-green-600 border-green-200 rounded focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span className="font-medium text-gray-900 dark:text-slate-100">
+                          SMS
+                        </span>
                       </div>
                     </label>
                   </div>
@@ -555,7 +779,8 @@ export function BusinessSetupForm({
                   <RefreshCw className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   <div>
                     <CardTitle className="text-gray-900 dark:text-teal-100">
-                      Sync Settings
+                      Sync Settings{" "}
+                      <b className="text-muted-foreground">(coming soon...)</b>
                     </CardTitle>
                     <CardDescription className="text-gray-600 dark:text-slate-400">
                       Configure data synchronization preferences
@@ -566,10 +791,11 @@ export function BusinessSetupForm({
               <CardContent className="pt-6 space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
-                    Offline Mode
+                    Offline Mode{" "}
                   </label>
                   <div className="flex items-center gap-3">
                     <input
+                      disabled={true}
                       type="checkbox"
                       checked={offlineMode}
                       onChange={(e) => setOfflineMode(e.target.checked)}
@@ -586,7 +812,7 @@ export function BusinessSetupForm({
                   </div>
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
                     Sync Interval (minutes)
                   </label>
@@ -603,7 +829,7 @@ export function BusinessSetupForm({
                   <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">
                     How often to sync data when online
                   </p>
-                </div>
+                </div> */}
 
                 {/* <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
                   <Button

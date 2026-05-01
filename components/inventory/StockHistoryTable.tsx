@@ -26,7 +26,7 @@ export function StockHistoryTable({
   }
 
   const sorted = filtered.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );
 
   const outProductIds = new Set(
@@ -59,7 +59,7 @@ export function StockHistoryTable({
         )
         .sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
         )[0];
 
       return {
@@ -76,7 +76,7 @@ export function StockHistoryTable({
     });
 
   const combined = [...stockOutSynthMovements, ...sorted].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );
 
   const getProductName = (productId?: string) => {
@@ -176,7 +176,7 @@ export function StockHistoryTable({
                       {movement.reference}
                     </td>
                     <td className="p-2 sm:p-3 text-gray-600 dark:text-slate-400 text-xs whitespace-nowrap">
-                      {format(new Date(movement.createdAt), "MMM d yyyy")}
+                      {format(new Date(movement.createdAt!), "MMM d yyyy")}
                     </td>
                     <td className="p-2 sm:p-3 text-gray-600 dark:text-slate-400 text-xs hidden md:table-cell">
                       {typeof movement.createdBy === "object"

@@ -145,7 +145,6 @@ export function StockMovementForm({
         reason: formData.reason,
         reference: formData.reference,
         createdBy: currentUserId,
-        createdAt: initialMovement?.createdAt || new Date().toISOString(),
       };
 
       await onSubmit(movement);
@@ -188,12 +187,19 @@ export function StockMovementForm({
             value={productOptions.find(
               (option) => option.value === formData.productId,
             )}
-            onChange={(selectedOption) =>
+            onChange={(selectedOption) => {
+              const selectedProduct = products.find(
+                (p) =>
+                  p.offline_id === selectedOption?.value ||
+                  p._id === selectedOption?.value ||
+                  p.id === selectedOption?.value,
+              );
               setFormData({
                 ...formData,
                 productId: selectedOption?.value || "",
-              })
-            }
+                offline_product_id: selectedProduct?.offline_id || "",
+              });
+            }}
             options={productOptions}
             placeholder="Select product"
             className="w-full"

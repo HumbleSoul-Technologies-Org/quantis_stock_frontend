@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { clearUserSession } from "@/lib/authStorage";
 import {
   Card,
   CardContent,
@@ -181,6 +182,21 @@ export function ProductKeyForm() {
     }
   };
 
+  const restartRegistration = async () => {
+    try {
+      await apiRequest(
+        "POST",
+        `/users/${user?.id}/restart-registration`,
+        {},
+        user?.token,
+      );
+      // Clear the current auth session and redirect to registration page
+      clearUserSession();
+      router.push("/auth/register");
+    } catch (error) {
+      console.error("Restart registration failed:", error);
+    }
+  };
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 py-8">
       <div className="max-w-md mx-auto">
@@ -277,14 +293,17 @@ export function ProductKeyForm() {
                   </div>
                 )}
               </Button>
-              <button
-                type="button"
-                onClick={() => router.push("/onboarding")}
-                disabled={isLoading}
-                className="w-full mt-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-              >
-                Skip for now
-              </button>
+
+              <p className="text-sm text-gray-500 dark:text-slate-500">
+                Ran into a problem? OR don't have a product key?{" "}
+                <button
+                  type="button"
+                  onClick={restartRegistration}
+                  className="text-emerald-600 cursor-pointer dark:text-emerald-400 hover:underline"
+                >
+                  Restart registration
+                </button>
+              </p>
             </form>
           </CardContent>
         </Card>

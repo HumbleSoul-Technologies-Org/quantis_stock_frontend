@@ -180,13 +180,13 @@ function SalesPageContent() {
     const sorted = [...todaysSales]
       .filter((s: any) => s?.createdAt)
       .sort((a: any, b: any) => {
-        const aDate = new Date(a.createdAt).getTime();
-        const bDate = new Date(b.createdAt).getTime();
+        const aDate = new Date(a.createdAt!).getTime();
+        const bDate = new Date(b.createdAt!).getTime();
         if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) return 0;
         return bDate - aDate;
       });
     const lastSale = sorted[0];
-    const date = new Date(lastSale?.createdAt);
+    const date = new Date(lastSale?.createdAt!);
     return Number.isFinite(date.getTime()) ? date : null;
   }, [todaysSales]);
 
@@ -202,7 +202,7 @@ function SalesPageContent() {
     const today = new Date().toDateString();
     const safeSaleReturns = Array.isArray(saleReturns) ? saleReturns : [];
     return safeSaleReturns.filter((sr: any) => {
-      const returnDate = new Date(sr?.createdAt);
+      const returnDate = new Date(sr?.createdAt!);
       return (
         Number.isFinite(returnDate.getTime()) &&
         returnDate.toDateString() === today

@@ -14,7 +14,7 @@ export function InventoryStats({ products, movements }: InventoryStatsProps) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const recentRestocks = movements.filter(
-    (m) => m.type === "in" && new Date(m.createdAt) > thirtyDaysAgo,
+    (m) => m.type === "in" && new Date(m.createdAt!) > thirtyDaysAgo,
   ).length;
 
   // Calculate restocks needed

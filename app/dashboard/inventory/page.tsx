@@ -188,8 +188,8 @@ function InventoryPageContent() {
     return [...safeStockMovements]
       .filter((m) => m?.createdAt)
       .sort((a, b) => {
-        const aDate = new Date(a.createdAt).getTime();
-        const bDate = new Date(b.createdAt).getTime();
+        const aDate = new Date(a.createdAt!).getTime();
+        const bDate = new Date(b.createdAt!).getTime();
         if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) return 0;
         return bDate - aDate;
       });
@@ -206,7 +206,7 @@ function InventoryPageContent() {
 
       let matchesDateRange = true;
       if (historyDateFrom || historyDateTo) {
-        const movementDateValue = new Date(movement.createdAt);
+        const movementDateValue = new Date(movement.createdAt!);
         const movementDate = Number.isFinite(movementDateValue.getTime())
           ? movementDateValue.toDateString()
           : null;
@@ -245,7 +245,7 @@ function InventoryPageContent() {
 
       let matchesDateRange = true;
       if (historyDateFrom || historyDateTo) {
-        const movementDateValue = new Date(movement.createdAt);
+        const movementDateValue = new Date(movement.createdAt!);
         const movementDate = Number.isFinite(movementDateValue.getTime())
           ? movementDateValue.toDateString()
           : null;
@@ -296,7 +296,7 @@ function InventoryPageContent() {
   const lastStockOut =
     stockOutMovements.length > 0 ? stockOutMovements[0] : null;
   const lastStockOutDate = lastStockOut
-    ? new Date(lastStockOut.createdAt).toLocaleDateString("en-US", {
+    ? new Date(lastStockOut.createdAt!).toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",

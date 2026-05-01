@@ -69,35 +69,18 @@ function OnboardingContent() {
         ownerId: user?.id || "",
         businessName: businessSetup.businessName,
         businessType: businessSetup.businessType,
+        businessEmail: businessSetup.businessEmail,
+        businessPhone: businessSetup.businessPhone,
+        businessAddress: businessSetup.businessAddress,
         setupCompletedAt: businessSetup.setupCompletedAt,
         settings: {
-          businessId: `temp-${Date.now()}`,
           currency: currencyInfo,
-          units: {
-            weightUnits: ["kg", "lbs", "oz", "g"],
-            volumeUnits: ["L", "ml", "gallons", "fl oz"],
-            lengthUnits: ["m", "cm", "mm", "inches", "feet", "km", "yards"],
-            countUnits: [
-              "units",
-              "pieces",
-              "boxes",
-              "cases",
-              "packs",
-              "cartons",
-              "bottles",
-              "tablets",
-              "capsules",
-            ],
-          },
+
           syncData: {
             offlineMode: false,
             syncInterval: "15",
           },
-          notifications: {
-            creationNotifications: businessSetup?.creationNotifications,
-            SalesNotifications: businessSetup?.SalesNotifications,
-            stockNotifications: businessSetup?.stockNotifications,
-          },
+          notifications: businessSetup.notifications || {},
         },
       };
 

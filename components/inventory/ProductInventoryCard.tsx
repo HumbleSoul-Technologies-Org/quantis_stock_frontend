@@ -29,11 +29,11 @@ export function ProductInventoryCard({
     )
     .sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
     )[0];
 
   const lastRestockDate = lastMovement
-    ? format(new Date(lastMovement.createdAt), "MMM dd, yyyy")
+    ? format(new Date(lastMovement.createdAt!), "MMM dd, yyyy")
     : "Never";
 
   // ✅ Better stock percentage (with safe fallback when reorderLevel is missing/zero)

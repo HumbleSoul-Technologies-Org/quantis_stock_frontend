@@ -176,9 +176,6 @@ export function Security() {
         type: "error",
         text: error instanceof Error ? error.message : "Update failed",
       });
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
     } finally {
       setProcessing(false);
     }
@@ -503,6 +500,9 @@ export function Security() {
         <CardContent>
           <div className="text-center py-8">
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 text-2xl dark:text-slate-400">
+              Coming soon...
+            </p>
             <p className="text-gray-600 dark:text-slate-400">
               Security logs will be displayed here.
             </p>

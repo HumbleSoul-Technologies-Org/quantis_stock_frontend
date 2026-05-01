@@ -166,7 +166,7 @@ export function SalesTable({
   };
 
   const sorted = sales.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );
 
   return (
@@ -231,7 +231,7 @@ export function SalesTable({
                       {formatCurrencyShort(sale.totalAmount)}
                     </p>
                     <p className="text-xs dark:text-white">
-                      {format(new Date(sale.createdAt), "MMM d, yyyy")}
+                      {format(new Date(sale.createdAt!), "MMM d, yyyy")}
                     </p>
                   </div>
                 </div>

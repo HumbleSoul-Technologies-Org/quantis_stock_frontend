@@ -9,12 +9,28 @@ import { Button } from "@/components/ui/button";
 import { Download, AlertCircle, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
 
 function ReportsPageContent() {
   const { products, sales, stockMovements } = useData();
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
   const [selectedReport, setSelectedReport] = useState("inventory");
+  const [stockMovementPeriod, setStockMovementPeriod] = useState("monthly");
+  const [salesPeriod, setSalesPeriod] = useState("monthly");
+  const [dateRange, setDateRange] = useState({
+    start: new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1), // Last 6 months
+    end: new Date(),
+  });
   const { user } = useAuth();
 
   const safeProducts = Array.isArray(products) ? products : [];
@@ -22,6 +38,282 @@ function ReportsPageContent() {
   const safeStockMovements = Array.isArray(stockMovements)
     ? stockMovements
     : [];
+
+  // Process stock movement data for charts
+  const processStockMovementData = () => {
+    const monthlyData: Record<
+      string,
+      { month: string; stockIn: number; stockOut: number }
+    > = {};
+
+    safeStockMovements.forEach((movement) => {
+      const date = new Date(movement.createdAt!);
+      if (date >= dateRange.start && date <= dateRange.end) {
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { month: monthKey, stockIn: 0, stockOut: 0 };
+        }
+
+        if (movement.type === "in") {
+          monthlyData[monthKey].stockIn += movement.quantity;
+        } else if (movement.type === "out") {
+          monthlyData[monthKey].stockOut += movement.quantity;
+        }
+      }
+    });
+
+    return Object.values(monthlyData).sort((a, b) =>
+      a.month.localeCompare(b.month),
+    );
+  };
+
+  // Month and day names for formatting
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  // Process sales data by WEEKLY
+  const processSalesDataWeekly = () => {
+    const weeklyData: Record<
+      string,
+      { week: string; revenue: number; salesCount: number; aov: number }
+    > = {};
+
+    safeSales.forEach((sale) => {
+      if (sale.status !== "completed") return;
+
+      const date = new Date(sale.date);
+      if (date >= dateRange.start && date <= dateRange.end) {
+        const year = date.getFullYear();
+        const week = getWeekNumber(date);
+        const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+
+        if (!weeklyData[weekKey]) {
+          weeklyData[weekKey] = {
+            week: weekKey,
+            revenue: 0,
+            salesCount: 0,
+            aov: 0,
+          };
+        }
+
+        weeklyData[weekKey].revenue += sale.totalAmount;
+        weeklyData[weekKey].salesCount += 1;
+        weeklyData[weekKey].aov =
+          weeklyData[weekKey].revenue / weeklyData[weekKey].salesCount;
+      }
+    });
+
+    return Object.values(weeklyData).sort((a, b) =>
+      a.week.localeCompare(b.week),
+    );
+  };
+
+  // Process sales data by ANNUAL
+  const processSalesDataAnnually = () => {
+    const annualData: Record<
+      string,
+      { year: string; revenue: number; salesCount: number; aov: number }
+    > = {};
+
+    safeSales.forEach((sale) => {
+      if (sale.status !== "completed") return;
+
+      const date = new Date(sale.date);
+      if (date >= dateRange.start && date <= dateRange.end) {
+        const year = `${date.getFullYear()}`;
+
+        if (!annualData[year]) {
+          annualData[year] = {
+            year,
+            revenue: 0,
+            salesCount: 0,
+            aov: 0,
+          };
+        }
+
+        annualData[year].revenue += sale.totalAmount;
+        annualData[year].salesCount += 1;
+        annualData[year].aov =
+          annualData[year].revenue / annualData[year].salesCount;
+      }
+    });
+
+    return Object.values(annualData).sort((a, b) =>
+      a.year.localeCompare(b.year),
+    );
+  };
+
+  // Get appropriate sales data based on selected period
+  const getSalesData = () => {
+    switch (salesPeriod) {
+      case "weekly":
+        return processSalesDataWeekly();
+      case "annual":
+        return processSalesDataAnnually();
+      default:
+        return processSalesData();
+    }
+  };
+
+  // Helper to get week number
+  const getWeekNumber = (date: Date) => {
+    const d = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  };
+
+  // Process stock movement data by WEEKLY
+  const processStockMovementDataWeekly = () => {
+    const weeklyData: Record<
+      string,
+      { week: string; stockIn: number; stockOut: number }
+    > = {};
+
+    safeStockMovements.forEach((movement) => {
+      const date = new Date(movement.createdAt!);
+      if (date >= dateRange.start && date <= dateRange.end) {
+        const year = date.getFullYear();
+        const week = getWeekNumber(date);
+        const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+
+        if (!weeklyData[weekKey]) {
+          weeklyData[weekKey] = { week: weekKey, stockIn: 0, stockOut: 0 };
+        }
+
+        if (movement.type === "in") {
+          weeklyData[weekKey].stockIn += movement.quantity;
+        } else if (movement.type === "out") {
+          weeklyData[weekKey].stockOut += movement.quantity;
+        }
+      }
+    });
+
+    return Object.values(weeklyData).sort((a, b) =>
+      a.week.localeCompare(b.week),
+    );
+  };
+
+  // Process stock movement data by ANNUAL
+  const processStockMovementDataAnnually = () => {
+    const annualData: Record<
+      string,
+      { year: string; stockIn: number; stockOut: number }
+    > = {};
+
+    safeStockMovements.forEach((movement) => {
+      const date = new Date(movement.createdAt!);
+      if (date >= dateRange.start && date <= dateRange.end) {
+        const year = `${date.getFullYear()}`;
+
+        if (!annualData[year]) {
+          annualData[year] = { year, stockIn: 0, stockOut: 0 };
+        }
+
+        if (movement.type === "in") {
+          annualData[year].stockIn += movement.quantity;
+        } else if (movement.type === "out") {
+          annualData[year].stockOut += movement.quantity;
+        }
+      }
+    });
+
+    return Object.values(annualData).sort((a, b) =>
+      a.year.localeCompare(b.year),
+    );
+  };
+
+  // Get the appropriate data based on selected period
+  const getStockMovementData = () => {
+    switch (stockMovementPeriod) {
+      case "weekly":
+        return processStockMovementDataWeekly();
+      case "annual":
+        return processStockMovementDataAnnually();
+      default:
+        return processStockMovementData();
+    }
+  };
+
+  // Chart configuration for stock movement trends
+  const chartConfig = {
+    stockIn: {
+      label: "Stock In",
+      color: "#22c55e",
+    },
+    stockOut: {
+      label: "Stock Out",
+      color: "#ef4444",
+    },
+  };
+
+  // Chart configuration for sales trends
+  const salesChartConfig = {
+    revenue: {
+      label: "Revenue",
+      color: "hsl(var(--chart-1))",
+    },
+    salesCount: {
+      label: "Sales Count",
+      color: "hsl(var(--chart-2))",
+    },
+    aov: {
+      label: "Avg Order Value",
+      color: "hsl(var(--chart-3))",
+    },
+  };
+
+  // Process sales data for charts
+  const processSalesData = () => {
+    const monthlyData: Record<
+      string,
+      { month: string; revenue: number; salesCount: number; aov: number }
+    > = {};
+
+    safeSales.forEach((sale) => {
+      if (sale.status !== "completed") return; // Only include completed sales
+
+      const date = new Date(sale.date);
+      if (date >= dateRange.start && date <= dateRange.end) {
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            month: monthKey,
+            revenue: 0,
+            salesCount: 0,
+            aov: 0,
+          };
+        }
+
+        monthlyData[monthKey].revenue += sale.totalAmount;
+        monthlyData[monthKey].salesCount += 1;
+        monthlyData[monthKey].aov =
+          monthlyData[monthKey].revenue / monthlyData[monthKey].salesCount;
+      }
+    });
+
+    return Object.values(monthlyData).sort((a, b) =>
+      a.month.localeCompare(b.month),
+    );
+  };
 
   // Inventory Summary
   const totalProducts = safeProducts.length;
@@ -101,19 +393,31 @@ function ReportsPageContent() {
     } else if (selectedReport === "sales") {
       csv =
         "ID,_ID,Sale Number,Date,Customer Name,Payment Type,Transaction ID,Total Amount,Status,Notes,Created By,Created At,Items (JSON)\n";
-      sales.forEach((s) => {
-        csv += `"${s.id || ""}","${s._id || ""}","${s.saleNumber}","${s.date}","${s.customerName || ""}","${s.paymentType || ""}","${s.txnId || ""}",${s.totalAmount},"${s.status}","${s.notes}","${s.createdBy}","${s.createdAt}","${JSON.stringify(s.items).replace(/"/g, '""')}"\n`;
-      });
+      sales
+        .filter((s) => {
+          const saleDate = new Date(s.date);
+          return saleDate >= dateRange.start && saleDate <= dateRange.end;
+        })
+        .forEach((s) => {
+          csv += `"${s.id || ""}","${s._id || ""}","${s.saleNumber}","${s.date}","${s.customerName || ""}","${s.paymentType || ""}","${s.txnId || ""}",${s.totalAmount},"${s.status}","${s.notes}","${s.createdBy}","${s.createdAt}","${JSON.stringify(s.items).replace(/"/g, '""')}"\n`;
+        });
     } else if (selectedReport === "stock_movements") {
       csv =
         "ID,Product ID,Type,Quantity,Reason,Reference,Created By,Created At\n";
-      stockMovements.forEach((m) => {
-        const createdBy =
-          typeof m.createdBy === "object"
-            ? m.createdBy?.username || m.createdBy?.id || ""
-            : m.createdBy || "";
-        csv += `"${m.id}","${m.productId}","${m.type}",${m.quantity},"${m.reason}","${m.reference}","${createdBy}","${m.createdAt}"\n`;
-      });
+      stockMovements
+        .filter((m) => {
+          const movementDate = new Date(m.createdAt!);
+          return (
+            movementDate >= dateRange.start && movementDate <= dateRange.end
+          );
+        })
+        .forEach((m) => {
+          const createdBy =
+            typeof m.createdBy === "object"
+              ? m.createdBy?.username || m.createdBy?.id || ""
+              : m.createdBy || "";
+          csv += `"${m.id}","${m.productId}","${m.type}",${m.quantity},"${m.reason}","${m.reference}","${createdBy}","${m.createdAt}"\n`;
+        });
     }
 
     const element = document.createElement("a");
@@ -141,6 +445,41 @@ function ReportsPageContent() {
           <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
             View insights and generate reports
           </p>
+        </div>
+      </div>
+
+      <div className="flex gap-4 items-center mb-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+            From:
+          </label>
+          <input
+            type="date"
+            value={dateRange.start.toISOString().split("T")[0]}
+            onChange={(e) =>
+              setDateRange((prev) => ({
+                ...prev,
+                start: new Date(e.target.value),
+              }))
+            }
+            className="px-3 py-2 border border-gray-300 dark:border-teal-700 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+            To:
+          </label>
+          <input
+            type="date"
+            value={dateRange.end.toISOString().split("T")[0]}
+            onChange={(e) =>
+              setDateRange((prev) => ({
+                ...prev,
+                end: new Date(e.target.value),
+              }))
+            }
+            className="px-3 py-2 border border-gray-300 dark:border-teal-700 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
         </div>
       </div>
 
@@ -337,6 +676,269 @@ function ReportsPageContent() {
               </div>
             </div>
 
+            {/* Period Toggle Buttons */}
+            <div className="flex gap-2 flex-wrap border-b border-gray-200 dark:border-teal-700 pb-4">
+              <Button
+                onClick={() => setSalesPeriod("weekly")}
+                variant={salesPeriod === "weekly" ? "default" : "outline"}
+                className={
+                  salesPeriod === "weekly"
+                    ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+                    : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                }
+                size="sm"
+              >
+                Weekly
+              </Button>
+              <Button
+                onClick={() => setSalesPeriod("monthly")}
+                variant={salesPeriod === "monthly" ? "default" : "outline"}
+                className={
+                  salesPeriod === "monthly"
+                    ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+                    : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                }
+                size="sm"
+              >
+                Monthly
+              </Button>
+              <Button
+                onClick={() => setSalesPeriod("annual")}
+                variant={salesPeriod === "annual" ? "default" : "outline"}
+                className={
+                  salesPeriod === "annual"
+                    ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+                    : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                }
+                size="sm"
+              >
+                Yearly
+              </Button>
+            </div>
+
+            {/* Sales Count Chart */}
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
+                Sales Count
+              </h3>
+              <ChartContainer
+                config={{
+                  salesCount: {
+                    label: "Sales Count",
+                    color: "hsl(var(--chart-2))",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <BarChart data={getSalesData()}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(0,0,0,0.1)"
+                  />
+                  <XAxis
+                    dataKey={
+                      salesPeriod === "annual"
+                        ? "year"
+                        : salesPeriod === "weekly"
+                          ? "week"
+                          : "month"
+                    }
+                    stroke="currentColor"
+                    style={{ fontSize: "12px" }}
+                    tickFormatter={(value) => {
+                      if (salesPeriod === "annual") return value;
+                      if (salesPeriod === "weekly") return value;
+                      if (salesPeriod === "monthly") {
+                        const [year, month] = value.split("-");
+                        const monthNum = parseInt(month) - 1;
+                        return `${monthNames[monthNum]} ${year}`;
+                      }
+                      return value;
+                    }}
+                  />
+                  <YAxis stroke="currentColor" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--background)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                    labelFormatter={(value) => {
+                      if (salesPeriod === "monthly") {
+                        const [year, month] = value.split("-");
+                        const monthNum = parseInt(month) - 1;
+                        return `${monthNames[monthNum]} ${year}`;
+                      }
+                      return String(value);
+                    }}
+                  />
+                  <Bar
+                    dataKey="salesCount"
+                    fill="hsl(var(--chart-2))"
+                    name="Sales Count"
+                    barSize={40}
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </div>
+
+            {/* Revenue Chart */}
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
+                Revenue
+              </h3>
+              <ChartContainer
+                config={{
+                  revenue: {
+                    label: "Revenue",
+                    color: "hsl(var(--chart-1))",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <BarChart data={getSalesData()}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(0,0,0,0.1)"
+                  />
+                  <XAxis
+                    dataKey={
+                      salesPeriod === "annual"
+                        ? "year"
+                        : salesPeriod === "weekly"
+                          ? "week"
+                          : "month"
+                    }
+                    stroke="currentColor"
+                    style={{ fontSize: "12px" }}
+                    tickFormatter={(value) => {
+                      if (salesPeriod === "annual") return value;
+                      if (salesPeriod === "weekly") return value;
+                      if (salesPeriod === "monthly") {
+                        const [year, month] = value.split("-");
+                        const monthNum = parseInt(month) - 1;
+                        return `${monthNames[monthNum]} ${year}`;
+                      }
+                      return value;
+                    }}
+                  />
+                  <YAxis
+                    stroke="currentColor"
+                    tickFormatter={(value) =>
+                      typeof value === "number"
+                        ? formatCurrencyShort(value)
+                        : value
+                    }
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--background)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                    labelFormatter={(value) => {
+                      if (salesPeriod === "monthly") {
+                        const [year, month] = value.split("-");
+                        const monthNum = parseInt(month) - 1;
+                        return `${monthNames[monthNum]} ${year}`;
+                      }
+                      return String(value);
+                    }}
+                    formatter={(value) => [
+                      formatCurrencyShort(value as number),
+                      "Revenue",
+                    ]}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="hsl(var(--chart-1))"
+                    name="Revenue"
+                    barSize={40}
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </div>
+
+            {/* AOV Chart */}
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
+                Average Order Value
+              </h3>
+              <ChartContainer
+                config={{
+                  aov: {
+                    label: "AOV",
+                    color: "hsl(var(--chart-3))",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <BarChart data={getSalesData()}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(0,0,0,0.1)"
+                  />
+                  <XAxis
+                    dataKey={
+                      salesPeriod === "annual"
+                        ? "year"
+                        : salesPeriod === "weekly"
+                          ? "week"
+                          : "month"
+                    }
+                    stroke="currentColor"
+                    style={{ fontSize: "12px" }}
+                    tickFormatter={(value) => {
+                      if (salesPeriod === "annual") return value;
+                      if (salesPeriod === "weekly") return value;
+                      if (salesPeriod === "monthly") {
+                        const [year, month] = value.split("-");
+                        const monthNum = parseInt(month) - 1;
+                        return `${monthNames[monthNum]} ${year}`;
+                      }
+                      return value;
+                    }}
+                  />
+                  <YAxis
+                    stroke="currentColor"
+                    tickFormatter={(value) =>
+                      typeof value === "number"
+                        ? formatCurrencyShort(value)
+                        : value
+                    }
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--background)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                    labelFormatter={(value) => {
+                      if (salesPeriod === "monthly") {
+                        const [year, month] = value.split("-");
+                        const monthNum = parseInt(month) - 1;
+                        return `${monthNames[monthNum]} ${year}`;
+                      }
+                      return String(value);
+                    }}
+                    formatter={(value) => [
+                      formatCurrencyShort(value as number),
+                      "AOV",
+                    ]}
+                  />
+                  <Bar
+                    dataKey="aov"
+                    fill="hsl(var(--chart-3))"
+                    name="Average Order Value"
+                    barSize={40}
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </div>
+
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-3">
                 Recent Sales
@@ -497,7 +1099,7 @@ function ReportsPageContent() {
                               {m.reference}
                             </td>
                             <td className="p-3 text-gray-600 dark:text-slate-400">
-                              {new Date(m.createdAt).toLocaleDateString()}
+                              {new Date(m.createdAt!).toLocaleDateString()}
                             </td>
                           </tr>
                         );
@@ -506,6 +1108,87 @@ function ReportsPageContent() {
                   </table>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedReport === "stock_movements" && (
+        <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700 mt-6">
+          <CardHeader>
+            <CardTitle className="dark:text-teal-100">
+              Stock Movement Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
+                Monthly Stock In & Stock Out Trends
+              </h3>
+              <ChartContainer config={chartConfig} className="h-[400px]">
+                <BarChart data={processStockMovementData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => {
+                      const [year, month] = value.split("-");
+                      return `${year}-${month}`;
+                    }}
+                  />
+                  <YAxis />
+                  <Tooltip
+                    labelFormatter={(value) => {
+                      const [year, month] = value.split("-");
+                      return `Month: ${year}-${month}`;
+                    }}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="stockIn"
+                    fill="var(--color-stockIn)"
+                    name="Stock In"
+                    barSize={18}
+                  />
+                  <Bar
+                    dataKey="stockOut"
+                    fill="var(--color-stockOut)"
+                    name="Stock Out"
+                    barSize={18}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </div>
+
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+              <h4 className="font-semibold text-gray-900 dark:text-teal-100 mb-2">
+                Insights
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600 dark:text-slate-400">
+                    Peak Stock In Month:{" "}
+                    {
+                      processStockMovementData().reduce(
+                        (max, curr) =>
+                          curr.stockIn > max.stockIn ? curr : max,
+                        { stockIn: 0, month: "N/A" } as any,
+                      ).month
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 dark:text-slate-400">
+                    Peak Stock Out Month:{" "}
+                    {
+                      processStockMovementData().reduce(
+                        (max, curr) =>
+                          curr.stockOut > max.stockOut ? curr : max,
+                        { stockOut: 0, month: "N/A" } as any,
+                      ).month
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

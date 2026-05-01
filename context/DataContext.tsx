@@ -248,6 +248,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [settings?.syncData?.offlineMode, isOnline, skipNextOfflineModalType],
   );
 
+  // Helper to resolve reference IDs: use server ID if available, fall back to offline_id
+  const resolveReferenceId = useCallback((item: any): string | undefined => {
+    if (!item) return undefined;
+    // If item has a server ID (real MongoDB ID), use it
+    if (item.id && !item.id.includes("offline-item")) return item.id;
+    if (item._id) return item._id;
+    // Otherwise use offline_id for local reference
+    if (item.offline_id) return item.offline_id;
+    return undefined;
+  }, []);
+
   const mergeServerDataWithLocal = useCallback(
     <T extends { id?: string; _id?: string; offline_id?: string }>(
       serverItems: T[],
@@ -317,6 +328,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       mergeServerDataWithLocal(stockMovementsBase, offlineItems.stockMovements),
     );
   }, [mergeServerDataWithLocal]);
+
+  // Initialize encrypted storage on mount
+  useEffect(() => {
+    const initializeStorage = async () => {
+      await storage.initialize();
+      console.log("[DATACONTEXT] Encrypted storage initialized");
+    };
+    initializeStorage();
+  }, []);
 
   // Initialize from storage on mount - merge synced items with offline items
   useEffect(() => {
@@ -605,13 +625,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           s.offline_id === product.supplierId,
       );
 
+      const resolvedSupplierId = resolveReferenceId(selectedSupplier);
+
       const productWithBusinessId = {
         ...product,
         id: product.id || uuidv4(), // Generate UUID if no ID
         offline_id: product.offline_id || uuidv4(),
         businessId: user?.businessId ?? product.businessId,
-        supplierId: "", // Empty for mongoose reference - use offline_supplier_id for local tracking
-        offline_supplier_id: selectedSupplier?.offline_id || uuidv4(),
+        supplierId: resolvedSupplierId || "", // Use resolved ID (server ID or offline_id)
+        offline_supplier_id: selectedSupplier?.offline_id, // Keep for local tracking only
       };
 
       console.log(
@@ -641,7 +663,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
           };
           // Save updated supplier to both states
           storage.updateSupplier(supplierId, updatedSupplier);
-          storage.addOfflineSupplier(updatedSupplier);
+
+          // Only add to offline storage if this supplier is actually offline (no server ID)
+          if (!selectedSupplier.id && selectedSupplier.offline_id) {
+            storage.addOfflineSupplier(updatedSupplier);
+          }
+
           setSuppliers(
             suppliers.map((s) =>
               s.id === selectedSupplier.id ||
@@ -739,7 +766,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       enqueueAction({
         endpoint: `/products/${id}/delete`,
         method: "DELETE",
-        payload: {},
+        payload: { id },
         type: "DELETE_PRODUCT",
       });
     },
@@ -860,7 +887,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       enqueueAction({
         endpoint: `/suppliers/${id}/delete`,
         method: "DELETE",
-        payload: {},
+        payload: { id },
         type: "DELETE_SUPPLIER",
       });
     },
@@ -891,10 +918,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
               p.offline_id === item.productId,
           );
 
+          const resolvedProductId = resolveReferenceId(selectedProduct);
+
           return {
             ...item,
-            productId: "", // Empty for mongoose reference - use offline_product_id for local tracking
-            offline_product_id: selectedProduct?.offline_id || uuidv4(),
+            productId: resolvedProductId || "", // Use resolved ID (server ID or offline_id)
+            offline_product_id: selectedProduct?.offline_id, // Keep for local tracking only
           };
         }),
       };
@@ -1079,17 +1108,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 p.offline_id === item.productId,
             );
 
-            const isOfflineProductReference =
-              !!item.productId &&
-              selectedProduct?.offline_id === item.productId;
+            const resolvedProductId = resolveReferenceId(selectedProduct);
 
             return {
               ...item,
-              productId: item.productId || oldItem?.productId,
+              productId: resolvedProductId || oldItem?.productId || "",
               offline_product_id:
-                item.offline_product_id ||
-                oldItem?.offline_product_id ||
-                (isOfflineProductReference ? item.productId : undefined),
+                selectedProduct?.offline_id || oldItem?.offline_product_id,
             };
           }) || originalSale.items,
       };
@@ -1240,7 +1265,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       enqueueAction({
         endpoint: `/sales/${id}/delete`,
         method: "DELETE",
-        payload: {},
+        payload: { id },
         type: "DELETE_SALE",
       });
     },
@@ -1264,18 +1289,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           s.offline_id === saleReturn.saleId,
       );
 
-      const isOfflineSaleReference =
-        !!saleReturn.saleId && selectedSale?.offline_id === saleReturn.saleId;
+      const resolvedSaleId = resolveReferenceId(selectedSale);
 
       const returnWithBusinessId = {
         ...saleReturn,
         id: saleReturn.id || uuidv4(),
         offline_id: saleReturn.offline_id || uuidv4(),
         businessId: user?.businessId ?? saleReturn.businessId,
-        saleId: "", // Empty for mongoose reference - use offline_sale_id for local tracking
-        offline_sale_id: isOfflineSaleReference
-          ? saleReturn.saleId
-          : saleReturn.offline_sale_id || saleReturn.saleId || uuidv4(),
+        saleId: resolvedSaleId || "", // Use resolved ID (server ID or offline_id)
+        offline_sale_id: selectedSale?.offline_id, // Keep for local tracking only
       };
 
       const localAction = () => {
@@ -1437,19 +1459,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           p.offline_id === movement.productId,
       );
 
-      const isOfflineProductReference =
-        !!movement.productId &&
-        selectedProduct?.offline_id === movement.productId;
+      const resolvedProductId = resolveReferenceId(selectedProduct);
 
       const movementWithBusinessId = {
         ...movement,
         id: movement.id || uuidv4(),
         offline_id: movement.offline_id || uuidv4(),
         businessId: user?.businessId ?? movement.businessId,
-        productId: "", // Empty for mongoose reference - use offline_product_id for local tracking
-        offline_product_id: isOfflineProductReference
-          ? movement.productId
-          : movement.offline_product_id || movement.productId || uuidv4(),
+        productId: resolvedProductId || "", // Use resolved ID (server ID or offline_id)
+        offline_product_id: selectedProduct?.offline_id, // Keep for local tracking only
       };
 
       const localAction = () => {

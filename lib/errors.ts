@@ -78,13 +78,15 @@ export function isConnectivityError(error: any): boolean {
  * Clean payload for sync - removes temporary ID fields that cause E11000 errors
  * MongoDB will auto-generate _id and we shouldn't send empty id fields
  * Also cleans nested items arrays (e.g., in sales with line items)
+ * Removes UUID reference fields that servers will reject
  */
-export function cleanPayloadForSync(payload: any, method: string): any {
+export function cleanPayloadForSync(payload: any, method: string, operationType?: string): any {
   if (!payload) return payload;
+
+  const cleaned = { ...payload };
 
   // For POST requests, remove id and _id fields completely
   if (method === 'POST') {
-    const cleaned = { ...payload };
     delete cleaned.id;
     delete cleaned._id;
     
@@ -100,12 +102,9 @@ export function cleanPayloadForSync(payload: any, method: string): any {
     }
     
     console.log('🧹 [PAYLOAD CLEAN] POST payload cleaned - removed id/_id fields');
-    return cleaned;
   }
-
   // For PUT requests, keep id but remove _id (for matching)
-  if (method === 'PUT') {
-    const cleaned = { ...payload };
+  else if (method === 'PUT') {
     delete cleaned._id; // MongoDB might reject _id on update
     
     // Clean nested items array if present
@@ -120,11 +119,39 @@ export function cleanPayloadForSync(payload: any, method: string): any {
     }
     
     console.log('🧹 [PAYLOAD CLEAN] PUT payload cleaned - removed _id field');
-    return cleaned;
   }
 
-  // For other methods, return as-is
-  return payload;
+  // Remove UUID reference fields for operations that shouldn't send them or have them as UUIDs
+  // Set them to empty string instead to prevent server validation errors
+  const operationsWithProductRef = ['STOCK_IN', 'CREATE_SALE', 'UPDATE_SALE'];
+  const operationsWithSaleRef = ['PROCESS_SALE_RETURN', 'UPDATE_SALE'];
+  
+  if (operationsWithProductRef.includes(operationType || '')) {
+    // Check if productId looks like a UUID (temporary/offline ID)
+    // UUIDs have format: 8-4-4-4-12 hex characters with dashes
+    if (cleaned.productId && typeof cleaned.productId === 'string' && 
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned.productId)) {
+      console.log('🧹 [PAYLOAD CLEAN] Removing UUID productId before sync', {
+        operationType,
+        productId: cleaned.productId,
+      });
+      cleaned.productId = '';
+    }
+  }
+
+  if (operationsWithSaleRef.includes(operationType || '')) {
+    // Check if saleId looks like a UUID (temporary/offline ID)
+    if (cleaned.saleId && typeof cleaned.saleId === 'string' && 
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned.saleId)) {
+      console.log('🧹 [PAYLOAD CLEAN] Removing UUID saleId before sync', {
+        operationType,
+        saleId: cleaned.saleId,
+      });
+      cleaned.saleId = '';
+    }
+  }
+
+  return cleaned;
 }
 
 /**
