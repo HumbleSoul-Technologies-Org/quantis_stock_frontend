@@ -129,7 +129,7 @@ export function ProductKeyForm() {
 
           // // Update auth context with only activation fields changed
           loginWithApiData(updatedUser as any);
-          router.push("/onboarding");
+          router.push("/dashboard");
         }
 
         setIsLoading(false);
@@ -181,6 +181,9 @@ export function ProductKeyForm() {
           ? error.message
           : "An unexpected error occurred. Please try again.";
       setErrors({ general: errorMessage });
+      console.log("====================================");
+      console.log(error);
+      console.log("====================================");
     } finally {
       setIsLoading(false);
     }

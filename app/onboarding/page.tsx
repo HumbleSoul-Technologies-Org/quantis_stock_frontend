@@ -109,9 +109,10 @@ function OnboardingContent() {
         }
 
         updateBusiness(businessPayload);
-        // Show finalizing state - redirect will be triggered by useEffect when business updates
+        // Show finalizing state while we navigate to product key activation
         setIsLoading(false);
         setIsFinalizing(true);
+        router.replace("/product-key");
       } else {
         setError(
           data.message || "Failed to create business. Please try again.",
