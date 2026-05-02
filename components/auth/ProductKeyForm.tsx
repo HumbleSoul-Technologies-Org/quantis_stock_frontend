@@ -57,119 +57,123 @@ export function ProductKeyForm() {
 
     setIsLoading(true);
 
-    // Check for demo key first (configurable via environment variable)
-    const demoKey =
-      process.env.NEXT_PUBLIC_DEMO_PRODUCT_KEY || "466882-256-demo-key";
-    if (productKey.trim() === demoKey) {
-      // For demo activation, only set the activation key fields
-      // Keep all user credentials and other business data intact
-      if (business) {
-        const updatedBusiness = business
-          ? {
-              ...business,
-              activated: true,
-              activationKey: demoKey,
-            }
-          : {
-              id: `temp-${Date.now()}`,
-              ownerId: user?.id,
-              businessName: "Demo Business",
-              businessType: "retail" as const,
-              setupCompletedAt: new Date().toISOString(),
-              activated: true,
-              activationKey: demoKey,
-              settings: {
-                businessId: `temp-${Date.now()}`,
-                currency: { code: "USD", symbol: "$", decimalPlaces: 2 },
-                units: {
-                  weightUnits: ["kg", "lbs", "oz", "g"],
-                  volumeUnits: ["L", "ml", "gallons", "fl oz"],
-                  lengthUnits: [
-                    "m",
-                    "cm",
-                    "mm",
-                    "inches",
-                    "feet",
-                    "km",
-                    "yards",
-                  ],
-                  countUnits: [
-                    "units",
-                    "pieces",
-                    "boxes",
-                    "cases",
-                    "packs",
-                    "cartons",
-                    "bottles",
-                    "tablets",
-                    "capsules",
-                  ],
-                },
-                syncData: { offlineMode: false, syncInterval: "15" },
-                notifications: {
-                  creationNotifications: { email: true, sms: false },
-                  SalesNotifications: { email: true, sms: false },
-                  stockNotifications: { email: true, sms: false },
-                },
-                security: { autoLogoutTimeout: 0 },
-              },
-            };
-
-        const updatedUser = {
-          ...user,
-          business: updatedBusiness,
-        };
-
-        setSuccess("Demo Mode Activated! Redirecting...");
-
-        // // Update auth context with only activation fields changed
-        loginWithApiData(updatedUser as any);
-        router.push("/onboarding");
-      }
-
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const payload = {
-        productKey: productKey.trim(),
-      };
+      // Check for demo key first (configurable via environment variable)
+      const demoKey =
+        process.env.NEXT_PUBLIC_DEMO_PRODUCT_KEY || "466882-256-demo-key";
+      if (productKey.trim() === demoKey) {
+        // For demo activation, only set the activation key fields
+        // Keep all user credentials and other business data intact
+        if (business) {
+          const updatedBusiness = business
+            ? {
+                ...business,
+                activated: true,
+                activationKey: demoKey,
+              }
+            : {
+                id: `temp-${Date.now()}`,
+                ownerId: user?.id,
+                businessName: "Demo Business",
+                businessType: "retail" as const,
+                setupCompletedAt: new Date().toISOString(),
+                activated: true,
+                activationKey: demoKey,
+                settings: {
+                  businessId: `temp-${Date.now()}`,
+                  currency: { code: "USD", symbol: "$", decimalPlaces: 2 },
+                  units: {
+                    weightUnits: ["kg", "lbs", "oz", "g"],
+                    volumeUnits: ["L", "ml", "gallons", "fl oz"],
+                    lengthUnits: [
+                      "m",
+                      "cm",
+                      "mm",
+                      "inches",
+                      "feet",
+                      "km",
+                      "yards",
+                    ],
+                    countUnits: [
+                      "units",
+                      "pieces",
+                      "boxes",
+                      "cases",
+                      "packs",
+                      "cartons",
+                      "bottles",
+                      "tablets",
+                      "capsules",
+                    ],
+                  },
+                  syncData: { offlineMode: false, syncInterval: "15" },
+                  notifications: {
+                    resourceChanges: { email: false, sms: false },
+                    salesAlert: { email: false, sms: false },
+                    loginFailAttempts: { email: false, sms: false },
+                    systemUpdate: { email: false, sms: false },
+                    returns: { email: false, sms: false },
+                    lowStock: { email: false, sms: false },
+                    userProfileChanges: { email: false, sms: false },
+                  },
+                  security: { autoLogoutTimeout: 0 },
+                },
+              };
 
-      const res = await apiRequest(
-        "POST",
-        `/users/${user?.id}/verify-key`,
-        payload,
-        user?.token,
-      );
+          const updatedUser = {
+            ...user,
+            business: updatedBusiness,
+          };
 
-      if (!res.ok) {
-        const text = await res.text();
-        setErrors({
-          general: `Invalid product key: ${text || "Please check your key and try again"}`,
-        });
+          setSuccess("Demo Mode Activated! Redirecting...");
+
+          // // Update auth context with only activation fields changed
+          loginWithApiData(updatedUser as any);
+          router.push("/onboarding");
+        }
+
         setIsLoading(false);
         return;
-      }
+      } else {
+        const payload = {
+          productKey: productKey.trim(),
+        };
 
-      const userData = await res.json();
-      // userData structure: { id, username, email, role, businessId, business: { activated, activationKey, ... } }
-      const newUser = {
-        id: userData.user.id,
-        username: userData.user.username,
-        role: userData.user.role,
-        createdAt: userData.user.createdAt,
-        token: user?.token || "", // Preserve existing token if available
-        businessId: userData.user.businessId, // Include business data if returned by backend
-        business: userData.user.business, // Include business data if returned by backend
-      };
+        const res = await apiRequest(
+          "POST",
+          `/users/${user?.id}/verify-key`,
+          payload,
+          user?.token,
+        );
 
-      setSuccess("Product key validated successfully! Redirecting...");
+        if (!res.ok) {
+          const text = await res.text();
+          setErrors({
+            general: `Invalid product key: ${text || "Please check your key and try again"}`,
+          });
+          setIsLoading(false);
+          return;
+        }
 
-      // Update auth context with the validated data
-      loginWithApiData(newUser);
-      if (user || (business && business.activated)) {
-        router.push("/dashboard");
+        const userData = await res.json();
+        // userData structure: { id, username, email, role, businessId, business: { activated, activationKey, ... } }
+        const newUser = {
+          id: userData.user.id,
+          username: userData.user.username,
+          role: userData.user.role,
+          createdAt: userData.user.createdAt,
+          token: user?.token || "", // Preserve existing token if available
+          businessId: userData.user.businessId, // Include business data if returned by backend
+          business: userData.user.business, // Include business data if returned by backend
+        };
+
+        setSuccess("Product key validated successfully! Redirecting...");
+
+        // Update auth context with the validated data
+        loginWithApiData(newUser);
+        if (user || (business && business.activated)) {
+          router.push("/dashboard");
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -261,7 +265,7 @@ export function ProductKeyForm() {
               {errors.general && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   <div className="text-red-700 dark:text-red-400 text-sm flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
                     {errors.general}
                   </div>
                 </div>
@@ -270,7 +274,7 @@ export function ProductKeyForm() {
               {success && (
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
                   <div className="text-emerald-700 dark:text-emerald-400 text-sm flex items-center">
-                    <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 mr-2 shrink-0" />
                     {success}
                   </div>
                 </div>

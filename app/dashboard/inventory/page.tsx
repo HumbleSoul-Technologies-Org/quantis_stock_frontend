@@ -531,7 +531,7 @@ function InventoryPageContent() {
       <div className="space-y-6 pt-8 border-t-2 border-gray-200 dark:border-slate-700">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="bg-linear-to-br from-teal-600 to-emerald-600 p-3 rounded-lg">
+          <div className="bg-gradient-to-br from-teal-600 to-emerald-600 p-3 rounded-lg">
             <TrendingUp className="w-6 h-6 text-white" />
           </div>
           <div>

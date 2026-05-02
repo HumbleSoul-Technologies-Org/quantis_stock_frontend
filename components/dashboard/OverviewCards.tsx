@@ -98,7 +98,7 @@ function OverviewCardsContent() {
               </div>
             </CardHeader>
             <CardContent className="p-3 sm:p-4">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-teal-100 break-words">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-teal-100 wrap-break-word">
                 {card.value}
               </div>
             </CardContent>

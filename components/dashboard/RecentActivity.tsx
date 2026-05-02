@@ -76,7 +76,7 @@ function RecentActivityContent() {
                   key={index}
                   className="flex items-start gap-2 sm:gap-3 pb-3 sm:pb-4 border-b border-gray-200 dark:border-slate-700 last:border-b-0"
                 >
-                  <div className="bg-green-100 dark:bg-teal-900 p-1.5 sm:p-2 rounded-lg mt-0.5 sm:mt-1 flex-shrink-0">
+                  <div className="bg-green-100 dark:bg-teal-900 p-1.5 sm:p-2 rounded-lg mt-0.5 sm:mt-1 shrink-0">
                     <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 dark:text-teal-400" />
                   </div>
                   <div className="flex-1 min-w-0">

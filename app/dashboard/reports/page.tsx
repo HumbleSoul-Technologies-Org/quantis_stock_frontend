@@ -728,7 +728,7 @@ function ReportsPageContent() {
                     color: "hsl(var(--chart-2))",
                   },
                 }}
-                className="h-[300px]"
+                className="h-75"
               >
                 <BarChart data={getSalesData()}>
                   <CartesianGrid
@@ -795,7 +795,7 @@ function ReportsPageContent() {
                     color: "hsl(var(--chart-1))",
                   },
                 }}
-                className="h-[300px]"
+                className="h-75"
               >
                 <BarChart data={getSalesData()}>
                   <CartesianGrid
@@ -873,7 +873,7 @@ function ReportsPageContent() {
                     color: "hsl(var(--chart-3))",
                   },
                 }}
-                className="h-[300px]"
+                className="h-75"
               >
                 <BarChart data={getSalesData()}>
                   <CartesianGrid
@@ -1125,7 +1125,7 @@ function ReportsPageContent() {
               <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4">
                 Monthly Stock In & Stock Out Trends
               </h3>
-              <ChartContainer config={chartConfig} className="h-[400px]">
+              <ChartContainer config={chartConfig} className="h-100">
                 <BarChart data={processStockMovementData()}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
