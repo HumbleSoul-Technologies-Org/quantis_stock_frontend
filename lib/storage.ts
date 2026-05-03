@@ -1,31 +1,12 @@
-import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement } from './types';
+import { AppState, User, Product, Supplier, Sale, SaleReturn, StockMovement, Activity, SecurityAudit } from './types';
 import { encryptedStorageService } from './encryptedStorage';
 
 const STORAGE_KEY = 'erp_system_state';
-const OFFLINE_ITEMS_KEY = 'erp_system_offline_items';
-const MERGED_CACHE_KEY = 'erp_system_merged_cache';
 
 const DEFAULT_USERS: User[] = [
   // Removed hardcoded demo users - authentication now handled by API
 ];
 
-// Offline-only items that haven't synced yet
-interface OfflineItemsState {
-  products: Product[];
-  suppliers: Supplier[];
-  sales: Sale[];
-  saleReturns: SaleReturn[];
-  stockMovements: StockMovement[];
-}
-
-const DEFAULT_OFFLINE_STATE: OfflineItemsState = {
-  products: [],
-  suppliers: [],
-  sales: [],
-  saleReturns: [],
-  stockMovements: [],
-};
- 
 const DEFAULT_STATE: AppState = {
   users: DEFAULT_USERS,
   currentUser: null,
@@ -34,17 +15,16 @@ const DEFAULT_STATE: AppState = {
   sales: [],
   saleReturns: [], // Add sale returns tracking
   stockMovements: [],
+  activities: [],
+  securityAudits: [],
   // settings removed - now handled by SettingsContext
 };
 
 class StorageService {
-  // Private in-memory cache for decrypted data
-  private cache: AppState = DEFAULT_STATE;
-  private offlineCache: OfflineItemsState = DEFAULT_OFFLINE_STATE;
-  private mergedCache: AppState = DEFAULT_STATE;
   private initialized = false;
+  private state: AppState = DEFAULT_STATE;
+  private cache: AppState = DEFAULT_STATE;
 
-  // Check if localStorage is available and working
   private isLocalStorageAvailable(): boolean {
     try {
       const test = '__localStorage_test__';
@@ -120,20 +100,6 @@ class StorageService {
         console.log('✅ [STORAGE] Loaded encrypted main state');
       }
 
-      // Load offline items
-      const offlineStored = await encryptedStorageService.getDecrypted<OfflineItemsState>(OFFLINE_ITEMS_KEY);
-      if (offlineStored) {
-        this.offlineCache = offlineStored;
-        console.log('✅ [STORAGE] Loaded encrypted offline items');
-      }
-
-      // Load merged cache
-      const mergedStored = await encryptedStorageService.getDecrypted<AppState>(MERGED_CACHE_KEY);
-      if (mergedStored) {
-        this.mergedCache = mergedStored;
-        console.log('✅ [STORAGE] Loaded encrypted merged cache');
-      }
-
       this.initialized = true;
       console.log('[STORAGE] Initialization complete');
     } catch (error) {
@@ -154,7 +120,7 @@ class StorageService {
   private matchesAnyId(item: any, id: string | undefined): boolean {
     return (
       !!id &&
-      (item.id === id || item._id === id || item.offline_id === id)
+      (item.id === id || item._id === id)
     );
   }
 
@@ -162,9 +128,9 @@ class StorageService {
     if (!id) return false;
     return (
       this.matchesAnyId(item, id) ||
-      item.offline_product_id === id ||
-      item.offline_supplier_id === id ||
-      item.offline_sale_id === id
+      item.productId === id ||
+      item.supplierId === id ||
+      item.saleId === id
     );
   }
 
@@ -185,44 +151,6 @@ class StorageService {
       });
     } catch (error) {
       console.error('Error updating cache:', error);
-    }
-  }
-
-  getMergedCache(): AppState {
-    if (typeof window === 'undefined') {
-      return DEFAULT_STATE;
-    }
-
-    if (!this.isLocalStorageAvailable()) {
-      return DEFAULT_STATE;
-    }
-
-    // Return cached merged state
-    return this.mergedCache;
-  }
-
-  saveMergedCache(state: Partial<AppState>): void {
-    if (typeof window === 'undefined') return;
-    if (!this.isLocalStorageAvailable()) {
-      console.warn('localStorage is not available. Cannot save merged cache.');
-      return;
-    }
-
-    try {
-      const mergedCache = {
-        ...this.mergedCache,
-        ...state,
-      };
-      
-      // Update in-memory cache immediately
-      this.mergedCache = mergedCache;
-      
-      // Fire off encryption asynchronously
-      encryptedStorageService.setEncrypted(MERGED_CACHE_KEY, mergedCache).catch(error => {
-        console.error('Error saving merged cache to encrypted storage:', error);
-      });
-    } catch (error) {
-      console.error('Error updating merged cache:', error);
     }
   }
 
@@ -382,11 +310,7 @@ class StorageService {
       const product = state.products.find(
         (p:any) =>
           p.id === item.productId ||
-          p._id === item.productId ||
-          p.offline_id === item.productId ||
-          p.id === item.offline_product_id ||
-          p._id === item.offline_product_id ||
-          p.offline_id === item.offline_product_id,
+          p._id === item.productId,
       );
       if (product) {
         product.currentStock -= item.quantity;
@@ -412,7 +336,7 @@ class StorageService {
   updateSale(id: string, sale: Partial<Sale>): void {
     const state = this.getState();
     const index = state.sales.findIndex(
-      (s) => s.id === id || s._id === id || s.offline_id === id,
+      (s) => s.id === id || s._id === id,
     );
     if (index !== -1) {
       state.sales[index] = { ...state.sales[index], ...sale };
@@ -437,11 +361,10 @@ class StorageService {
     // Find the original sale to validate return quantities
     const originalSale = state.sales.find(
       (s) =>
-        this.matchesAnyId(s, saleReturn.saleId) ||
-        this.matchesAnyId(s, saleReturn.offline_sale_id),
+        this.matchesAnyId(s, saleReturn.saleId),
     );
     if (!originalSale) {
-      throw new Error(`Original sale ${saleReturn.saleId || saleReturn.offline_sale_id} not found`);
+      throw new Error(`Original sale ${saleReturn.saleId} not found`);
     }
 
     // Validate return quantities don't exceed sold quantities
@@ -463,11 +386,7 @@ class StorageService {
       const product = state.products.find(
         (p:any) =>
           p.id === item.productId ||
-          p._id === item.productId ||
-          p.offline_id === item.productId ||
-          p.id === item.offline_product_id ||
-          p._id === item.offline_product_id ||
-          p.offline_id === item.offline_product_id,
+          p._id === item.productId,
       );
       if (product) {
         product.currentStock += item.quantity;
@@ -505,6 +424,26 @@ class StorageService {
     return this.getState().stockMovements;
   }
 
+  getActivities(): Activity[] {
+    return this.getState().activities;
+  }
+
+  addActivity(activity: Activity): void {
+    const state = this.getState();
+    state.activities.unshift(activity);
+    this.saveState(state);
+  }
+
+  getSecurityAudits(): SecurityAudit[] {
+    return this.getState().securityAudits;
+  }
+
+  addSecurityAudit(audit: SecurityAudit): void {
+    const state = this.getState();
+    state.securityAudits.unshift(audit);
+    this.saveState(state);
+  }
+
   addStockMovement(movement: StockMovement): void {
     const state = this.getState();
     state.stockMovements.push(movement);
@@ -526,139 +465,15 @@ class StorageService {
     this.saveState(state);
   }
 
-  // ============ Offline-Only Items Store ============
-  // Track items created offline that haven't synced yet
-
-  private getOfflineState(): OfflineItemsState {
-    if (typeof window === 'undefined') {
-      return DEFAULT_OFFLINE_STATE;
-    }
-
-    if (!this.isLocalStorageAvailable()) {
-      return DEFAULT_OFFLINE_STATE;
-    }
-
-    // Return cached offline state
-    return this.offlineCache;
-  }
-
-  private saveOfflineState(state: OfflineItemsState): void {
-    if (typeof window === 'undefined') return;
-    if (!this.isLocalStorageAvailable()) {
-      console.warn('localStorage is not available. Cannot save offline items.');
-      return;
-    }
-
-    try {
-      // Update in-memory cache
-      this.offlineCache = state;
-      
-      // Fire off encryption asynchronously
-      encryptedStorageService.setEncrypted(OFFLINE_ITEMS_KEY, state).catch(error => {
-        console.error('Error saving offline items to encrypted storage:', error);
-      });
-    } catch (error) {
-      console.error('Error updating offline cache:', error);
-    }
-  }
-
-  getOfflineItems(): OfflineItemsState {
-    return this.getOfflineState();
-  }
-
-  addOfflineProduct(product: Product): void {
-    const state = this.getOfflineState();
-    state.products.push(product);
-    this.saveOfflineState(state);
-  }
-
-  addOfflineSupplier(supplier: Supplier): void {
-    const state = this.getOfflineState();
-    state.suppliers.push(supplier);
-    this.saveOfflineState(state);
-  }
-
-  addOfflineSale(sale: Sale): void {
-    const state = this.getOfflineState();
-    state.sales.push(sale);
-    this.saveOfflineState(state);
-  }
-
-  addOfflineSaleReturn(saleReturn: SaleReturn): void {
-    const state = this.getOfflineState();
-    state.saleReturns.push(saleReturn);
-    this.saveOfflineState(state);
-  }
-
-  addOfflineStockMovement(movement: StockMovement): void {
-    const state = this.getOfflineState();
-    state.stockMovements.push(movement);
-    this.saveOfflineState(state);
-  }
-
-  removeOfflineItem(type: 'product' | 'supplier' | 'sale' | 'saleReturn' | 'stockMovement', id: string): void {
-    const state = this.getOfflineState();
-    
-    const matchesId = (item: any) =>
-      item.id === id || item._id === id || item.offline_id === id;
-
-    switch (type) {
-      case 'product':
-        state.products = state.products.filter((p: any) => !matchesId(p));
-        break;
-      case 'supplier':
-        state.suppliers = state.suppliers.filter((s: any) => !matchesId(s));
-        break;
-      case 'sale':
-        state.sales = state.sales.filter((s: any) => !matchesId(s));
-        break;
-      case 'saleReturn':
-        state.saleReturns = state.saleReturns.filter((sr: any) => !matchesId(sr));
-        break;
-      case 'stockMovement':
-        state.stockMovements = state.stockMovements.filter((m: any) => !matchesId(m));
-        break;
-    }
-    
-    this.saveOfflineState(state);
-  }
-
-  clearOfflineItems(): void {
-    if (typeof window === 'undefined') return;
-    if (!this.isLocalStorageAvailable()) {
-      return;
-    }
-
-    try {
-      // Clear in-memory cache
-      this.offlineCache = DEFAULT_OFFLINE_STATE;
-      
-      // Clear from encrypted storage
-      encryptedStorageService.setEncrypted(OFFLINE_ITEMS_KEY, DEFAULT_OFFLINE_STATE).catch(error => {
-        console.error('Error clearing offline items from encrypted storage:', error);
-      });
-    } catch (error) {
-      console.error('Error clearing offline items:', error);
-    }
-  }
-
   // Reset
   resetToDefaults(): void {
     // Clear all caches
     this.cache = DEFAULT_STATE;
-    this.offlineCache = DEFAULT_OFFLINE_STATE;
-    this.mergedCache = DEFAULT_STATE;
     
     // Fire off clearing to encrypted storage
     const initialState = DEFAULT_STATE;
     encryptedStorageService.setEncrypted(STORAGE_KEY, initialState).catch(error => {
       console.error('Error resetting state to encrypted storage:', error);
-    });
-    encryptedStorageService.setEncrypted(OFFLINE_ITEMS_KEY, DEFAULT_OFFLINE_STATE).catch(error => {
-      console.error('Error resetting offline items to encrypted storage:', error);
-    });
-    encryptedStorageService.setEncrypted(MERGED_CACHE_KEY, DEFAULT_STATE).catch(error => {
-      console.error('Error resetting merged cache to encrypted storage:', error);
     });
   }
 

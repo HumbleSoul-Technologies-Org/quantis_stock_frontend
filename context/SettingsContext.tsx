@@ -33,7 +33,6 @@ interface SettingsContextType {
   updateNotifications: (
     notifications: BusinessSettings["notifications"],
   ) => Promise<boolean>;
-  updateSyncData: (syncData: BusinessSettings["syncData"]) => Promise<boolean>;
   updateUnits: (units: BusinessSettings["units"]) => Promise<boolean>;
   updateSecurity: (security: BusinessSettings["security"]) => Promise<boolean>;
   formatCurrency: (amount: number) => string;
@@ -83,12 +82,6 @@ const DEFAULT_UNITS = {
   ],
 };
 
-const DEFAULT_SYNC_DATA = {
-  offlineMode: false,
-  syncInterval: "15",
-  lastSyncedAt: undefined,
-};
-
 const DEFAULT_NOTIFICATIONS = {
   resourceChanges: { email: false, sms: false },
   salesAlert: { email: false, sms: false },
@@ -107,7 +100,6 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   businessId: "",
   currency: DEFAULT_CURRENCY,
   units: DEFAULT_UNITS,
-  syncData: DEFAULT_SYNC_DATA,
   notifications: DEFAULT_NOTIFICATIONS,
   security: DEFAULT_SECURITY,
 };
@@ -338,39 +330,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       return false;
     } catch (error) {
       console.error("Failed to update notifications:", error);
-      return false;
-    }
-  };
-
-  const updateSyncData = async (
-    syncData: BusinessSettings["syncData"],
-  ): Promise<boolean> => {
-    if (!user?.token || !user?.businessId || !settings) return false;
-
-    try {
-      const response = await apiRequest(
-        "PUT",
-        `/settings/sync/${user?.businessId}`,
-        { syncData },
-        user?.token,
-      );
-
-      if (response.ok) {
-        const updatedSettings = { ...settings, syncData };
-        setSettings(updatedSettings);
-        await persistBusinessSettings(updatedSettings);
-
-        // Sync AuthContext with updated business settings
-        if (business) {
-          const updatedBusiness = { ...business, settings: updatedSettings };
-          updateBusiness(updatedBusiness);
-        }
-
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Failed to update sync data:", error);
       return false;
     }
   };
@@ -613,7 +572,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         isLoading,
         updateCurrency,
         updateNotifications,
-        updateSyncData,
         updateUnits,
         updateSecurity,
         formatCurrency,

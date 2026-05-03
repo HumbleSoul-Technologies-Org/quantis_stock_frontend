@@ -26,7 +26,8 @@ export function StockHistoryTable({
   }
 
   const sorted = filtered.sort(
-    (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
+    (a, b) =>
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );
 
   const outProductIds = new Set(
@@ -44,7 +45,7 @@ export function StockHistoryTable({
         if (!idMatch && !oidMatch) return false;
       }
 
-      const hasOutById = outProductIds.has(product.id);
+      const hasOutById = product.id ? outProductIds.has(product.id) : false;
       const hasOutByOid = (product as any)._id
         ? outProductIds.has((product as any)._id)
         : false;
@@ -76,17 +77,14 @@ export function StockHistoryTable({
     });
 
   const combined = [...stockOutSynthMovements, ...sorted].sort(
-    (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
+    (a, b) =>
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );
 
   const getProductName = (productId?: string) => {
     return (
-      products.find(
-        (p) =>
-          p.id === productId ||
-          (p as any)._id === productId ||
-          p.offline_id === productId,
-      )?.name || "Unknown Product"
+      products.find((p) => p.id === productId || (p as any)._id === productId)
+        ?.name || "Unknown Product"
     );
   };
 

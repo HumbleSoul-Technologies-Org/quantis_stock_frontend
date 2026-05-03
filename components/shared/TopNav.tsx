@@ -4,29 +4,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
 import { Button } from "@/components/ui/button";
-import {
-  LogOut,
-  Moon,
-  Sun,
-  Bell,
-  Wifi,
-  WifiOff,
-  AlertCircle,
-} from "lucide-react";
+import { LogOut, Moon, Sun, Bell, Wifi } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NotificationSidebar } from "@/components/notifications/NotificationSidebar";
-import { SyncModal } from "@/components/SyncModal";
-import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 export function TopNav() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { getUnreadCount } = useNotifications();
-  const { isOnline, pendingActions } = useOfflineSync(undefined, user?.token);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showSyncModal, setShowSyncModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -87,39 +75,10 @@ export function TopNav() {
             </h2>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Connection Indicator Badge */}
-            <button
-              onClick={() => setShowSyncModal(true)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                isOnline
-                  ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800"
-                  : "bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
-              } hover:shadow-md cursor-pointer`}
-              title={`${isOnline ? "Connected" : "Disconnected"}${pendingActions.length > 0 ? ` • ${pendingActions.length} pending` : ""}`}
-            >
-              {isOnline ? (
-                <>
-                  <Wifi className="w-4 h-4 animate-pulse" />
-                  <span className="hidden sm:inline">Online</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-4 h-4" />
-                  <span className="hidden sm:inline">Offline</span>
-                </>
-              )}
-              {pendingActions.length > 0 && (
-                <span
-                  className={`ml-1 px-1.5 py-0.5 rounded text-xs font-bold ${
-                    isOnline
-                      ? "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-200"
-                      : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200"
-                  }`}
-                >
-                  {pendingActions.length}
-                </span>
-              )}
-            </button>
+            <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+              <Wifi className="w-4 h-4 animate-pulse" />
+              <span className="hidden sm:inline">Connected</span>
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -163,11 +122,6 @@ export function TopNav() {
       <NotificationSidebar
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
-      />
-
-      <SyncModal
-        isOpen={showSyncModal}
-        onClose={() => setShowSyncModal(false)}
       />
     </>
   );

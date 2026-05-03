@@ -3,56 +3,37 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, Truck, Package } from "lucide-react";
+import { ShoppingCart, Truck, Package, Zap, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 
+// Activity type to icon mapping
+const activityIconMap: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  sale: ShoppingCart,
+  stock: Truck,
+  product: Package,
+  supplier: AlertCircle,
+  return: ShoppingCart,
+  system: Zap,
+  other: AlertCircle,
+};
+
 function RecentActivityContent() {
-  const { sales, stockMovements } = useData();
+  const { activities } = useData();
 
-  const safeSales = Array.isArray(sales) ? sales : [];
-  const safeMovements = Array.isArray(stockMovements) ? stockMovements : [];
+  const safeActivities = Array.isArray(activities) ? activities : [];
 
-  const recentSales = [...safeSales]
-    .filter((sale) => sale?.createdAt)
+  const recentActivities = [...safeActivities]
+    .filter((activity) => activity?.createdAt)
     .sort((a, b) => {
-      const aDate = new Date(a.createdAt!).getTime();
-      const bDate = new Date(b.createdAt!).getTime();
+      const aDate = new Date(a.createdAt).getTime();
+      const bDate = new Date(b.createdAt).getTime();
       return Number.isFinite(bDate) && Number.isFinite(aDate)
         ? bDate - aDate
         : 0;
     })
-    .slice(0, 5);
-
-  const recentMovements = [...safeMovements]
-    .filter((movement) => movement?.createdAt)
-    .sort((a, b) => {
-      const aDate = new Date(a.createdAt!).getTime();
-      const bDate = new Date(b.createdAt!).getTime();
-      return Number.isFinite(bDate) && Number.isFinite(aDate)
-        ? bDate - aDate
-        : 0;
-    })
-    .slice(0, 5);
-
-  const activities = [
-    ...recentSales.map((sale) => ({
-      id: sale?.id ?? "sale-unknown",
-      type: "sale",
-      title: `Sale #${sale?.saleNumber ?? "N/A"}`,
-      description: `${Array.isArray(sale?.items) ? sale.items.length : 0} items`,
-      date: sale?.createdAt ?? new Date().toISOString(),
-      icon: ShoppingCart,
-    })),
-    ...recentMovements.map((movement) => ({
-      id: movement?.id ?? "movement-unknown",
-      type: "movement",
-      title: `Stock ${movement?.type === "in" ? "Received" : "Issued"}`,
-      description: `${Number.isFinite(movement?.quantity) ? movement.quantity : 0} units - ${movement?.reason ?? "No reason"}`,
-      date: movement?.createdAt ?? new Date().toISOString(),
-      icon: Truck,
-    })),
-  ]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 10);
 
   return (
@@ -63,17 +44,17 @@ function RecentActivityContent() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
-        {activities.length === 0 ? (
+        {recentActivities.length === 0 ? (
           <p className="text-gray-500 dark:text-slate-400 text-xs sm:text-sm">
             No recent activity
           </p>
         ) : (
           <div className="space-y-3 sm:space-y-4">
-            {activities.map((activity, index) => {
-              const Icon = activity.icon;
+            {recentActivities.map((activity, index) => {
+              const Icon = activityIconMap[activity.type] || AlertCircle;
               return (
                 <div
-                  key={index}
+                  key={activity.id || activity._id || index}
                   className="flex items-start gap-2 sm:gap-3 pb-3 sm:pb-4 border-b border-gray-200 dark:border-slate-700 last:border-b-0"
                 >
                   <div className="bg-green-100 dark:bg-teal-900 p-1.5 sm:p-2 rounded-lg mt-0.5 sm:mt-1 shrink-0">
@@ -88,7 +69,7 @@ function RecentActivityContent() {
                     </p>
                     <p className="text-gray-500 dark:text-slate-500 text-xs mt-1 sm:mt-2">
                       {(() => {
-                        const dateValue = new Date(activity?.date);
+                        const dateValue = new Date(activity.createdAt);
                         return Number.isFinite(dateValue.getTime())
                           ? format(dateValue, "MMM d h:mm a")
                           : "Invalid date";

@@ -30,6 +30,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "sonner";
+import { SecurityAudit } from "./SecurityAudit";
 
 // Auto-logout timeout options (in milliseconds)
 const AUTO_LOGOUT_OPTIONS = [
@@ -490,28 +491,7 @@ export function Security() {
       </Card>
 
       {/* Security Logs */}
-      <Card className="border-blue-200 border-2 dark:bg-slate-800 dark:border-blue-700">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 dark:text-teal-100">
-            <Clock className="w-5 h-5" />
-            Security Logs
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-2xl dark:text-slate-400">
-              Coming soon...
-            </p>
-            <p className="text-gray-600 dark:text-slate-400">
-              Security logs will be displayed here.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-slate-500 mt-2">
-              Recent login attempts, password changes, and security events.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <SecurityAudit />
 
       {/* Danger Zone */}
       <Card className="border-red-200 border-2 dark:bg-slate-800 dark:border-red-700">

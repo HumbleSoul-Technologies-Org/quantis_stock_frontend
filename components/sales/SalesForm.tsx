@@ -53,7 +53,6 @@ export function SalesForm({
   const [items, setItems] = useState<SaleItem[]>(
     sale?.items?.map((item) => ({
       ...item,
-      offline_product_id: item.offline_product_id || "",
     })) || [],
   );
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -96,7 +95,7 @@ export function SalesForm({
       return hasStock;
     })
     .map((p) => ({
-      value: p.offline_id || p._id || p.id,
+      value: p._id || p.id,
       label: `${p.name} (${p.currentStock} available)`,
     }));
 
@@ -122,10 +121,7 @@ export function SalesForm({
       selectedProductId,
     );
     let product = products.find(
-      (p) =>
-        p.id === selectedProductId ||
-        p._id === selectedProductId ||
-        p.offline_id === selectedProductId,
+      (p) => p.id === selectedProductId || p._id === selectedProductId,
     );
 
     // Fallback: if not found by ID, try alternate identifiers
@@ -134,10 +130,7 @@ export function SalesForm({
         "⚠️ [SALESFORM] Product not found by ID, trying fallback lookup",
       );
       product = products.find(
-        (p) =>
-          p.id === selectedProductId ||
-          p._id === selectedProductId ||
-          p.offline_id === selectedProductId,
+        (p) => p.id === selectedProductId || p._id === selectedProductId,
       );
     }
 
@@ -165,9 +158,7 @@ export function SalesForm({
     }
 
     const saleItem: SaleItem = {
-      productId:
-        product.id || product._id || product.offline_id || selectedProductId,
-      offline_product_id: product.offline_id || undefined,
+      productId: product.id || product._id || selectedProductId,
       quantity: parseInt(quantity),
       unitPrice: product.unitPrice,
       total: parseInt(quantity) * product.unitPrice,
@@ -220,12 +211,10 @@ export function SalesForm({
 
       const saleData: Sale = {
         ...(isEditing && { _id: sale._id }),
-        offline_id: isEditing ? sale.offline_id : "",
         saleNumber,
         date: saleDate,
         items: items.map((item) => ({
           ...item,
-          offline_product_id: item.offline_product_id || "",
         })),
         totalAmount,
         status: "completed",
@@ -650,10 +639,10 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
             {business?.businessName || "BUSINESS NAME"}
           </div>
           <div className="receipt-subtitle text-xs text-gray-700">
-            {business?.address || "Address Line 1"}
+            {business?.businessAddress || "Address Line 1"}
           </div>
           <div className="receipt-subtitle text-xs text-gray-700">
-            {business?.phone || "Phone: XXXX-XXXX-XXXX"}
+            {business?.businessPhone || "Phone: XXXX-XXXX-XXXX"}
           </div>
           <div className="receipt-title text-base font-bold mt-2">
             SALES RECEIPT

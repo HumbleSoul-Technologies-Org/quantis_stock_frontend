@@ -45,14 +45,6 @@ export function useNotificationActions() {
         'low'
       ),
 
-    notifyNoInternet: () =>
-      addNotification(
-        'no_internet',
-        'No Internet Connection',
-        'You are offline. Some features may be limited.',
-        'high'
-      ),
-
     notifyCredentialsChange: (action: string) =>
       addNotification(
         'credentials_change',

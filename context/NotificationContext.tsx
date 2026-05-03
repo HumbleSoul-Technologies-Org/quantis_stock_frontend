@@ -60,8 +60,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
     enabled: !!user?.token && !!user?.id, // Only fetch if user is authenticated
     staleTime: 3000, // 3 seconds - prevent cache thrashing
-    refetchInterval: 25000, // Poll every 25 seconds (important but not critical)
-    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   useEffect(() => {

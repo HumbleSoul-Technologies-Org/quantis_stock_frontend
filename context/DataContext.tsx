@@ -10,6 +10,11 @@ import {
 } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
+  Activity,
+  ActivityType,
+  SecurityAudit,
+  SecurityEventType,
+  User,
   Product,
   Supplier,
   Sale,
@@ -21,8 +26,6 @@ import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "./AuthContext";
-import { useOfflineSync } from "@/hooks/useOfflineSync";
-import { useSettings } from "@/context/SettingsContext";
 import { useToast } from "@/hooks/useToast";
 
 // API functions for polling
@@ -169,6 +172,37 @@ interface DataContextType {
   stockMovements: StockMovement[];
   addStockMovement: (movement: StockMovement) => void;
 
+  // Activities
+  activities: Activity[];
+  addActivity: (activity: Activity) => Promise<void>;
+  refetchActivities: () => Promise<any>;
+  logActivity: (
+    activity: Omit<Activity, "id" | "createdAt">,
+  ) => Promise<Activity>;
+
+  // Activity Filtering Utilities
+  getActivitiesByType: (entityType: string) => Activity[];
+  getActivitiesByEntity: (entityId: string) => Activity[];
+  getActivitiesByUser: (userId: string) => Activity[];
+  getActivitiesByAction: (action: string) => Activity[];
+  getActivitiesByDateRange: (startDate: Date, endDate: Date) => Activity[];
+  getActivitiesByStatus: (status: string) => Activity[];
+  searchActivities: (query: string) => Activity[];
+  getActivitiesWithFilters: (filters: {
+    entityType?: string;
+    entityId?: string;
+    userId?: string;
+    action?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+    searchQuery?: string;
+  }) => Activity[];
+
+  // Security Audits
+  securityAudits: SecurityAudit[];
+  refetchSecurityAudits: () => Promise<any>;
+
   // Utilities
   getProductById: (id: string) => Product | undefined;
   getSupplierById: (id: string) => Supplier | undefined;
@@ -179,155 +213,222 @@ interface DataContextType {
   refetchProducts: () => Promise<any>;
   refetchInventory: () => Promise<any>;
 
-  // No Internet Modal
-  showNoInternetModal: boolean;
-  noInternetModalActionType: string;
-  closeNoInternetModal: () => void;
-  continueLocally: () => void;
-  openNoInternetModal: (actionType: string, action: () => void) => boolean;
+  // Loading states for skeleton loaders
+  isInitialLoadingProducts: boolean;
+  isInitialLoadingSuppliers: boolean;
+  isInitialLoadingSales: boolean;
+  isInitialLoadingInventory: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { settings } = useSettings();
-  const { isOnline, enqueueAction } = useOfflineSync(
-    settings?.syncData,
-    user?.token,
-  );
+  const { error: toastError } = useToast();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [saleReturns, setSaleReturns] = useState<SaleReturn[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [securityAudits, setSecurityAudits] = useState<SecurityAudit[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // No internet modal state
-  const [showNoInternetModal, setShowNoInternetModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{
-    type: string;
-    action: () => void;
-  } | null>(null);
-  const [skipNextOfflineModalType, setSkipNextOfflineModalType] = useState<
-    string | null
-  >(null);
+  // Initial loading states for skeleton loaders
+  const [isInitialLoadingProducts, setIsInitialLoadingProducts] =
+    useState(true);
+  const [isInitialLoadingSuppliers, setIsInitialLoadingSuppliers] =
+    useState(true);
+  const [isInitialLoadingSales, setIsInitialLoadingSales] = useState(true);
+  const [isInitialLoadingInventory, setIsInitialLoadingInventory] =
+    useState(true);
 
-  const { success: toastSuccess } = useToast();
+  const sendApiRequest = useCallback(
+    async (method: string, endpoint: string, payload?: unknown) => {
+      try {
+        const response = await apiRequest(
+          method,
+          endpoint,
+          payload,
+          user?.token,
+        );
+        return response;
+      } catch (error: any) {
+        console.error("[DATACONTEXT] API request failed", endpoint, error);
+        const isRateLimitError =
+          error?.status === 429 ||
+          error?.message?.includes("API request limit exceeded") ||
+          error?.message?.startsWith("429:");
 
-  // Handle continuing with local-only action
-  const handleContinueLocally = useCallback(() => {
-    if (pendingAction) {
-      setSkipNextOfflineModalType(pendingAction.type);
-      pendingAction.action();
-      setShowNoInternetModal(false);
-      setPendingAction(null);
-      toastSuccess(
-        "Action completed locally. Data will not sync until offline mode is enabled.",
-        5000,
-      );
-    }
-  }, [pendingAction, toastSuccess]);
-
-  // Check if should show no internet modal
-  const openNoInternetModal = useCallback(
-    (actionType: string, action: () => void) => {
-      if (skipNextOfflineModalType === actionType) {
-        setSkipNextOfflineModalType(null);
-        return false;
+        toastError(
+          isRateLimitError
+            ? "Too many requests. Retrying automatically, please try again in a few seconds."
+            : error?.message ||
+                "Unable to sync with server. Please refresh and try again.",
+          5000,
+        );
+        return undefined;
       }
-
-      if (!settings?.syncData?.offlineMode && !isOnline) {
-        setPendingAction({ type: actionType, action });
-        setShowNoInternetModal(true);
-        return true;
-      }
-      return false;
     },
-    [settings?.syncData?.offlineMode, isOnline, skipNextOfflineModalType],
+    [toastError, user?.token],
   );
 
-  // Helper to resolve reference IDs: use server ID if available, fall back to offline_id
+  const persistSuppliers = useCallback(
+    (updatedSuppliers: Supplier[]) => {
+      setSuppliers(updatedSuppliers);
+      const state = storage.getState();
+      state.suppliers = updatedSuppliers;
+      storage.saveState(state);
+      queryClient.setQueryData(
+        ["suppliers", user?.businessId],
+        updatedSuppliers,
+      );
+    },
+    [user?.businessId],
+  );
+
+  const persistProducts = useCallback(
+    (updatedProducts: Product[]) => {
+      setProducts(updatedProducts);
+      const state = storage.getState();
+      state.products = updatedProducts;
+      storage.saveState(state);
+      queryClient.setQueryData(["products", user?.businessId], updatedProducts);
+    },
+    [user?.businessId],
+  );
+
+  const persistSales = useCallback(
+    (updatedSales: Sale[]) => {
+      setSales(updatedSales);
+      const state = storage.getState();
+      state.sales = updatedSales;
+      storage.saveState(state);
+      queryClient.setQueryData(["sales", user?.businessId], updatedSales);
+    },
+    [user?.businessId],
+  );
+
+  const persistSaleReturns = useCallback(
+    (updatedSaleReturns: SaleReturn[]) => {
+      setSaleReturns(updatedSaleReturns);
+      const state = storage.getState();
+      state.saleReturns = updatedSaleReturns;
+      storage.saveState(state);
+      queryClient.setQueryData(
+        ["sales", "returns", user?.businessId],
+        updatedSaleReturns,
+      );
+    },
+    [user?.businessId],
+  );
+
+  const persistStockMovements = useCallback(
+    (updatedStockMovements: StockMovement[]) => {
+      setStockMovements(updatedStockMovements);
+      const state = storage.getState();
+      state.stockMovements = updatedStockMovements;
+      storage.saveState(state);
+      queryClient.setQueryData(
+        ["inventory", "movements", user?.businessId],
+        updatedStockMovements,
+      );
+    },
+    [user?.businessId],
+  );
+
+  const persistActivities = useCallback(
+    (updatedActivities: Activity[]) => {
+      setActivities(updatedActivities);
+      const state = storage.getState();
+      state.activities = updatedActivities;
+      storage.saveState(state);
+      queryClient.setQueryData(
+        ["activities", user?.businessId],
+        updatedActivities,
+      );
+    },
+    [user?.businessId],
+  );
+
+  const persistSecurityAudits = useCallback(
+    (updatedAudits: SecurityAudit[]) => {
+      setSecurityAudits(updatedAudits);
+      const state = storage.getState();
+      state.securityAudits = updatedAudits;
+      storage.saveState(state);
+      queryClient.setQueryData(["security-audits", user?.id], updatedAudits);
+    },
+    [user?.id],
+  );
+
+  const apiActivities = async (token?: string, businessId?: string) => {
+    try {
+      const response = await apiRequest(
+        "GET",
+        "/activities/recent",
+        {
+          limit: 20,
+          ...(businessId ? { businessId } : {}),
+        },
+        token,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return data?.activities || data || [];
+      }
+    } catch (error) {
+      console.warn("Failed to fetch activities from API:", error);
+    }
+
+    return [];
+  };
+
+  const apiSecurityAudits = async (token?: string, userId?: string) => {
+    try {
+      const response = await apiRequest(
+        "GET",
+        "/security-audits",
+        {
+          limit: 50,
+        },
+        token,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return data?.audits || data || [];
+      }
+    } catch (error) {
+      console.warn("Failed to fetch security audits from API:", error);
+    }
+
+    return [];
+  };
+
+  // No Internet modal fallback stub for online-only mode
+  // Helper to resolve reference IDs: use server ID if available
   const resolveReferenceId = useCallback((item: any): string | undefined => {
     if (!item) return undefined;
-    // If item has a server ID (real MongoDB ID), use it
-    if (item.id && !item.id.includes("offline-item")) return item.id;
+    // Use server ID (real MongoDB ID)
+    if (item.id) return item.id;
     if (item._id) return item._id;
-    // Otherwise use offline_id for local reference
-    if (item.offline_id) return item.offline_id;
     return undefined;
   }, []);
 
-  const mergeServerDataWithLocal = useCallback(
-    <T extends { id?: string; _id?: string; offline_id?: string }>(
-      serverItems: T[],
-      offlineItems: T[],
-    ): T[] => {
-      if (!offlineItems || offlineItems.length === 0) {
-        return serverItems;
-      }
-
-      // Filter offline items to only include those not already in serverItems
-      const offlineItemsToAdd = offlineItems.filter((offlineItem) => {
-        return !serverItems.some(
-          (serverItem) =>
-            (offlineItem.id && serverItem.id === offlineItem.id) ||
-            (offlineItem.id && serverItem._id === offlineItem.id) ||
-            (offlineItem.id && serverItem.offline_id === offlineItem.id) ||
-            (offlineItem._id && serverItem.id === offlineItem._id) ||
-            (offlineItem._id && serverItem._id === offlineItem._id) ||
-            (offlineItem._id && serverItem.offline_id === offlineItem._id) ||
-            (offlineItem.offline_id &&
-              serverItem.id === offlineItem.offline_id) ||
-            (offlineItem.offline_id &&
-              serverItem._id === offlineItem.offline_id) ||
-            (offlineItem.offline_id &&
-              serverItem.offline_id === offlineItem.offline_id),
-        );
-      });
-
-      // Combine server items with only new offline items
-      return [...serverItems, ...offlineItemsToAdd];
-    },
-    [],
-  );
-
   const refresh = useCallback(() => {
-    const offlineItems = storage.getOfflineItems();
-    const mergedCache = storage.getMergedCache();
+    const state = storage.getState();
 
-    const productsBase =
-      storage.getProducts().length > 0
-        ? storage.getProducts()
-        : mergedCache.products;
-    const suppliersBase =
-      storage.getSuppliers().length > 0
-        ? storage.getSuppliers()
-        : mergedCache.suppliers;
-    const salesBase =
-      storage.getSales().length > 0 ? storage.getSales() : mergedCache.sales;
-    const saleReturnsBase =
-      storage.getSaleReturns().length > 0
-        ? storage.getSaleReturns()
-        : mergedCache.saleReturns;
-    const stockMovementsBase =
-      storage.getStockMovements().length > 0
-        ? storage.getStockMovements()
-        : mergedCache.stockMovements;
-
-    setProducts(mergeServerDataWithLocal(productsBase, offlineItems.products));
-    setSuppliers(
-      mergeServerDataWithLocal(suppliersBase, offlineItems.suppliers),
-    );
-    setSales(mergeServerDataWithLocal(salesBase, offlineItems.sales));
-    setSaleReturns(
-      mergeServerDataWithLocal(saleReturnsBase, offlineItems.saleReturns),
-    );
-    setStockMovements(
-      mergeServerDataWithLocal(stockMovementsBase, offlineItems.stockMovements),
-    );
-  }, [mergeServerDataWithLocal]);
+    setProducts(state.products);
+    setSuppliers(state.suppliers);
+    setSales(state.sales);
+    setSaleReturns(state.saleReturns);
+    setStockMovements(state.stockMovements);
+    setActivities(state.activities);
+    setSecurityAudits(state.securityAudits);
+  }, []);
 
   // Initialize encrypted storage on mount
   useEffect(() => {
@@ -338,76 +439,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     initializeStorage();
   }, []);
 
-  // Initialize from storage on mount - merge synced items with offline items
+  // Initialize from storage on mount
   useEffect(() => {
     const loadData = () => {
       const state = storage.getState();
-      const mergedCache = storage.getMergedCache();
-      const offlineItems = storage.getOfflineItems();
 
-      // Log offline items persistence for debugging
-      console.log("📦 [DATACONTEXT] Offline items loaded from storage", {
-        offlineProductsCount: offlineItems.products?.length || 0,
-        offlineSuppliersCount: offlineItems.suppliers?.length || 0,
-        offlineSalesCount: offlineItems.sales?.length || 0,
-        offlineSaleReturnsCount: offlineItems.saleReturns?.length || 0,
-        offlineStockMovementsCount: offlineItems.stockMovements?.length || 0,
-      });
-
-      const productsBase =
-        Array.isArray(state.products) && state.products.length > 0
-          ? state.products
-          : mergedCache.products;
-      const suppliersBase =
-        Array.isArray(state.suppliers) && state.suppliers.length > 0
-          ? state.suppliers
-          : mergedCache.suppliers;
-      const salesBase =
-        Array.isArray(state.sales) && state.sales.length > 0
-          ? state.sales
-          : mergedCache.sales;
-      const saleReturnsBase =
-        Array.isArray(state.saleReturns) && state.saleReturns.length > 0
-          ? state.saleReturns
-          : mergedCache.saleReturns;
-      const stockMovementsBase =
-        Array.isArray(state.stockMovements) && state.stockMovements.length > 0
-          ? state.stockMovements
-          : mergedCache.stockMovements;
-
-      const mergedProducts = mergeServerDataWithLocal(
-        productsBase,
-        Array.isArray(offlineItems.products) ? offlineItems.products : [],
+      setProducts(Array.isArray(state.products) ? state.products : []);
+      setSuppliers(Array.isArray(state.suppliers) ? state.suppliers : []);
+      setSales(Array.isArray(state.sales) ? state.sales : []);
+      setSaleReturns(Array.isArray(state.saleReturns) ? state.saleReturns : []);
+      setStockMovements(
+        Array.isArray(state.stockMovements) ? state.stockMovements : [],
       );
-      const mergedSuppliers = mergeServerDataWithLocal(
-        suppliersBase,
-        Array.isArray(offlineItems.suppliers) ? offlineItems.suppliers : [],
+      setActivities(Array.isArray(state.activities) ? state.activities : []);
+      setSecurityAudits(
+        Array.isArray(state.securityAudits) ? state.securityAudits : [],
       );
-      const mergedSales = mergeServerDataWithLocal(
-        salesBase,
-        Array.isArray(offlineItems.sales) ? offlineItems.sales : [],
-      );
-      const mergedSaleReturns = mergeServerDataWithLocal(
-        saleReturnsBase,
-        Array.isArray(offlineItems.saleReturns) ? offlineItems.saleReturns : [],
-      );
-      const mergedStockMovements = mergeServerDataWithLocal(
-        stockMovementsBase,
-        Array.isArray(offlineItems.stockMovements)
-          ? offlineItems.stockMovements
-          : [],
-      );
-
-      setProducts(mergedProducts);
-      setSales(mergedSales);
-      setSaleReturns(mergedSaleReturns);
-      setStockMovements(mergedStockMovements);
-      setSuppliers(mergedSuppliers);
       setIsInitialized(true);
     };
 
     loadData();
-  }, [mergeServerDataWithLocal]);
+  }, []);
 
   // Poll suppliers from API every 30 seconds (moderate volatility - supplier edits)
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
@@ -415,8 +467,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiSuppliers(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
-    refetchInterval: 30000, // Poll every 30 seconds (match products polling)
-    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   // Poll products from API every 30 seconds (moderate volatility - pricing/stock)
@@ -425,8 +475,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiProducts(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
-    refetchInterval: 30000, // Poll every 30 seconds (moderate importance)
-    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   // Poll inventory movements from API every 20 seconds (critical for stock accuracy)
@@ -435,8 +483,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiInventory(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
-    refetchInterval: 20000, // Poll every 20 seconds (prevent overselling)
-    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   // Poll sales from API every 15 seconds (business-critical, revenue tracking)
@@ -445,8 +491,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiSales(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
-    refetchInterval: 15000, // Poll every 15 seconds (highest priority)
-    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
 
   // Poll sale returns from API every 30 seconds (moderate priority - historical data)
@@ -455,137 +499,130 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryFn: () => apiSaleReturns(user?.token, user?.businessId),
     enabled: !!user?.token && !!user?.businessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
-    refetchInterval: 30000, // Poll every 30 seconds (moderate priority)
-    refetchIntervalInBackground: true, // Continue polling when window loses focus
   });
+
+  // Poll activities from API every 30 seconds (audit log - low volatility)
+  const { data: activitiesData, refetch: refetchActivities } = useQuery({
+    queryKey: ["activities", user?.businessId],
+    queryFn: () => apiActivities(user?.token, user?.businessId),
+    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    staleTime: 3000, // 3 seconds - prevent cache thrashing
+  });
+
+  // Poll security audits from API every 60 seconds (read-only audit trail)
+  const { data: securityAuditsData, refetch: refetchSecurityAudits } = useQuery(
+    {
+      queryKey: ["security-audits", user?.id],
+      queryFn: () => apiSecurityAudits(user?.token, user?.id),
+      enabled: !!user?.token && !!user?.id && isInitialized,
+      staleTime: 60000, // 60 seconds - lower priority than activities
+    },
+  );
 
   // Update state when API data changes
   useEffect(() => {
-    if (isOnline && suppliersData !== undefined && suppliersData !== null) {
-      // Online + API success: Use API data directly
+    if (suppliersData !== undefined && suppliersData !== null) {
       setSuppliers(suppliersData);
       const state = storage.getState();
       state.suppliers = suppliersData;
       storage.saveState(state);
-    } else if (!isOnline) {
-      // Offline: Merge offline items with main state
-      const offlineItems = storage.getOfflineItems();
-      const mainState = storage.getState().suppliers;
-      const baseSuppliers =
-        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
-      const mergedSuppliers = mergeServerDataWithLocal(
-        baseSuppliers,
-        Array.isArray(offlineItems.suppliers) ? offlineItems.suppliers : [],
-      );
-      setSuppliers(mergedSuppliers);
-      const state = storage.getState();
-      state.suppliers = mergedSuppliers;
-      storage.saveState(state);
-      storage.saveMergedCache({ suppliers: mergedSuppliers });
     }
-  }, [suppliersData, isOnline, mergeServerDataWithLocal]);
+  }, [suppliersData]);
 
   useEffect(() => {
-    if (isOnline && productsData !== undefined && productsData !== null) {
-      // Online + API success: Use API data directly
+    if (productsData !== undefined && productsData !== null) {
       setProducts(productsData);
       const state = storage.getState();
       state.products = productsData;
       storage.saveState(state);
-    } else if (!isOnline) {
-      // Offline: Merge offline items with main state
-      const offlineItems = storage.getOfflineItems();
-      const mainState = storage.getState().products;
-      const baseProducts =
-        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
-      const mergedProducts = mergeServerDataWithLocal(
-        baseProducts,
-        Array.isArray(offlineItems.products) ? offlineItems.products : [],
-      );
-      setProducts(mergedProducts);
-      const state = storage.getState();
-      state.products = mergedProducts;
-      storage.saveState(state);
-      storage.saveMergedCache({ products: mergedProducts });
     }
-  }, [productsData, isOnline, mergeServerDataWithLocal]);
+  }, [productsData]);
 
   useEffect(() => {
-    if (isOnline && inventoryData !== undefined && inventoryData !== null) {
-      // Online + API success: Use API data directly
+    if (inventoryData !== undefined && inventoryData !== null) {
       setStockMovements(inventoryData);
       const state = storage.getState();
       state.stockMovements = inventoryData;
       storage.saveState(state);
-    } else if (!isOnline) {
-      // Offline: Merge offline items with main state
-      const offlineItems = storage.getOfflineItems();
-      const mainState = storage.getState().stockMovements;
-      const baseStockMovements =
-        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
-      const mergedStockMovements = mergeServerDataWithLocal(
-        baseStockMovements,
-        Array.isArray(offlineItems.stockMovements)
-          ? offlineItems.stockMovements
-          : [],
-      );
-      setStockMovements(mergedStockMovements);
-      const state = storage.getState();
-      state.stockMovements = mergedStockMovements;
-      storage.saveState(state);
-      storage.saveMergedCache({ stockMovements: mergedStockMovements });
     }
-  }, [inventoryData, isOnline, mergeServerDataWithLocal]);
+  }, [inventoryData]);
 
   useEffect(() => {
-    if (isOnline && salesData !== undefined && salesData !== null) {
-      // Online + API success: Use API data directly
+    if (salesData !== undefined && salesData !== null) {
       setSales(salesData);
       const state = storage.getState();
       state.sales = salesData;
       storage.saveState(state);
-    } else if (!isOnline) {
-      // Offline: Merge offline items with main state
-      const offlineItems = storage.getOfflineItems();
-      const mainState = storage.getState().sales;
-      const baseSales =
-        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
-      const mergedSales = mergeServerDataWithLocal(
-        baseSales,
-        Array.isArray(offlineItems.sales) ? offlineItems.sales : [],
-      );
-      setSales(mergedSales);
-      const state = storage.getState();
-      state.sales = mergedSales;
-      storage.saveState(state);
-      storage.saveMergedCache({ sales: mergedSales });
     }
-  }, [salesData, isOnline, mergeServerDataWithLocal]);
+  }, [salesData]);
 
   useEffect(() => {
-    if (isOnline && saleReturnsData !== undefined && saleReturnsData !== null) {
-      // Online + API success: Use API data directly
+    if (saleReturnsData !== undefined && saleReturnsData !== null) {
       setSaleReturns(saleReturnsData);
       const state = storage.getState();
       state.saleReturns = saleReturnsData;
       storage.saveState(state);
-    } else if (!isOnline) {
-      // Offline: Merge offline items with main state
-      const offlineItems = storage.getOfflineItems();
-      const mainState = storage.getState().saleReturns;
-      const baseSaleReturns =
-        Array.isArray(mainState) && mainState.length > 0 ? mainState : [];
-      const mergedSaleReturns = mergeServerDataWithLocal(
-        baseSaleReturns,
-        Array.isArray(offlineItems.saleReturns) ? offlineItems.saleReturns : [],
-      );
-      setSaleReturns(mergedSaleReturns);
-      const state = storage.getState();
-      state.saleReturns = mergedSaleReturns;
-      storage.saveState(state);
-      storage.saveMergedCache({ saleReturns: mergedSaleReturns });
     }
-  }, [saleReturnsData, isOnline, mergeServerDataWithLocal]);
+  }, [saleReturnsData]);
+
+  useEffect(() => {
+    if (activitiesData !== undefined && activitiesData !== null) {
+      setActivities(activitiesData);
+      const state = storage.getState();
+      state.activities = activitiesData;
+      storage.saveState(state);
+    }
+  }, [activitiesData]);
+
+  useEffect(() => {
+    if (securityAuditsData !== undefined && securityAuditsData !== null) {
+      setSecurityAudits(securityAuditsData);
+      const state = storage.getState();
+      state.securityAudits = securityAuditsData;
+      storage.saveState(state);
+    }
+  }, [securityAuditsData]);
+
+  // Set initial loading states to false after first successful data load
+  useEffect(() => {
+    if (
+      productsData !== undefined &&
+      productsData !== null &&
+      isInitialLoadingProducts
+    ) {
+      setIsInitialLoadingProducts(false);
+    }
+  }, [productsData, isInitialLoadingProducts]);
+
+  useEffect(() => {
+    if (
+      suppliersData !== undefined &&
+      suppliersData !== null &&
+      isInitialLoadingSuppliers
+    ) {
+      setIsInitialLoadingSuppliers(false);
+    }
+  }, [suppliersData, isInitialLoadingSuppliers]);
+
+  useEffect(() => {
+    if (
+      salesData !== undefined &&
+      salesData !== null &&
+      isInitialLoadingSales
+    ) {
+      setIsInitialLoadingSales(false);
+    }
+  }, [salesData, isInitialLoadingSales]);
+
+  useEffect(() => {
+    if (
+      inventoryData !== undefined &&
+      inventoryData !== null &&
+      isInitialLoadingInventory
+    ) {
+      setIsInitialLoadingInventory(false);
+    }
+  }, [inventoryData, isInitialLoadingInventory]);
 
   // Refetch data from API immediately (for instant updates after creating records)
   const refetchData = useCallback(async () => {
@@ -595,6 +632,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       refetchInventory(),
       refetchSales(),
       refetchSaleReturns(),
+      refetchActivities(),
+      refetchSecurityAudits(),
     ]);
   }, [
     refetchProducts,
@@ -602,15 +641,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refetchInventory,
     refetchSales,
     refetchSaleReturns,
+    refetchActivities,
+    refetchSecurityAudits,
   ]);
 
   // Utility functions for sale returns
   const getSaleReturns = useCallback(() => saleReturns, [saleReturns]);
   const getSaleReturnById = useCallback(
     (id: string) => {
-      return saleReturns.find(
-        (r) => r.id === id || (r as any)._id === id || r.offline_id === id,
-      );
+      return saleReturns.find((r) => r.id === id || (r as any)._id === id);
     },
     [saleReturns],
   );
@@ -619,89 +658,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addProduct = useCallback(
     async (product: Product) => {
       const selectedSupplier = suppliers.find(
-        (s) =>
-          s.id === product.supplierId ||
-          s._id === product.supplierId ||
-          s.offline_id === product.supplierId,
+        (s) => s.id === product.supplierId || s._id === product.supplierId,
       );
 
       const resolvedSupplierId = resolveReferenceId(selectedSupplier);
 
       const productWithBusinessId = {
         ...product,
-        id: product.id || uuidv4(), // Generate UUID if no ID
-        offline_id: product.offline_id || uuidv4(),
         businessId: user?.businessId ?? product.businessId,
-        supplierId: resolvedSupplierId || "", // Use resolved ID (server ID or offline_id)
-        offline_supplier_id: selectedSupplier?.offline_id, // Keep for local tracking only
+        supplierId: resolvedSupplierId || "",
+        id: product.id || product._id || uuidv4(),
+        createdAt: product.createdAt || new Date().toISOString(),
+        updatedAt: product.updatedAt || new Date().toISOString(),
       };
 
-      console.log(
-        "📝 [DATACONTEXT] addProduct - generated/existing ID:",
-        productWithBusinessId.id,
+      const previousProducts = products;
+      const optimisticProducts = [productWithBusinessId, ...products];
+      persistProducts(optimisticProducts);
+
+      const response = await sendApiRequest(
+        "POST",
+        "/products/new",
+        productWithBusinessId,
       );
-
-      const localAction = () => {
-        // Save to BOTH main store and offline store for dual-state persistence
-        storage.addProduct(productWithBusinessId);
-        storage.addOfflineProduct(productWithBusinessId);
-        setProducts([...products, productWithBusinessId]);
-
-        // Track offline product in supplier's offline_products array
-        if (
-          selectedSupplier &&
-          (selectedSupplier.id || selectedSupplier.offline_id)
-        ) {
-          const supplierId = (selectedSupplier.id ||
-            selectedSupplier.offline_id) as string;
-          const updatedSupplier = {
-            ...selectedSupplier,
-            offline_products: [
-              ...(selectedSupplier.offline_products || []),
-              productWithBusinessId.offline_id,
-            ],
-          };
-          // Save updated supplier to both states
-          storage.updateSupplier(supplierId, updatedSupplier);
-
-          // Only add to offline storage if this supplier is actually offline (no server ID)
-          if (!selectedSupplier.id && selectedSupplier.offline_id) {
-            storage.addOfflineSupplier(updatedSupplier);
-          }
-
-          setSuppliers(
-            suppliers.map((s) =>
-              s.id === selectedSupplier.id ||
-              s.offline_id === selectedSupplier.offline_id
-                ? updatedSupplier
-                : s,
-            ),
-          );
-        }
-      };
-
-      if (openNoInternetModal("create product", localAction)) {
-        return;
+      if (response?.ok) {
+        await refetchProducts();
+      } else {
+        persistProducts(previousProducts);
       }
-
-      // Proceed with normal action
-      localAction();
-
-      // Send to API if online - use same product object for consistency
-      enqueueAction({
-        endpoint: "/products/new",
-        method: "POST",
-        payload: productWithBusinessId,
-        type: "CREATE_PRODUCT",
-      });
     },
     [
+      persistProducts,
       products,
-      isOnline,
-      user?.token,
+      refetchProducts,
+      suppliers,
       user?.businessId,
-      enqueueAction,
-      openNoInternetModal,
+      sendApiRequest,
+      resolveReferenceId,
     ],
   );
 
@@ -710,118 +703,93 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const productWithBusinessId = {
         ...product,
         businessId: product.businessId || user?.businessId,
+        updatedAt: new Date().toISOString(),
       };
 
-      const localAction = () => {
-        storage.updateProduct(id, productWithBusinessId as Product);
-        setProducts(
-          products.map((p: any) =>
-            p.id === id || (p as any)._id === id
-              ? {
-                  ...p,
-                  ...productWithBusinessId,
-                  updatedAt: new Date().toISOString(),
-                }
-              : p,
-          ),
-        );
-      };
+      const previousProducts = products;
+      const optimisticProducts = products.map((existingProduct) =>
+        existingProduct.id === id || (existingProduct as any)._id === id
+          ? { ...existingProduct, ...productWithBusinessId }
+          : existingProduct,
+      );
+      persistProducts(optimisticProducts);
 
-      if (openNoInternetModal("update product", localAction)) {
-        return;
+      const response = await sendApiRequest(
+        "PUT",
+        `/products/${id}/update`,
+        productWithBusinessId,
+      );
+      if (response?.ok) {
+        await refetchProducts();
+      } else {
+        persistProducts(previousProducts);
       }
-
-      localAction();
-      enqueueAction({
-        endpoint: `/products/${id}/update`,
-        method: "PUT",
-        payload: productWithBusinessId,
-        type: "UPDATE_PRODUCT",
-      });
     },
     [
+      persistProducts,
       products,
-      isOnline,
-      user?.token,
+      refetchProducts,
+      sendApiRequest,
       user?.businessId,
-      enqueueAction,
-      openNoInternetModal,
     ],
   );
 
   const deleteProduct = useCallback(
     async (id: string) => {
-      const localAction = () => {
-        storage.deleteProduct(id);
-        setProducts(
-          products.filter((p) => p.id !== id && (p as any)._id !== id),
-        );
-      };
+      const previousProducts = products;
+      const optimisticProducts = products.filter(
+        (existingProduct) =>
+          existingProduct.id !== id && (existingProduct as any)._id !== id,
+      );
+      persistProducts(optimisticProducts);
 
-      if (openNoInternetModal("delete product", localAction)) {
-        return;
+      const response = await sendApiRequest(
+        "DELETE",
+        `/products/${id}/delete`,
+        { id },
+      );
+      if (response?.ok) {
+        await refetchProducts();
+      } else {
+        persistProducts(previousProducts);
       }
-
-      localAction();
-      enqueueAction({
-        endpoint: `/products/${id}/delete`,
-        method: "DELETE",
-        payload: { id },
-        type: "DELETE_PRODUCT",
-      });
     },
-    [
-      products,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
-      openNoInternetModal,
-    ],
+    [persistProducts, products, refetchProducts, sendApiRequest],
   );
 
   // Suppliers
   const addSupplier = useCallback(
     async (supplier: Supplier) => {
-      // Ensure businessId is included
       const supplierWithBusinessId = {
         ...supplier,
-        id: supplier.id || uuidv4(),
-        offline_id: supplier.offline_id || uuidv4(),
         businessId: supplier.businessId || user?.businessId,
+        id: supplier.id || supplier._id || uuidv4(),
+        createdAt: supplier.createdAt || new Date().toISOString(),
+        updatedAt: supplier.updatedAt || new Date().toISOString(),
       };
 
-      const localAction = () => {
-        // Save to offline store if offline, otherwise to main store
-        if (isOnline) {
-          storage.addSupplier(supplierWithBusinessId);
-        } else {
-          storage.addOfflineSupplier(supplierWithBusinessId);
-        }
-        setSuppliers([...suppliers, supplierWithBusinessId]);
-      };
+      const previousSuppliers = suppliers;
+      const optimisticSuppliers = [supplierWithBusinessId, ...suppliers];
+      persistSuppliers(optimisticSuppliers);
 
-      if (openNoInternetModal("create supplier", localAction)) {
-        return;
+      const response = await sendApiRequest(
+        "POST",
+        "/suppliers/create",
+        supplierWithBusinessId,
+      );
+
+      if (response?.ok) {
+        await refetchSuppliers();
+      } else {
+        persistSuppliers(previousSuppliers);
       }
-
-      // Proceed with normal action
-      localAction();
-      enqueueAction({
-        endpoint: "/suppliers/create",
-        method: "POST",
-        payload: supplierWithBusinessId,
-        type: "CREATE_SUPPLIER",
-      });
     },
     [
-      suppliers,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
-      openNoInternetModal,
+      persistSuppliers,
       refetchSuppliers,
+      sendApiRequest,
+      suppliers,
+      user?.businessId,
     ],
   );
 
@@ -830,76 +798,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const supplierWithBusinessId = {
         ...supplier,
         businessId: supplier.businessId || user?.businessId,
+        updatedAt: new Date().toISOString(),
       };
 
-      const localAction = () => {
-        storage.updateSupplier(id, supplierWithBusinessId);
-        setSuppliers(
-          suppliers.map((s) =>
-            s.id === id || (s as any)._id === id
-              ? {
-                  ...s,
-                  ...supplierWithBusinessId,
-                  updatedAt: new Date().toISOString(),
-                }
-              : s,
-          ),
-        );
-      };
+      const previousSuppliers = suppliers;
+      const optimisticSuppliers = suppliers.map((existingSupplier) =>
+        existingSupplier.id === id || (existingSupplier as any)._id === id
+          ? { ...existingSupplier, ...supplierWithBusinessId }
+          : existingSupplier,
+      );
+      persistSuppliers(optimisticSuppliers);
 
-      if (openNoInternetModal("update supplier", localAction)) {
-        return;
+      const response = await sendApiRequest(
+        "PUT",
+        `/suppliers/${id}/update`,
+        supplierWithBusinessId,
+      );
+
+      if (response?.ok) {
+        await refetchSuppliers();
+      } else {
+        persistSuppliers(previousSuppliers);
       }
-
-      localAction();
-      enqueueAction({
-        endpoint: `/suppliers/${id}/update`,
-        method: "PUT",
-        payload: supplierWithBusinessId,
-        type: "UPDATE_SUPPLIER",
-      });
     },
     [
-      suppliers,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
+      persistSuppliers,
       refetchSuppliers,
-      openNoInternetModal,
+      sendApiRequest,
+      suppliers,
+      user?.businessId,
     ],
   );
 
   const deleteSupplier = useCallback(
     async (id: string) => {
-      const localAction = () => {
-        storage.deleteSupplier(id);
-        setSuppliers(
-          suppliers.filter((s) => s.id !== id && (s as any)._id !== id),
-        );
-      };
+      const previousSuppliers = suppliers;
+      const optimisticSuppliers = suppliers.filter(
+        (existingSupplier) =>
+          existingSupplier.id !== id && (existingSupplier as any)._id !== id,
+      );
+      persistSuppliers(optimisticSuppliers);
 
-      if (openNoInternetModal("delete supplier", localAction)) {
-        return;
+      const response = await sendApiRequest(
+        "DELETE",
+        `/suppliers/${id}/delete`,
+        { id },
+      );
+
+      if (response?.ok) {
+        await refetchSuppliers();
+      } else {
+        persistSuppliers(previousSuppliers);
       }
-
-      localAction();
-      enqueueAction({
-        endpoint: `/suppliers/${id}/delete`,
-        method: "DELETE",
-        payload: { id },
-        type: "DELETE_SUPPLIER",
-      });
     },
-    [
-      suppliers,
-      isOnline,
-      user?.token,
-      user?.businessId,
-      enqueueAction,
-      refetchSuppliers,
-      openNoInternetModal,
-    ],
+    [persistSuppliers, refetchSuppliers, sendApiRequest, suppliers],
   );
 
   // Sales
@@ -907,118 +859,92 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (sale: Sale) => {
       const saleWithBusinessId = {
         ...sale,
-        id: sale.id || uuidv4(),
-        offline_id: sale.offline_id || uuidv4(),
         businessId: user?.businessId ?? sale.businessId,
+        id: sale.id || sale._id || uuidv4(),
+        createdAt: sale.createdAt || new Date().toISOString(),
         items: sale.items.map((item) => {
           const selectedProduct = products.find(
-            (p) =>
-              p.id === item.productId ||
-              p._id === item.productId ||
-              p.offline_id === item.productId,
+            (p) => p.id === item.productId || p._id === item.productId,
           );
 
           const resolvedProductId = resolveReferenceId(selectedProduct);
 
           return {
             ...item,
-            productId: resolvedProductId || "", // Use resolved ID (server ID or offline_id)
-            offline_product_id: selectedProduct?.offline_id, // Keep for local tracking only
+            productId: resolvedProductId || "",
           };
         }),
       };
 
-      const localAction = () => {
-        // Save to BOTH main store and offline store for dual-state persistence
-        storage.addSale(saleWithBusinessId);
-        storage.addOfflineSale(saleWithBusinessId);
-        setSales((prev) => [...prev, saleWithBusinessId]);
+      const previousSales = sales;
+      const previousProducts = products;
+      const previousStockMovements = stockMovements;
 
-        const updatedProducts = products.map((product) => {
-          const saleItem = saleWithBusinessId.items.find(
-            (item) =>
-              item.productId === product.id ||
-              item.productId === (product as any)._id ||
-              item.productId === product.offline_id ||
-              item.offline_product_id === product.offline_id ||
-              item.offline_product_id === product.id ||
-              item.offline_product_id === (product as any)._id,
-          );
-          if (saleItem) {
-            return {
-              ...product,
-              currentStock: product.currentStock - saleItem.quantity,
-            };
-          }
-          return product;
-        });
-        setProducts(updatedProducts);
+      const optimisticSales = [...sales, saleWithBusinessId];
+      const updatedProducts = products.map((product) => {
+        const saleItem = saleWithBusinessId.items.find(
+          (item) =>
+            product.id === item.productId ||
+            (product as any)._id === item.productId,
+        );
 
-        const newMovements: StockMovement[] = saleWithBusinessId.items.map(
-          (item) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            productId: item.offline_product_id || item.productId,
-            type: "out" as const,
-            quantity: item.quantity,
-            reason: "Sale",
-            reference: `SALE-${saleWithBusinessId.saleNumber}`,
-            createdBy: user?.id || user?._id || "system",
-            createdAt: new Date().toISOString(),
-          }),
-        );
-        setStockMovements((prev) => [...prev, ...newMovements]);
+        if (!saleItem) return product;
 
-        queryClient.setQueryData(
-          ["sales", user?.businessId],
-          (oldData: Sale[] | undefined) =>
-            oldData ? [...oldData, saleWithBusinessId] : [saleWithBusinessId],
-        );
-        queryClient.setQueryData(
-          ["products", user?.businessId],
-          (oldData: Product[] | undefined) => updatedProducts,
-        );
-        queryClient.setQueryData(
-          ["inventory", "movements", user?.businessId],
-          (oldData: StockMovement[] | undefined) =>
-            oldData ? [...oldData, ...newMovements] : newMovements,
-        );
-      };
+        return {
+          ...product,
+          currentStock: product.currentStock - saleItem.quantity,
+        };
+      });
 
-      if (openNoInternetModal("create sale", localAction)) {
-        return;
+      const newMovements: StockMovement[] = saleWithBusinessId.items.map(
+        (item) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          productId: item.productId,
+          type: "out",
+          quantity: item.quantity,
+          reason: "Sale",
+          reference: saleWithBusinessId.saleNumber,
+          createdBy: user?.id || user?._id || "system",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+
+      persistProducts(updatedProducts);
+      persistStockMovements([...stockMovements, ...newMovements]);
+      persistSales(optimisticSales);
+
+      const response = await sendApiRequest(
+        "POST",
+        "/sales/create",
+        saleWithBusinessId,
+      );
+      if (response?.ok) {
+        await Promise.all([
+          refetchSales(),
+          refetchProducts(),
+          refetchInventory(),
+        ]);
+      } else {
+        persistSales(previousSales);
+        persistProducts(previousProducts);
+        persistStockMovements(previousStockMovements);
       }
-
-      localAction();
-      enqueueAction({
-        endpoint: "/sales/create",
-        method: "POST",
-        payload: saleWithBusinessId,
-        type: "CREATE_SALE",
-      });
-
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["products", user?.businessId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["sales", user?.businessId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["inventory", "movements", user?.businessId],
-        }),
-      ]).catch(() => {
-        // Continue even if invalidation fails
-      });
     },
     [
-      user?.token,
+      persistProducts,
+      persistSales,
+      persistStockMovements,
+      products,
+      sales,
+      stockMovements,
+      refetchSales,
+      refetchProducts,
+      refetchInventory,
+      resolveReferenceId,
+      sendApiRequest,
       user?.businessId,
       user?.id,
       user?._id,
-      isOnline,
-      enqueueAction,
-      products,
-      stockMovements,
     ],
   );
 
@@ -1039,14 +965,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const updatedMap = new Map<string, number>();
 
     originalItems.forEach((item) => {
-      const key = item.productId || item.offline_product_id || "";
+      const key = item.productId || "";
       if (key) {
         originalMap.set(key, item.quantity);
       }
     });
 
     updatedItems.forEach((item) => {
-      const key = item.productId || item.offline_product_id || "";
+      const key = item.productId || "";
       if (key) {
         updatedMap.set(key, item.quantity);
       }
@@ -1088,7 +1014,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSale = useCallback(
     async (id: string, sale: Partial<Sale>) => {
       const originalSale = sales.find(
-        (s) => s.id === id || (s as any)._id === id || s.offline_id === id,
+        (s) => s.id === id || (s as any)._id === id,
       );
       if (!originalSale) {
         throw new Error("Sale not found");
@@ -1096,16 +1022,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const saleWithBusinessId = {
         ...sale,
-        offline_id: sale.offline_id || originalSale.offline_id,
         businessId: sale.businessId || user?.businessId,
         items:
           sale.items?.map((item, index) => {
             const oldItem = originalSale.items[index];
             const selectedProduct = products.find(
-              (p) =>
-                p.id === item.productId ||
-                p._id === item.productId ||
-                p.offline_id === item.productId,
+              (p) => p.id === item.productId || p._id === item.productId,
             );
 
             const resolvedProductId = resolveReferenceId(selectedProduct);
@@ -1113,8 +1035,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return {
               ...item,
               productId: resolvedProductId || oldItem?.productId || "",
-              offline_product_id:
-                selectedProduct?.offline_id || oldItem?.offline_product_id,
             };
           }) || originalSale.items,
       };
@@ -1191,62 +1111,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
           (m) => m.reference !== `SALE-${originalSale.saleNumber}`,
         );
 
-        storage.updateSale(id, saleWithBusinessId);
-        setSales(
-          sales.map((s) =>
-            s.id === id || (s as any)._id === id
-              ? {
-                  ...s,
-                  ...saleWithBusinessId,
-                  updatedAt: new Date().toISOString(),
-                }
-              : s,
-          ),
+        const updatedSales = sales.map((s) =>
+          s.id === id || (s as any)._id === id
+            ? {
+                ...s,
+                ...saleWithBusinessId,
+                updatedAt: new Date().toISOString(),
+              }
+            : s,
         );
-        setProducts(updatedProducts);
-        setStockMovements([...updatedStockMovements, ...newMovements]);
 
-        queryClient.setQueryData(
-          ["sales", user?.businessId],
-          (oldData: Sale[] | undefined) =>
-            oldData
-              ? oldData.map((s) =>
-                  s.id === id || (s as any)._id === id
-                    ? {
-                        ...s,
-                        ...saleWithBusinessId,
-                        updatedAt: new Date().toISOString(),
-                      }
-                    : s,
-                )
-              : undefined,
-        );
+        storage.updateSale(id, saleWithBusinessId);
+        persistSales(updatedSales);
+        persistProducts(updatedProducts);
+        persistStockMovements([...updatedStockMovements, ...newMovements]);
       };
 
-      if (openNoInternetModal("update sale", localAction)) {
-        return;
-      }
-
       localAction();
-      enqueueAction({
-        endpoint: `/sales/${id}/update`,
-        method: "PUT",
-        payload: saleWithBusinessId,
-        type: "UPDATE_SALE",
-      });
+      await sendApiRequest("PUT", `/sales/${id}/update`, saleWithBusinessId);
     },
     [
       sales,
       stockMovements,
       products,
-      isOnline,
       user?.token,
       user?.businessId,
       user?.id,
       user?._id,
-      enqueueAction,
-      refetchSales,
-      openNoInternetModal,
+      sendApiRequest,
     ],
   );
 
@@ -1257,70 +1149,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setSales(sales.filter((s) => s.id !== id && (s as any)._id !== id));
       };
 
-      if (openNoInternetModal("delete sale", localAction)) {
-        return;
-      }
-
       localAction();
-      enqueueAction({
-        endpoint: `/sales/${id}/delete`,
-        method: "DELETE",
-        payload: { id },
-        type: "DELETE_SALE",
-      });
+      await sendApiRequest("DELETE", `/sales/${id}/delete`, { id });
     },
-    [
-      sales,
-      isOnline,
-      user?.token,
-      enqueueAction,
-      refetchSales,
-      openNoInternetModal,
-    ],
+    [sales, user?.token, sendApiRequest],
   );
 
   // Sale Returns
   const processSaleReturn = useCallback(
     async (saleReturn: SaleReturn) => {
       const selectedSale = sales.find(
-        (s) =>
-          s.id === saleReturn.saleId ||
-          s._id === saleReturn.saleId ||
-          s.offline_id === saleReturn.saleId,
+        (s) => s.id === saleReturn.saleId || s._id === saleReturn.saleId,
       );
 
       const resolvedSaleId = resolveReferenceId(selectedSale);
 
       const returnWithBusinessId = {
         ...saleReturn,
-        id: saleReturn.id || uuidv4(),
-        offline_id: saleReturn.offline_id || uuidv4(),
         businessId: user?.businessId ?? saleReturn.businessId,
-        saleId: resolvedSaleId || "", // Use resolved ID (server ID or offline_id)
-        offline_sale_id: selectedSale?.offline_id, // Keep for local tracking only
+        saleId: resolvedSaleId || "",
       };
 
       const localAction = () => {
-        // Save to BOTH main store and offline store for dual-state persistence
         storage.processSaleReturn(returnWithBusinessId);
-        storage.addOfflineSaleReturn(returnWithBusinessId);
 
         const originalSale = sales.find(
           (s) =>
-            s.id === returnWithBusinessId.offline_sale_id ||
-            s._id === returnWithBusinessId.offline_sale_id ||
-            s.offline_id === returnWithBusinessId.offline_sale_id,
+            s.id === returnWithBusinessId.saleId ||
+            s._id === returnWithBusinessId.saleId,
         );
 
         const updatedProducts = products.map((product) => {
           const returnItem = returnWithBusinessId.items.find(
             (item) =>
               item.productId === product.id ||
-              item.productId === (product as any)._id ||
-              item.productId === product.offline_id ||
-              item.offline_product_id === product.offline_id ||
-              item.offline_product_id === product.id ||
-              item.offline_product_id === (product as any)._id,
+              item.productId === (product as any)._id,
           );
           if (returnItem) {
             return {
@@ -1409,17 +1272,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      if (openNoInternetModal("process sale return", localAction)) {
-        return;
-      }
-
       localAction();
-      enqueueAction({
-        endpoint: "/sales/return",
-        method: "POST",
-        payload: returnWithBusinessId,
-        type: "PROCESS_SALE_RETURN",
-      });
+      await sendApiRequest("POST", "/sales/return", returnWithBusinessId);
 
       await Promise.all([
         queryClient.invalidateQueries({
@@ -1440,12 +1294,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       user?.businessId,
       user?.id,
       user?._id,
-      isOnline,
-      enqueueAction,
       products,
       stockMovements,
       sales,
-      openNoInternetModal,
+      sendApiRequest,
     ],
   );
 
@@ -1453,127 +1305,337 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addStockMovement = useCallback(
     async (movement: StockMovement) => {
       const selectedProduct = products.find(
-        (p) =>
-          p.id === movement.productId ||
-          p._id === movement.productId ||
-          p.offline_id === movement.productId,
+        (p) => p.id === movement.productId || p._id === movement.productId,
       );
 
       const resolvedProductId = resolveReferenceId(selectedProduct);
+      if (!resolvedProductId) {
+        toastError(
+          "Unable to resolve the selected product for this stock movement.",
+          5000,
+        );
+        throw new Error("Selected product could not be resolved.");
+      }
 
       const movementWithBusinessId = {
         ...movement,
-        id: movement.id || uuidv4(),
-        offline_id: movement.offline_id || uuidv4(),
         businessId: user?.businessId ?? movement.businessId,
-        productId: resolvedProductId || "", // Use resolved ID (server ID or offline_id)
-        offline_product_id: selectedProduct?.offline_id, // Keep for local tracking only
+        productId: resolvedProductId,
+        id: movement.id || movement._id || uuidv4(),
+        createdAt: movement.createdAt || new Date().toISOString(),
       };
 
-      const localAction = () => {
-        // Save to BOTH main store and offline store for dual-state persistence
-        storage.addStockMovement(movementWithBusinessId);
-        storage.addOfflineStockMovement(movementWithBusinessId);
-        setStockMovements((prev) => [...prev, movementWithBusinessId]);
-        setProducts((prev) =>
-          prev.map((product) => {
-            if (
-              product.id === movementWithBusinessId.productId ||
-              (product as any)._id === movementWithBusinessId.productId ||
-              product.offline_id === movementWithBusinessId.productId ||
-              product.offline_id ===
-                movementWithBusinessId.offline_product_id ||
-              product.id === movementWithBusinessId.offline_product_id ||
-              (product as any)._id === movementWithBusinessId.offline_product_id
-            ) {
-              const adjustedStock =
-                movementWithBusinessId.type === "in"
-                  ? product.currentStock + movementWithBusinessId.quantity
-                  : movementWithBusinessId.type === "out"
-                    ? product.currentStock - movementWithBusinessId.quantity
-                    : movementWithBusinessId.quantity;
+      const previousProducts = products;
+      const previousStockMovements = stockMovements;
 
-              return { ...product, currentStock: adjustedStock };
-            }
-            return product;
-          }),
+      const updatedProducts = products.map((product) => {
+        if (
+          product.id === movementWithBusinessId.productId ||
+          (product as any)._id === movementWithBusinessId.productId
+        ) {
+          if (movementWithBusinessId.type === "in") {
+            return {
+              ...product,
+              currentStock:
+                product.currentStock + movementWithBusinessId.quantity,
+            };
+          }
+          if (movementWithBusinessId.type === "out") {
+            return {
+              ...product,
+              currentStock:
+                product.currentStock - movementWithBusinessId.quantity,
+            };
+          }
+          return { ...product, currentStock: movementWithBusinessId.quantity };
+        }
+        return product;
+      });
+
+      persistProducts(updatedProducts);
+      persistStockMovements([...stockMovements, movementWithBusinessId]);
+
+      const response = await sendApiRequest(
+        "POST",
+        "/inventory/movements/add",
+        movementWithBusinessId,
+      );
+
+      if (response?.ok) {
+        await Promise.all([refetchInventory(), refetchProducts()]);
+      } else {
+        persistProducts(previousProducts);
+        persistStockMovements(previousStockMovements);
+        throw new Error(
+          "Unable to save stock movement. Please check your connection and try again.",
         );
-
-        queryClient.invalidateQueries({
-          queryKey: ["inventory", "movements", user?.businessId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["products", user?.businessId],
-        });
-      };
-
-      if (openNoInternetModal("create stock movement", localAction)) {
-        return;
       }
-
-      localAction();
-      enqueueAction({
-        endpoint: "/inventory/movement",
-        method: "POST",
-        payload: movementWithBusinessId,
-        type: "STOCK_IN",
-      });
-
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["products", user?.businessId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["inventory", "movements", user?.businessId],
-        }),
-      ]).catch(() => {
-        // Continue even if invalidation fails
-      });
     },
     [
-      user?.token,
+      persistProducts,
+      persistStockMovements,
+      products,
+      refetchInventory,
+      refetchProducts,
+      sendApiRequest,
+      stockMovements,
       user?.businessId,
-      isOnline,
-      enqueueAction,
-      openNoInternetModal,
+      resolveReferenceId,
     ],
   );
 
-  // Utilities
+  // Activity Logging
+  const logActivity = useCallback(
+    async (
+      activityData: Omit<Activity, "id" | "_id" | "createdAt">,
+    ): Promise<Activity> => {
+      if (!activityData.action) {
+        console.error(
+          "[DATACONTEXT] Activity logging aborted: missing action",
+          activityData,
+        );
+        return {} as Activity;
+      }
+
+      const activityPayload = {
+        ...activityData,
+        businessId: activityData.businessId || user?.businessId,
+        createdBy: activityData.createdBy || user?.id || user?._id,
+      };
+
+      try {
+        const response = await sendApiRequest(
+          "POST",
+          "/activities/log",
+          activityPayload,
+        );
+
+        if (response?.ok) {
+          const data = await response.json();
+          const newActivity = data.activity as Activity;
+
+          // Add to local state optimistically
+          persistActivities([newActivity, ...activities]);
+
+          return newActivity;
+        } else {
+          console.error("[DATACONTEXT] Failed to log activity:", response);
+          throw new Error("Unable to log activity");
+        }
+      } catch (error: any) {
+        console.error("[DATACONTEXT] Error logging activity:", error);
+        // Don't throw - activity logging is non-critical, fail silently
+        return {} as Activity;
+      }
+    },
+    [
+      user?.businessId,
+      user?.id,
+      user?._id,
+      sendApiRequest,
+      activities,
+      persistActivities,
+    ],
+  );
+
+  const addActivity = useCallback(
+    async (activity: Activity) => {
+      const activityWithDefaults: Activity = {
+        ...activity,
+        businessId: activity.businessId || user?.businessId,
+        createdBy: (activity.createdBy || user?.id || user?._id || "system") as
+          | string
+          | User,
+      };
+
+      persistActivities([activityWithDefaults, ...activities]);
+
+      const response = await sendApiRequest(
+        "POST",
+        "/activities/log",
+        activityWithDefaults,
+      );
+
+      if (!response?.ok) {
+        // Revert on failure
+        persistActivities(activities);
+        throw new Error("Unable to save activity");
+      }
+    },
+    [
+      activities,
+      persistActivities,
+      sendApiRequest,
+      user?.businessId,
+      user?.id,
+      user?._id,
+    ],
+  );
+
   const getProductById = useCallback(
-    (id: string) =>
-      products.find(
-        (p) => p.id === id || (p as any)._id === id || p.offline_id === id,
-      ),
+    (id: string) => products.find((p) => p.id === id || (p as any)._id === id),
     [products],
   );
 
   const getSupplierById = useCallback(
-    (id: string) =>
-      suppliers.find(
-        (s) => s.id === id || (s as any)._id === id || s.offline_id === id,
-      ),
+    (id: string) => suppliers.find((s) => s.id === id || (s as any)._id === id),
     [suppliers],
   );
 
   const getSalesForUser = useCallback(
     (userId: string) =>
-      sales.filter(
-        (s) =>
-          s.createdBy === userId || s._id === userId || s.offline_id === userId,
-      ),
+      sales.filter((s) => s.createdBy === userId || s._id === userId),
     [sales],
   );
 
   const getProductStockHistory = useCallback(
     (productId: string) =>
       stockMovements.filter(
-        (m) =>
-          m.productId === productId ||
-          (m as any)._id === productId ||
-          m.offline_product_id === productId,
+        (m) => m.productId === productId || (m as any)._id === productId,
       ),
     [stockMovements],
+  );
+
+  // Activity Filtering Utilities
+  const getActivitiesByType = useCallback(
+    (entityType: string) =>
+      activities.filter((activity) => activity.entityType === entityType),
+    [activities],
+  );
+
+  const getActivitiesByEntity = useCallback(
+    (entityId: string) =>
+      activities.filter(
+        (activity) =>
+          activity.entityId === entityId || activity.referenceId === entityId,
+      ),
+    [activities],
+  );
+
+  const getActivitiesByUser = useCallback(
+    (userId: string) =>
+      activities.filter((activity) => {
+        if (typeof activity.createdBy === "string") {
+          return activity.createdBy === userId;
+        }
+        return (
+          (activity.createdBy as any)?.id === userId ||
+          (activity.createdBy as any)?._id === userId
+        );
+      }),
+    [activities],
+  );
+
+  const getActivitiesByAction = useCallback(
+    (action: string) =>
+      activities.filter((activity) => activity.action === action),
+    [activities],
+  );
+
+  const getActivitiesByDateRange = useCallback(
+    (startDate: Date, endDate: Date) =>
+      activities.filter((activity) => {
+        const activityDate = new Date(activity.createdAt);
+        return activityDate >= startDate && activityDate <= endDate;
+      }),
+    [activities],
+  );
+
+  const getActivitiesByStatus = useCallback(
+    (status: string) =>
+      activities.filter((activity) => activity.status === status),
+    [activities],
+  );
+
+  const searchActivities = useCallback(
+    (query: string) => {
+      const searchLower = query.toLowerCase();
+      return activities.filter(
+        (activity) =>
+          activity.title.toLowerCase().includes(searchLower) ||
+          activity.description.toLowerCase().includes(searchLower) ||
+          activity.referenceId?.toLowerCase().includes(searchLower) ||
+          activity.entityId?.toLowerCase().includes(searchLower),
+      );
+    },
+    [activities],
+  );
+
+  const getActivitiesWithFilters = useCallback(
+    (filters: {
+      entityType?: string;
+      entityId?: string;
+      userId?: string;
+      action?: string;
+      status?: string;
+      startDate?: Date;
+      endDate?: Date;
+      searchQuery?: string;
+    }) => {
+      let filtered = activities;
+
+      if (filters.entityType) {
+        filtered = filtered.filter(
+          (activity) => activity.entityType === filters.entityType,
+        );
+      }
+
+      if (filters.entityId) {
+        filtered = filtered.filter(
+          (activity) =>
+            activity.entityId === filters.entityId ||
+            activity.referenceId === filters.entityId,
+        );
+      }
+
+      if (filters.userId) {
+        filtered = filtered.filter((activity) => {
+          if (typeof activity.createdBy === "string") {
+            return activity.createdBy === filters.userId;
+          }
+          return (
+            (activity.createdBy as any)?.id === filters.userId ||
+            (activity.createdBy as any)?._id === filters.userId
+          );
+        });
+      }
+
+      if (filters.action) {
+        filtered = filtered.filter(
+          (activity) => activity.action === filters.action,
+        );
+      }
+
+      if (filters.status) {
+        filtered = filtered.filter(
+          (activity) => activity.status === filters.status,
+        );
+      }
+
+      if (filters.startDate || filters.endDate) {
+        filtered = filtered.filter((activity) => {
+          const activityDate = new Date(activity.createdAt);
+          if (filters.startDate && activityDate < filters.startDate)
+            return false;
+          if (filters.endDate && activityDate > filters.endDate) return false;
+          return true;
+        });
+      }
+
+      if (filters.searchQuery) {
+        const searchLower = filters.searchQuery.toLowerCase();
+        filtered = filtered.filter(
+          (activity) =>
+            activity.title.toLowerCase().includes(searchLower) ||
+            activity.description.toLowerCase().includes(searchLower) ||
+            activity.referenceId?.toLowerCase().includes(searchLower) ||
+            activity.entityId?.toLowerCase().includes(searchLower),
+        );
+      }
+
+      return filtered;
+    },
+    [activities],
   );
 
   return (
@@ -1598,6 +1660,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refetchSaleReturns,
         stockMovements,
         addStockMovement,
+        activities,
+        addActivity,
+        refetchActivities,
+        logActivity,
+        getActivitiesByType,
+        getActivitiesByEntity,
+        getActivitiesByUser,
+        getActivitiesByAction,
+        getActivitiesByDateRange,
+        getActivitiesByStatus,
+        searchActivities,
+        getActivitiesWithFilters,
+        securityAudits,
+        refetchSecurityAudits,
         getProductById,
         getSupplierById,
         getSalesForUser,
@@ -1606,14 +1682,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refetchData,
         refetchProducts,
         refetchInventory,
-        showNoInternetModal,
-        noInternetModalActionType: pendingAction?.type || "",
-        closeNoInternetModal: () => {
-          setShowNoInternetModal(false);
-          setPendingAction(null);
-        },
-        continueLocally: handleContinueLocally,
-        openNoInternetModal,
+        // Loading states for skeleton loaders
+        isInitialLoadingProducts,
+        isInitialLoadingSuppliers,
+        isInitialLoadingSales,
+        isInitialLoadingInventory,
       }}
     >
       {children}

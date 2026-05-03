@@ -10,6 +10,7 @@ import { SupplierTable } from "@/components/suppliers/SupplierTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { useAuth } from "@/context/AuthContext";
 
 function SuppliersPageContent() {
@@ -19,7 +20,8 @@ function SuppliersPageContent() {
     addSupplier,
     updateSupplier,
     deleteSupplier,
-    openNoInternetModal,
+    isInitialLoadingSuppliers,
+    logActivity,
   } = useData();
   const {
     notifyResourceCreated,
@@ -38,10 +40,7 @@ function SuppliersPageContent() {
 
   const { user } = useAuth();
 
-  const openDialogForAction = (actionType: string, action: () => void) => {
-    if (openNoInternetModal(actionType, action)) {
-      return;
-    }
+  const openDialogForAction = (_actionType: string, action: () => void) => {
     action();
   };
 
@@ -56,10 +55,62 @@ function SuppliersPageContent() {
     try {
       const supplierId = supplier.id ?? supplier._id;
       if (supplierId) {
+        // Update existing supplier
+        const existingSupplier = safeSuppliers.find(
+          (s) => s.id === supplierId || s._id === supplierId,
+        );
+
         await updateSupplier(supplierId, supplier);
+
+        // Log activity: supplier updated
+        try {
+          await logActivity({
+            type: "supplier",
+            action: "update",
+            title: `Supplier Updated: ${supplier.name}`,
+            description: `Supplier "${supplier.name}" was updated`,
+            referenceId: supplierId,
+            entityType: "supplier",
+            entityId: supplierId,
+            metadata: {
+              supplierName: supplier.name,
+              email: supplier.email,
+              phone: supplier.phone,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id,
+          } as any);
+        } catch (error) {
+          console.warn("Failed to log supplier update activity:", error);
+        }
+
         notifyResourceUpdated("Supplier", supplier.name);
       } else {
+        // Create new supplier
         await addSupplier(supplier);
+
+        // Log activity: supplier created
+        try {
+          await logActivity({
+            type: "supplier",
+            action: "create",
+            title: `Supplier Created: ${supplier.name}`,
+            description: `New supplier "${supplier.name}" was created`,
+            referenceId: supplier.id || supplier._id,
+            entityType: "supplier",
+            entityId: supplier.id || supplier._id,
+            metadata: {
+              supplierName: supplier.name,
+              email: supplier.email,
+              phone: supplier.phone,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id,
+          } as any);
+        } catch (error) {
+          console.warn("Failed to log supplier create activity:", error);
+        }
+
         notifyResourceCreated("Supplier", supplier.name);
       }
     } catch (error) {
@@ -74,6 +125,29 @@ function SuppliersPageContent() {
     const supplier = safeSuppliers.find((s) => s.id === id || s._id === id);
     if (supplier) {
       deleteSupplier(id);
+
+      // Log activity: supplier deleted
+      try {
+        logActivity({
+          type: "supplier",
+          action: "delete",
+          title: `Supplier Deleted: ${supplier.name}`,
+          description: `Supplier "${supplier.name}" was deleted`,
+          referenceId: id,
+          entityType: "supplier",
+          entityId: id,
+          metadata: {
+            supplierName: supplier.name,
+            email: supplier.email,
+            phone: supplier.phone,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id,
+        } as any);
+      } catch (error) {
+        console.warn("Failed to log supplier delete activity:", error);
+      }
+
       notifyResourceDeleted("Supplier", supplier.name);
     }
   };
@@ -130,13 +204,17 @@ function SuppliersPageContent() {
         </div>
       </div>
 
-      <SupplierTable
-        suppliers={filteredSuppliers}
-        products={safeProducts}
-        onEdit={handleEditSupplier}
-        onDelete={handleDeleteSupplier}
-        searchTerm={searchTerm}
-      />
+      {isInitialLoadingSuppliers ? (
+        <TableSkeleton rows={7} />
+      ) : (
+        <SupplierTable
+          suppliers={filteredSuppliers}
+          products={safeProducts}
+          onEdit={handleEditSupplier}
+          onDelete={handleDeleteSupplier}
+          searchTerm={searchTerm}
+        />
+      )}
 
       <SupplierDialog
         key={editingSupplier?.id || editingSupplier?._id || "new"}

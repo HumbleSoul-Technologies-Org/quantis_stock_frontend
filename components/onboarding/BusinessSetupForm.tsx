@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Mail,
   MessageSquare,
+  Wifi,
 } from "lucide-react";
 
 interface BusinessSetupFormProps {
@@ -52,7 +53,6 @@ export function BusinessSetupForm({
     lowStock: { email: false, sms: false },
     userProfileChanges: { email: false, sms: false },
   });
-  const [offlineMode, setOfflineMode] = useState(false);
   const [syncInterval, setSyncInterval] = useState("15");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -791,22 +791,19 @@ export function BusinessSetupForm({
               <CardContent className="pt-6 space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
-                    Offline Mode{" "}
+                    Data Synchronization
                   </label>
                   <div className="flex items-center gap-3">
-                    <input
-                      disabled={true}
-                      type="checkbox"
-                      checked={offlineMode}
-                      onChange={(e) => setOfflineMode(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-teal-600 dark:border-slate-600 dark:bg-slate-700 accent-teal-600"
-                    />
+                    <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                      <Wifi className="w-3 h-3 text-green-600" />
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
-                        Enable Offline Mode
+                        Online-Only Mode
                       </p>
                       <p className="text-xs text-gray-600 dark:text-slate-400">
-                        Work offline and sync data when connected
+                        Application operates online for reliable data
+                        synchronization
                       </p>
                     </div>
                   </div>

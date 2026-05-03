@@ -76,10 +76,6 @@ function OnboardingContent() {
         settings: {
           currency: currencyInfo,
 
-          syncData: {
-            offlineMode: false,
-            syncInterval: "15",
-          },
           notifications: businessSetup.notifications || {},
         },
       };

@@ -49,12 +49,8 @@ export function SalesTable({
 
   const getProductName = (productId?: string) => {
     return (
-      products.find(
-        (p) =>
-          p.id === productId ||
-          p._id === productId ||
-          p.offline_id === productId,
-      )?.name || "Unknown Product"
+      products.find((p) => p.id === productId || p._id === productId)?.name ||
+      "Unknown Product"
     );
   };
 
@@ -166,7 +162,8 @@ export function SalesTable({
   };
 
   const sorted = sales.sort(
-    (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
+    (a, b) =>
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );
 
   return (
@@ -185,20 +182,16 @@ export function SalesTable({
           <div className="space-y-2">
             {sorted.map((sale: any) => (
               <div
-                key={sale.id || sale._id || sale.offline_id}
+                key={sale.id || sale._id}
                 className="border border-gray-200 dark:border-slate-700 dark:bg-slate-700 rounded-lg"
               >
                 <div
                   className="p-3 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer flex items-center justify-between"
-                  onClick={() =>
-                    toggleExpand(sale.id || sale._id || sale.offline_id)
-                  }
+                  onClick={() => toggleExpand(sale.id || sale._id)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      {expandedSales.has(
-                        sale.id || sale._id || sale.offline_id,
-                      ) ? (
+                      {expandedSales.has(sale.id || sale._id) ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
                         <ChevronDown className="w-4 h-4" />
@@ -236,7 +229,7 @@ export function SalesTable({
                   </div>
                 </div>
 
-                {expandedSales.has(sale.id || sale._id || sale.offline_id) && (
+                {expandedSales.has(sale.id || sale._id) && (
                   <div className="border-t border-gray-200 dark:border-teal-900 dark:bg-slate-900 p-3 space-y-3">
                     {/* Sale Details */}
                     <div className="grid grid-cols-2 gap-3 text-sm">

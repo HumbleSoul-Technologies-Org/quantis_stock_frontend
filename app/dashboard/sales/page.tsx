@@ -28,6 +28,7 @@ import {
   View,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { format } from "date-fns";
 
 function SalesPageContent() {
@@ -39,7 +40,8 @@ function SalesPageContent() {
     processSaleReturn,
     saleReturns,
     updateSale,
-    openNoInternetModal,
+    isInitialLoadingSales,
+    logActivity,
   } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
@@ -74,21 +76,69 @@ function SalesPageContent() {
     useState<any>(null);
   const [showReturnDetails, setShowReturnDetails] = useState(false);
 
-  const openDialogForAction = (actionType: string, action: () => void) => {
-    if (openNoInternetModal(actionType, action)) {
-      return;
-    }
+  const openDialogForAction = (_actionType: string, action: () => void) => {
     action();
   };
 
   const handleAddSale = async (sale: any) => {
     if (sale.id || sale._id) {
       // Update existing sale
-      await updateSale((sale.id as string) || (sale._id as string), sale);
+      const saleId = (sale.id as string) || (sale._id as string);
+      const existingSale = safeSales.find(
+        (s) => s.id === saleId || s._id === saleId,
+      );
+
+      await updateSale(saleId, sale);
+
+      // Log activity: sale updated
+      try {
+        await logActivity({
+          type: "sale",
+          action: "update",
+          title: `Sale Updated: ${sale.saleNumber}`,
+          description: `Sale "${sale.saleNumber}" was updated`,
+          referenceId: saleId,
+          entityType: "sale",
+          entityId: saleId,
+          metadata: {
+            saleNumber: sale.saleNumber,
+            totalAmount: sale.totalAmount,
+            itemCount: sale.items?.length || 0,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id,
+        } as any);
+      } catch (error) {
+        console.warn("Failed to log sale update activity:", error);
+      }
+
       notifyResourceUpdated("Sale", sale.saleNumber);
     } else {
       // Create new sale
       await addSale(sale);
+
+      // Log activity: sale created
+      try {
+        await logActivity({
+          type: "sale",
+          action: "create",
+          title: `Sale Created: ${sale.saleNumber}`,
+          description: `New sale "${sale.saleNumber}" was created`,
+          referenceId: sale.id || sale._id,
+          entityType: "sale",
+          entityId: sale.id || sale._id,
+          metadata: {
+            saleNumber: sale.saleNumber,
+            totalAmount: sale.totalAmount,
+            itemCount: sale.items?.length || 0,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id,
+        } as any);
+      } catch (error) {
+        console.warn("Failed to log sale create activity:", error);
+      }
+
       notifyResourceCreated("Sale", sale.saleNumber);
     }
     notifySuccess(
@@ -111,6 +161,29 @@ function SalesPageContent() {
 
     openDialogForAction("delete sale", () => {
       deleteSale(id);
+
+      // Log activity: sale deleted
+      try {
+        logActivity({
+          type: "sale",
+          action: "delete",
+          title: `Sale Deleted: ${sale.saleNumber}`,
+          description: `Sale "${sale.saleNumber}" was deleted`,
+          referenceId: id,
+          entityType: "sale",
+          entityId: id,
+          metadata: {
+            saleNumber: sale.saleNumber,
+            totalAmount: sale.totalAmount,
+            itemCount: sale.items?.length || 0,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id,
+        } as any);
+      } catch (error) {
+        console.warn("Failed to log sale delete activity:", error);
+      }
+
       notifyResourceDeleted("Sale", sale.saleNumber || "Unknown");
     });
   };
@@ -141,6 +214,30 @@ function SalesPageContent() {
 
   const handleProcessReturn = async (saleReturn: any) => {
     await processSaleReturn(saleReturn);
+
+    // Log activity: return created
+    try {
+      await logActivity({
+        type: "return",
+        action: "create",
+        title: `Return Processed: ${saleReturn.reference}`,
+        description: `Return "${saleReturn.reference}" was processed for ${formatCurrency(saleReturn.totalAmount)}`,
+        referenceId: saleReturn.id || saleReturn._id,
+        entityType: "return",
+        entityId: saleReturn.id || saleReturn._id,
+        metadata: {
+          reference: saleReturn.reference,
+          totalAmount: saleReturn.totalAmount,
+          itemCount: saleReturn.items?.length || 0,
+          originalSaleId: saleReturn.saleId,
+        },
+        businessId: user?.businessId,
+        createdBy: user?.id || user?._id,
+      } as any);
+    } catch (error) {
+      console.warn("Failed to log return activity:", error);
+    }
+
     notifySuccess(
       "Return Processed",
       `Return ${saleReturn.reference} recorded for ${formatCurrency(saleReturn.totalAmount)}`,
@@ -577,13 +674,17 @@ function SalesPageContent() {
       </Card>
 
       {/* Sales Table */}
-      <SalesTable
-        sales={filteredSales}
-        products={safeProducts}
-        onDelete={handleDeleteSale}
-        onReturn={handleReturnSale}
-        onEdit={handleEditSale}
-      />
+      {isInitialLoadingSales ? (
+        <TableSkeleton rows={7} />
+      ) : (
+        <SalesTable
+          sales={filteredSales}
+          products={safeProducts}
+          onDelete={handleDeleteSale}
+          onReturn={handleReturnSale}
+          onEdit={handleEditSale}
+        />
+      )}
 
       {/* Return Dialog */}
       <SalesReturnDialog

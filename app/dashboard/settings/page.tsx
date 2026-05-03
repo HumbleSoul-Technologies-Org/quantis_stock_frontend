@@ -9,7 +9,6 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { Profile } from "@/components/settings/Profile";
 import { Currency } from "@/components/settings/Currency";
 import { Users } from "@/components/settings/Users";
-import { SyncData } from "@/components/settings/SyncData";
 import { Security } from "@/components/settings/Security";
 import {
   Building2,
@@ -72,13 +71,6 @@ export default function SettingsPage() {
             Users
           </TabsTrigger>
           <TabsTrigger
-            value="sync-data"
-            className="text-xs md:text-sm flex items-center gap-1"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Sync Data
-          </TabsTrigger>
-          <TabsTrigger
             value="notifications"
             className="text-xs md:text-sm flex items-center gap-1"
           >
@@ -108,10 +100,6 @@ export default function SettingsPage() {
 
         <TabsContent value="users" className="space-y-4">
           <Users />
-        </TabsContent>
-
-        <TabsContent value="sync-data" className="space-y-4">
-          <SyncData />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">

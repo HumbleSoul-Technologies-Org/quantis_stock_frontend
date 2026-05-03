@@ -6,10 +6,6 @@ import { Breadcrumb } from "@/components/shared/Breadcrumb";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { SyncModal } from "@/components/SyncModal";
-import { NoInternetModal } from "@/components/NoInternetModal";
-import { useOfflineSync } from "@/hooks/useOfflineSync";
-import { useData } from "@/context/DataContext";
 
 export default function DashboardLayout({
   children,
@@ -18,16 +14,6 @@ export default function DashboardLayout({
 }) {
   const { user, business, isLoading } = useAuth();
   const router = useRouter();
-  const { showSyncModal, setShowSyncModal } = useOfflineSync(
-    undefined,
-    user?.token,
-  );
-  const {
-    showNoInternetModal,
-    noInternetModalActionType,
-    closeNoInternetModal,
-    continueLocally,
-  } = useData();
 
   useEffect(() => {
     if (isLoading) return;
@@ -74,17 +60,6 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
-      <SyncModal
-        isOpen={showSyncModal}
-        onClose={() => setShowSyncModal(false)}
-        autoStartSync={true}
-      />
-      <NoInternetModal
-        isOpen={showNoInternetModal}
-        onClose={closeNoInternetModal}
-        onContinueLocally={continueLocally}
-        actionType={noInternetModalActionType}
-      />
     </div>
   );
 }

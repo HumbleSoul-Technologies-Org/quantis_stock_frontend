@@ -32,10 +32,16 @@ import {
   Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardSkeleton } from "@/components/ui/CardSkeleton";
 
 function InventoryPageContent() {
-  const { products, stockMovements, addStockMovement, openNoInternetModal } =
-    useData();
+  const {
+    products,
+    stockMovements,
+    addStockMovement,
+    isInitialLoadingInventory,
+    logActivity,
+  } = useData();
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -120,10 +126,7 @@ function InventoryPageContent() {
     });
   }, [products, searchTerm, categoryFilter, stockFilter]);
 
-  const openDialogForAction = (actionType: string, action: () => void) => {
-    if (openNoInternetModal(actionType, action)) {
-      return;
-    }
+  const openDialogForAction = (_actionType: string, action: () => void) => {
     action();
   };
 
@@ -134,6 +137,30 @@ function InventoryPageContent() {
       (p) => p?._id === movement.productId || p?.id === movement.productId,
     );
     const productName = product?.name || "Unknown Product";
+
+    // Log activity: stock movement created
+    try {
+      await logActivity({
+        type: "stock",
+        action: "create",
+        title: `Stock Movement: ${movement.type} for ${productName}`,
+        description: `Stock ${movement.type} of ${movement.quantity} units for "${productName}"`,
+        referenceId: movement.id || movement._id,
+        entityType: "stockMovement",
+        entityId: movement.id || movement._id,
+        metadata: {
+          productName,
+          productId: movement.productId,
+          type: movement.type,
+          quantity: movement.quantity,
+          reason: movement.reason,
+        },
+        businessId: user?.businessId,
+        createdBy: user?.id || user?._id,
+      } as any);
+    } catch (error) {
+      console.warn("Failed to log stock movement activity:", error);
+    }
 
     notifyResourceCreated(
       "Inventory movement",
@@ -467,11 +494,19 @@ function InventoryPageContent() {
             <StockMovementForm
               products={products}
               onSubmit={async (movement) => {
-                await handleAddMovement(movement);
-                setShowDialog(false);
-                setSelectedMovement(null);
-                setSelectedProductId("");
-                clearProductIdFromUrl();
+                try {
+                  await handleAddMovement(movement);
+                  setShowDialog(false);
+                  setSelectedMovement(null);
+                  setSelectedProductId("");
+                  clearProductIdFromUrl();
+                } catch (error: any) {
+                  notifyError(
+                    "Stock movement failed",
+                    error?.message ||
+                      "Unable to save the stock movement. Please try again.",
+                  );
+                }
               }}
               onCancel={() => {
                 setShowDialog(false);
@@ -501,7 +536,9 @@ function InventoryPageContent() {
           </p>
         </div>
 
-        {filteredProducts.length > 0 ? (
+        {isInitialLoadingInventory ? (
+          <CardSkeleton count={6} />
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredProducts.map((product) => (
               <ProductInventoryCard

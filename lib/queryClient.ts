@@ -2,30 +2,9 @@
 import axios from "axios";
 import { API_BASE_URL } from "@/lib/config";
 
-// simple in-memory rate limit tracker (requests per window)
-const REQUEST_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_VITE_API_THRESHOLD || "60", 10); // max requests per window
-const THROTTLE_WINDOW = parseInt(process.env.NEXT_PUBLIC_VITE_THROTTLE_WINDOW || "60000", 10); // 1 minute by default
-let requestTimestamps: number[] = [];
-
-function checkRateLimit() {
-  const now = Date.now();
-  // drop old timestamps
-  requestTimestamps = requestTimestamps.filter(ts => now - ts < THROTTLE_WINDOW);
-  if (requestTimestamps.length >= REQUEST_THRESHOLD) {
-    throw new Error("API request limit exceeded, please try again later");
-  }
-  requestTimestamps.push(now);
-}
-
 // ✅ Axios instance for GET only
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
-});
-
-// attach rate limit check to every request
-axiosClient.interceptors.request.use((config) => {
-  checkRateLimit();
-  return config;
 });
 
 // ✅ Throws error if response is not OK
@@ -46,8 +25,6 @@ export async function apiRequest(
   data?: unknown,
   token?: string,
 ): Promise<Response> {
-  checkRateLimit();
-
   // prepare headers/body properly; support FormData by letting the browser set multipart boundary
   const headers: Record<string, string> = {};
   let body: BodyInit | undefined;

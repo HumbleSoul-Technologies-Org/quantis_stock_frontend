@@ -106,7 +106,6 @@ export function ProductKeyForm() {
                       "capsules",
                     ],
                   },
-                  syncData: { offlineMode: false, syncInterval: "15" },
                   notifications: {
                     resourceChanges: { email: false, sms: false },
                     salesAlert: { email: false, sms: false },

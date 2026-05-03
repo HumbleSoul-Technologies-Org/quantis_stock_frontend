@@ -19,6 +19,7 @@ import {
   Legend,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
+import { AuditReport } from "@/components/reports/AuditReport";
 
 function ReportsPageContent() {
   const { products, sales, stockMovements } = useData();
@@ -516,6 +517,17 @@ function ReportsPageContent() {
           }
         >
           Stock Movements Report
+        </Button>
+        <Button
+          onClick={() => setSelectedReport("audit")}
+          variant={selectedReport === "audit" ? "default" : "outline"}
+          className={
+            selectedReport === "audit"
+              ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+              : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
+          }
+        >
+          Audit Log
         </Button>
         {/* <Button
               onClick={() => setSelectedReport("summary")}
@@ -1192,6 +1204,10 @@ function ReportsPageContent() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {selectedReport === "audit" && (
+        <AuditReport />
       )}
     </div>
   );

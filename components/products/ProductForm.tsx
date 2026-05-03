@@ -41,8 +41,6 @@ export function ProductForm({
       costPrice: 0,
       unit: "units",
       supplierId: "",
-      offline_id: "",
-      offline_supplier_id: "",
       reorderLevel: 10,
       currentStock: 0,
       status: "active",
@@ -132,9 +130,6 @@ export function ProductForm({
         ...prev,
         imageUrl: product.imageUrl || prev.imageUrl,
         imagePublicId: product.imagePublicId || prev.imagePublicId,
-        offline_id: product.offline_id || prev.offline_id,
-        offline_supplier_id:
-          product.offline_supplier_id || prev.offline_supplier_id,
       }));
     }
   }, [product?.id]);
@@ -311,8 +306,6 @@ export function ProductForm({
         costPrice: formData.costPrice || 0,
         unit: formData.unit || "units",
         supplierId: formData.supplierId || "",
-        offline_id: formData.offline_id || product?.offline_id || "",
-        offline_supplier_id: selectedSupplier?.offline_id || "",
         reorderLevel: formData.reorderLevel || 10,
         currentStock: formData.currentStock ?? product?.currentStock ?? 0,
 

@@ -11,6 +11,7 @@ import { ProductTable } from "@/components/products/ProductTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { useAuth } from "@/context/AuthContext";
 function ProductsPageContent() {
   const {
@@ -19,7 +20,8 @@ function ProductsPageContent() {
     addProduct,
     updateProduct,
     deleteProduct,
-    openNoInternetModal,
+    isInitialLoadingProducts,
+    logActivity,
   } = useData();
   const {
     notifyResourceCreated,
@@ -40,10 +42,7 @@ function ProductsPageContent() {
 
   const { user } = useAuth();
 
-  const openDialogForAction = (actionType: string, action: () => void) => {
-    if (openNoInternetModal(actionType, action)) {
-      return;
-    }
+  const openDialogForAction = (_actionType: string, action: () => void) => {
     action();
   };
 
@@ -53,13 +52,65 @@ function ProductsPageContent() {
 
   const handleAddProduct = async (product: Product) => {
     if ((product && product.id) || product._id) {
-      await updateProduct(
-        (product.id as string) || (product._id as string),
-        product,
+      // Update existing product
+      const productId = (product.id as string) || (product._id as string);
+      const existingProduct = safeProducts.find(
+        (p) => p.id === productId || p._id === productId,
       );
+
+      await updateProduct(productId, product);
+
+      // Log activity: product updated
+      try {
+        await logActivity({
+          type: "product",
+          action: "update",
+          title: `Product Updated: ${product.name}`,
+          description: `Product "${product.name}" (SKU: ${product.sku}) was updated`,
+          referenceId: productId,
+          entityType: "product",
+          entityId: productId,
+          metadata: {
+            productName: product.name,
+            sku: product.sku,
+            category: product.category,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id,
+        } as any);
+      } catch (error) {
+        console.warn("Failed to log product update activity:", error);
+      }
+
       notifyResourceUpdated("Product", product.name);
     } else {
+      // Create new product
       await addProduct(product);
+
+      // Log activity: product created
+      try {
+        await logActivity({
+          type: "product",
+          action: "create",
+          title: `Product Created: ${product.name}`,
+          description: `New product "${product.name}" (SKU: ${product.sku}) was created`,
+          referenceId: product.id || product._id,
+          entityType: "product",
+          entityId: product.id || product._id,
+          metadata: {
+            productName: product.name,
+            sku: product.sku,
+            category: product.category,
+            unitPrice: product.unitPrice,
+            costPrice: product.costPrice,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id,
+        } as any);
+      } catch (error) {
+        console.warn("Failed to log product create activity:", error);
+      }
+
       notifyResourceCreated("Product", product.name);
     }
     setShowDialog(false);
@@ -71,6 +122,29 @@ function ProductsPageContent() {
     if (!product) return;
 
     deleteProduct(id);
+
+    // Log activity: product deleted
+    try {
+      logActivity({
+        type: "product",
+        action: "delete",
+        title: `Product Deleted: ${product.name}`,
+        description: `Product "${product.name}" (SKU: ${product.sku}) was deleted`,
+        referenceId: id,
+        entityType: "product",
+        entityId: id,
+        metadata: {
+          productName: product.name,
+          sku: product.sku,
+          category: product.category,
+        },
+        businessId: user?.businessId,
+        createdBy: user?.id || user?._id,
+      } as any);
+    } catch (error) {
+      console.warn("Failed to log product delete activity:", error);
+    }
+
     notifyResourceDeleted("Product", product.name);
   };
 
@@ -162,16 +236,20 @@ function ProductsPageContent() {
         </select>
       </div>
 
-      <ProductTable
-        products={products}
-        suppliers={suppliers}
-        onEdit={handleEditProduct}
-        onDelete={handleDeleteProduct}
-        onStockIn={handleStockIn}
-        onView={handleViewProduct}
-        searchTerm={searchTerm}
-        categoryFilter={categoryFilter}
-      />
+      {isInitialLoadingProducts ? (
+        <TableSkeleton rows={7} />
+      ) : (
+        <ProductTable
+          products={products}
+          suppliers={suppliers}
+          onEdit={handleEditProduct}
+          onDelete={handleDeleteProduct}
+          onStockIn={handleStockIn}
+          onView={handleViewProduct}
+          searchTerm={searchTerm}
+          categoryFilter={categoryFilter}
+        />
+      )}
     </div>
   );
 }

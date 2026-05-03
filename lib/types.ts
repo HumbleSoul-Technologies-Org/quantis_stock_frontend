@@ -16,11 +16,6 @@ export interface BusinessSettings {
     lengthUnits: string[];
     countUnits: string[];
   };
-  syncData: {
-    offlineMode: boolean;
-    syncInterval: string;
-    lastSyncedAt?: string;
-  };
   notifications: {
     resourceChanges: { email: boolean; sms: boolean };
     salesAlert: { email: boolean; sms: boolean };
@@ -118,15 +113,13 @@ export interface Product {
   // Core Fields (Required - existing)
   id?: string;
   _id?: string; // For backward compatibility with older product objects
-  offline_id?: string; // Offline UUID for product
   name: string;
   sku: string;
   category: string;
   unitPrice: number;
   costPrice: number;
   unit: string; // kg, lbs, units, etc (base unit)
-  supplierId?: string; // Can be empty when offline
-  offline_supplier_id?: string; // Offline reference to supplier
+  supplierId: string;
   reorderLevel: number;
   currentStock: number;
   businessId?: string; // Business isolation (optional during transition)
@@ -174,9 +167,7 @@ export interface Product {
 export interface StockMovement {
   id: string;
   _id?: string; // For backward compatibility with older movement objects
-  offline_id?: string; // Offline UUID for movement
-  productId?: string; // Can be empty when offline
-  offline_product_id?: string; // Offline reference to product
+  productId: string;
   type: 'in' | 'out' | 'adjustment';
   quantity: number;
   reason: string;
@@ -199,7 +190,6 @@ export interface Category {
 export interface Sale {
   id?: string;
   _id?: string; // For backward compatibility with older sale objects
-  offline_id?: string; // Offline UUID for sale
   saleNumber: string;
   date: string;
   items: SaleItem[];
@@ -214,12 +204,10 @@ export interface Sale {
   txnId?: string;
   returnStatus?: 'none' | 'partial' | 'returned'; // Track return status
   saleReturnId?: string; // Reference to associated sale return (if any)
-  offline_return_id?: string; // Offline reference to sale return
 }
 
 export interface SaleItem {
-  productId?: string; // Can be empty when offline
-  offline_product_id?: string; // Offline reference to product
+  productId: string;
   quantity: number;
   unitPrice: number;
   total: number;
@@ -229,9 +217,7 @@ export interface SaleItem {
 export interface SaleReturn {
   id?: string;
   _id?: string; // For backward compatibility with older return objects
-  offline_id?: string; // Offline UUID for return
-  saleId?: string; // Reference to the original sale
-  offline_sale_id?: string; // Offline reference to sale
+  saleId: string; // Reference to the original sale
   items: SaleReturnItem[];
   totalAmount: number;
   reason?: string; // Reason for return (e.g., "Defective", "Wrong item", "Customer change of mind")
@@ -246,11 +232,85 @@ export interface SaleReturn {
 }
 
 export interface SaleReturnItem {
-  productId?: string;
-  offline_product_id?: string; // Offline reference to product
+  productId: string;
   quantity: number;
   unitPrice: number; // Unit price at time of return (may differ from sale price)
   total: number;
+}
+
+export type ActivityType =
+  | 'sale'
+  | 'stock'
+  | 'product'
+  | 'supplier'
+  | 'return'
+  | 'system'
+  | 'other';
+
+export type ActivityAction = 'create' | 'update' | 'delete' | 'system_event';
+export type ActivityStatus = 'success' | 'failed';
+
+export interface ChangeLog {
+  before?: Record<string, any>;
+  after?: Record<string, any>;
+  changedFields?: string[];
+}
+
+export interface Activity {
+  id: string;
+  _id?: string; // For backward compatibility with older activity objects
+  type: ActivityType;
+  action: ActivityAction; // create, update, delete, system_event
+  status: ActivityStatus; // success or failed
+  title: string;
+  description: string;
+  referenceId?: string; // Link to sale number, supplier id, product id, etc.
+  entityType?: 'product' | 'supplier' | 'sale' | 'stockMovement' | 'return' | 'other';
+  entityId?: string;
+  businessId?: string; // Business isolation (optional during transition)
+  createdBy: string | User;
+  metadata?: Record<string, any>;
+  changeLog?: ChangeLog; // Before/after values for updates
+  ipAddress?: string; // IP address of the request
+  userAgent?: string; // User agent string
+  resultingAction?: string; // Description of resulting change (e.g., "Stock updated from 100 to 95")
+  createdAt: string;
+}
+
+export type SecurityEventType =
+  | 'login_success'
+  | 'login_failed'
+  | 'logout'
+  | 'session_expired'
+  | 'password_changed'
+  | 'password_reset_requested'
+  | 'password_reset_completed'
+  | 'profile_updated'
+  | 'profile_created'
+  | 'profile_deleted'
+  | 'role_changed'
+  | 'permissions_modified'
+  | 'mfa_enabled'
+  | 'mfa_disabled'
+  | 'session_started'
+  | 'account_locked';
+
+export interface SecurityAudit {
+  id?: string;
+  _id?: string;
+  eventType: SecurityEventType;
+  userId?: string | User;
+  targetUserId?: string | User;
+  businessId?: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  status: 'success' | 'failed';
+  reason?: string;
+  resultingAction?: string;
+  relatedActivityId?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Supplier Types
@@ -454,5 +514,7 @@ export interface AppState {
   sales: Sale[];
   saleReturns: SaleReturn[]; // Add sale returns tracking
   stockMovements: StockMovement[];
+  activities: Activity[];
+  securityAudits: SecurityAudit[];
   // settings removed - now handled by SettingsContext
 }
