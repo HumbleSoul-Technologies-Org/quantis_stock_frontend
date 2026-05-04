@@ -141,7 +141,7 @@ const GENERAL_RETAIL_CONFIG: BusinessConfig = {
     'Accessories',
     'Beauty & Personal Care',
     'Hardware & Building Materials',
-     
+    'Other',
   ],
   units: [
     'units',
@@ -350,7 +350,7 @@ export function getFieldSchemaForCategory(categoryName: string): CategoryFieldSc
   if (!categoryName) return null;
 
   // Map category names to schema types
-  const categoryToSchemaMap: Record<string, string> = {
+  const categoryToSchemaMap: Record<string, string | null> = {
     // General retail categories
     'Electronics': 'electronics',
     'Clothing': 'clothing',
@@ -433,6 +433,7 @@ export function getFieldSchemaForCategory(categoryName: string): CategoryFieldSc
 
     // Combined category (from general retail)
     'Hardware & Building Materials': 'hardware',
+    'Other': null, // Custom category - no predefined schema
   };
 
   const schemaType = categoryToSchemaMap[categoryName];

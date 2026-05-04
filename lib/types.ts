@@ -116,6 +116,7 @@ export interface Product {
   name: string;
   sku: string;
   category: string;
+  customCategory?: string; // For "Other" category - user-defined category name
   unitPrice: number;
   costPrice: number;
   unit: string; // kg, lbs, units, etc (base unit)

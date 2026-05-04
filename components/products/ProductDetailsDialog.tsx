@@ -98,7 +98,9 @@ export function ProductDetailsDialog({
                       Category
                     </label>
                     <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-                      {product.category || "Uncategorized"}
+                      {product.category === "Other" && product.customCategory
+                        ? product.customCategory
+                        : product.category || "Uncategorized"}
                     </p>
                   </div>
                   <div>

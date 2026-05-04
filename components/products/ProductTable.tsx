@@ -117,7 +117,9 @@ export function ProductTable({
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
                     <div className="flex justify-between items-start gap-2">
                       <div className="rounded-full bg-black/70 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white border border-white/20">
-                        {product.category || "Uncategorized"}
+                        {product.category === "Other" && product.customCategory
+                          ? product.customCategory
+                          : product.category || "Uncategorized"}
                       </div>
                       <div
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold text-white border backdrop-blur-sm ${

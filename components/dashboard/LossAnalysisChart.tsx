@@ -14,17 +14,22 @@ type ChartType = "bar" | "pie";
 
 export function LossAnalysisChart() {
   const [chartType, setChartType] = useState<ChartType>("bar");
-  const { stockMovements, saleReturns } = useData();
-  const { formatCurrency } = useSettings();
+  const { stockMovements, saleReturns, products } = useData();
+  const { formatCurrency, getCurrencySymbol } = useSettings();
+  const currencySymbol = getCurrencySymbol();
 
   // Process real loss data from stock movements and returns
-  const lossesData = processLossAnalysisData(stockMovements, saleReturns);
+  const lossesData = processLossAnalysisData(
+    stockMovements,
+    saleReturns,
+    products,
+  );
 
   const barChartData = {
     labels: lossesData.map((item) => item.reason),
     datasets: [
       {
-        label: "Loss Value ($)",
+        label: `Loss Value (${currencySymbol})`,
         data: lossesData.map((item) => item.value),
         backgroundColor: [
           "var(--chart-3)", // Damage - red
@@ -94,12 +99,12 @@ export function LossAnalysisChart() {
         ...commonOptions.scales.y,
         title: {
           display: true,
-          text: "Loss Value ($)",
+          text: `Loss Value (${currencySymbol})`,
           color: "var(--foreground)",
         },
         ticks: {
           callback: function (value: any) {
-            return `$${(value / 1000).toFixed(0)}k`;
+            return `${currencySymbol}${(value / 1000).toFixed(0)}k`;
           },
         },
       },
@@ -138,7 +143,7 @@ export function LossAnalysisChart() {
       : { reason: "N/A", value: 0, percentage: 0 };
 
   return (
-    <Card>
+    <Card className=" dark:bg-slate-800 ">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

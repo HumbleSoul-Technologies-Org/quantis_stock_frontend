@@ -11,7 +11,11 @@ import {
   Package,
 } from "lucide-react";
 import { Line } from "react-chartjs-2";
-import { formatPercentage, processKPIData } from "@/lib/chartUtils";
+import {
+  formatPercentage,
+  processKPIData,
+  getStockMovementLossValue,
+} from "@/lib/chartUtils";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -83,7 +87,7 @@ function KPICard({
   };
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative dark:bg-slate-800 dark:border-0 overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -94,7 +98,9 @@ function KPICard({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="text-2xl font-bold">
-              {typeof value === "number" ? formatCurrency(value) : value}
+              {typeof value === "number" && title !== "Total Sales"
+                ? formatCurrency(value)
+                : value}
             </div>
             {change !== undefined && (
               <div className="flex items-center space-x-2">
@@ -215,7 +221,10 @@ export function LossesKPICard() {
             movement.reason?.toLowerCase().includes(reason),
           ),
       )
-      .reduce((sum, movement) => sum + movement.quantity * 10, 0); // Assuming average cost
+      .reduce(
+        (sum, movement) => sum + getStockMovementLossValue(movement, products),
+        0,
+      );
   });
 
   return (

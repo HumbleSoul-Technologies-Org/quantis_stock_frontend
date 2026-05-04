@@ -232,23 +232,113 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
   }));
 };
 
-export const processLossAnalysisData = (stockMovements: StockMovement[], saleReturns: SaleReturn[]) => {
+const getProductCategory = (product: Product) =>
+  product.customCategory?.trim() || product.category?.trim() || 'Other';
+
+const getPeriodRange = (
+  period: 'daily' | 'weekly' | 'monthly',
+) => {
+  const now = new Date();
+  const start = new Date(now);
+
+  switch (period) {
+    case 'daily':
+      return { start: new Date(now.setHours(0, 0, 0, 0)), end: new Date() };
+    case 'weekly':
+      start.setDate(start.getDate() - 6);
+      start.setHours(0, 0, 0, 0);
+      return { start, end: new Date() };
+    case 'monthly':
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      return { start, end: new Date() };
+  }
+};
+
+const isWithinRange = (dateString: string, start: Date, end: Date) => {
+  const date = new Date(dateString);
+  return date >= start && date <= end;
+};
+
+export const processCategoryPerformanceData = (
+  sales: Sale[],
+  products: Product[],
+  metric: 'sales' | 'revenue',
+  period: 'daily' | 'weekly' | 'monthly' = 'monthly',
+) => {
+  const range = getPeriodRange(period);
+  const categoryPerformance: Record<string, { sales: number; revenue: number }> = {};
+
+  sales.forEach((sale) => {
+    if (!isWithinRange(sale.date, range.start, range.end)) return;
+
+    sale.items.forEach((item) => {
+      const product = products.find((p) => p.id === item.productId || p._id === item.productId);
+      const category = getProductCategory(product ?? ({ category: 'Other' } as Product));
+
+      if (!categoryPerformance[category]) {
+        categoryPerformance[category] = { sales: 0, revenue: 0 };
+      }
+
+      categoryPerformance[category].sales += item.quantity;
+      categoryPerformance[category].revenue += item.total;
+    });
+  });
+
+  return Object.entries(categoryPerformance)
+    .map(([category, data]) => ({
+      category,
+      sales: data.sales,
+      revenue: data.revenue,
+    }))
+    .sort((a, b) => b[metric] - a[metric])
+    .slice(0, 5);
+};
+
+export const getStockMovementLossValue = (
+  movement: StockMovement,
+  products: Product[],
+) => {
+  const product = products.find(
+    (p) => p.id === movement.productId || (p as any)._id === movement.productId,
+  );
+  const unitCost = product?.costPrice ?? product?.unitPrice ?? 0;
+  return movement.quantity * unitCost;
+};
+
+export const processLossAnalysisData = (
+  stockMovements: StockMovement[],
+  saleReturns: SaleReturn[],
+  products: Product[],
+) => {
   // Calculate losses from stock movements (out movements with damage reasons)
   const damageLosses = stockMovements
-    .filter(movement => movement.type === 'out' && movement.reason?.toLowerCase().includes('damage'))
-    .reduce((sum, movement) => sum + (movement.quantity * 10), 0); // Assuming average cost of $10 per unit
+    .filter(
+      (movement) =>
+        movement.type === 'out' &&
+        movement.reason?.toLowerCase().includes('damage'),
+    )
+    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
 
   const expiryLosses = stockMovements
-    .filter(movement => movement.type === 'out' && movement.reason?.toLowerCase().includes('expir'))
-    .reduce((sum, movement) => sum + (movement.quantity * 10), 0);
+    .filter(
+      (movement) =>
+        movement.type === 'out' &&
+        movement.reason?.toLowerCase().includes('expir'),
+    )
+    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
 
   const theftLosses = stockMovements
-    .filter(movement => movement.type === 'out' && movement.reason?.toLowerCase().includes('theft'))
-    .reduce((sum, movement) => sum + (movement.quantity * 10), 0);
+    .filter(
+      (movement) =>
+        movement.type === 'out' &&
+        movement.reason?.toLowerCase().includes('theft'),
+    )
+    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
 
   // Calculate losses from returns
   const returnLosses = saleReturns
-    .filter(returnItem => returnItem.status === 'completed')
+    .filter((returnItem) => returnItem.status === 'completed')
     .reduce((sum, returnItem) => sum + returnItem.totalAmount, 0);
 
   const totalLosses = damageLosses + expiryLosses + theftLosses + returnLosses;
@@ -325,10 +415,14 @@ export const processKPIData = (sales: Sale[], products: Product[], stockMovement
   const lowStockProducts = products.filter(product => product.currentStock <= product.reorderLevel).length;
 
   const totalLosses = stockMovements
-    .filter(movement => movement.type === 'out' && ['damage', 'expiry', 'theft'].some(reason =>
-      movement.reason?.toLowerCase().includes(reason)
-    ))
-    .reduce((sum, movement) => sum + (movement.quantity * 10), 0); // Assuming average cost
+    .filter(
+      (movement) =>
+        movement.type === 'out' &&
+        ['damage', 'expiry', 'theft'].some((reason) =>
+          movement.reason?.toLowerCase().includes(reason),
+        ),
+    )
+    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
 
   return {
     revenue: { value: currentRevenue, change: revenueChange },

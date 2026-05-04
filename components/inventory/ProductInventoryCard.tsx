@@ -124,7 +124,9 @@ export function ProductInventoryCard({
           <div className="flex justify-between">
             <span className="text-gray-600 dark:text-slate-400">Category:</span>
             <span className="font-medium text-gray-900 dark:text-teal-300">
-              {product.category}
+              {product.category === "Other" && product.customCategory
+                ? product.customCategory
+                : product.category}
             </span>
           </div>
           <div className="flex justify-between">

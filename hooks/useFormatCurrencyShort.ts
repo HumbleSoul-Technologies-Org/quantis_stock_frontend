@@ -17,7 +17,7 @@ export function useFormatCurrencyShort() {
   const formatCurrencyShort = (value: number): string => {
     // Handle edge cases
     if (!Number.isFinite(value)) {
-      return `${symbol} 0.00`;
+      return `${symbol} 0`;
     }
 
     const absValue = Math.abs(value);
@@ -25,18 +25,18 @@ export function useFormatCurrencyShort() {
 
     // Values less than 1000 - no abbreviation
     if (absValue < 1000) {
-      return `${isNegative ? "-" : ""}${symbol} ${absValue}`;
+      return `${isNegative ? "-" : " "}${symbol }  ${absValue.toLocaleString()}`;
     }
 
     // Values 1,000,000 and above - use M
     if (absValue >= 1000000) {
       const millions = absValue / 1000000;
-      return `${isNegative ? "-" : ""}${symbol} ${millions}M`;
+      return `${isNegative ? "-" : " "}${symbol }  ${millions.toLocaleString()}M`;
     }
 
     // Values 1,000 to 999,999 - use K
     const thousands = absValue / 1000;
-    return `${isNegative ? "-" : ""}${symbol} ${thousands}K`;
+    return `${isNegative ? "-" : " "}${symbol }  ${thousands.toLocaleString()}K`;
   };
 
   return formatCurrencyShort;

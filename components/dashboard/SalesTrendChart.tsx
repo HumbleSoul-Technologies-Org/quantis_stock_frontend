@@ -15,7 +15,8 @@ type TimePeriod = "daily" | "weekly" | "monthly";
 export function SalesTrendChart() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("monthly");
   const { sales } = useData();
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, getCurrencySymbol } = useSettings();
+  const currencySymbol = getCurrencySymbol();
 
   // Process real sales data
   const salesData = processSalesTrendData(sales, timePeriod);
@@ -110,7 +111,7 @@ export function SalesTrendChart() {
         position: "right" as const,
         title: {
           display: true,
-          text: "Revenue ($)",
+          text: `Revenue (${currencySymbol})`,
           color: "var(--foreground)",
         },
         grid: {
@@ -119,7 +120,7 @@ export function SalesTrendChart() {
         ticks: {
           color: "var(--foreground)",
           callback: function (value: any) {
-            return `$${(value / 1000).toFixed(0)}k`;
+            return `${currencySymbol}${(value / 1000).toFixed(0)}k`;
           },
         },
       },
@@ -134,7 +135,7 @@ export function SalesTrendChart() {
     salesData.length > 0 ? Math.round(totalRevenue / salesData.length) : 0;
 
   return (
-    <Card className="col-span-full lg:col-span-2">
+    <Card className="col-span-full dark:bg-slate-800 lg:col-span-2">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

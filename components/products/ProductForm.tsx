@@ -71,6 +71,21 @@ export function ProductForm({
     product?.customAttributes || {},
   );
 
+  // Custom category and attributes for "Other" category
+  const [customCategory, setCustomCategory] = useState<string>(
+    product?.customCategory || "",
+  );
+  const [customAttributesList, setCustomAttributesList] = useState<
+    Array<{ title: string; value: string }>
+  >(
+    product?.customAttributes
+      ? Object.entries(product.customAttributes).map(([title, value]) => ({
+          title,
+          value: String(value),
+        }))
+      : [{ title: "", value: "" }],
+  );
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,6 +128,28 @@ export function ProductForm({
     });
   };
 
+  // Custom attribute handlers for "Other" category
+  const addCustomAttribute = () => {
+    setCustomAttributesList([
+      ...customAttributesList,
+      { title: "", value: "" },
+    ]);
+  };
+
+  const removeCustomAttribute = (index: number) => {
+    setCustomAttributesList(customAttributesList.filter((_, i) => i !== index));
+  };
+
+  const updateCustomAttribute = (
+    index: number,
+    field: "title" | "value",
+    value: string,
+  ) => {
+    const updated = [...customAttributesList];
+    updated[index][field] = value;
+    setCustomAttributesList(updated);
+  };
+
   // Auto-expand category fields when category is selected
   useEffect(() => {
     if (formData.category) {
@@ -122,6 +159,29 @@ export function ProductForm({
       });
     }
   }, [formData.category]);
+
+  // Initialize custom category and attributes when editing existing product
+  useEffect(() => {
+    if (product && product.customCategory) {
+      setFormData((prev) => ({ ...prev, category: "Other" }));
+      setCustomCategory(product.customCategory);
+    }
+    if (
+      product &&
+      product.customAttributes &&
+      Object.keys(product.customAttributes).length > 0
+    ) {
+      const attrList = Object.entries(product.customAttributes).map(
+        ([title, value]) => ({
+          title,
+          value: String(value),
+        }),
+      );
+      if (attrList.length > 0) {
+        setCustomAttributesList(attrList);
+      }
+    }
+  }, [product]);
 
   // Ensure image data is preserved when editing existing product
   useEffect(() => {
@@ -239,6 +299,64 @@ export function ProductForm({
 
   // Render category-specific fields based on selected category
   const renderCategoryFields = () => {
+    // Special handling for "Other" category - show custom attributes
+    if (formData.category === "Other") {
+      return (
+        <div className="space-y-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-lg border border-gray-200 dark:border-teal-700">
+          <h4 className="font-medium text-gray-700 dark:text-slate-300">
+            Custom Attributes
+          </h4>
+          <div className="space-y-3">
+            {customAttributesList.map((attr, index) => (
+              <div key={index} className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                    Title
+                  </label>
+                  <Input
+                    value={attr.title}
+                    onChange={(e) =>
+                      updateCustomAttribute(index, "title", e.target.value)
+                    }
+                    placeholder="e.g., Warranty Period"
+                    className="border-gray-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                    Value
+                  </label>
+                  <Input
+                    value={attr.value}
+                    onChange={(e) =>
+                      updateCustomAttribute(index, "value", e.target.value)
+                    }
+                    placeholder="e.g., 2 years"
+                    className="border-gray-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => removeCustomAttribute(index)}
+                  disabled={customAttributesList.length === 1}
+                  className="px-2 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white"
+                >
+                  ×
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              onClick={addCustomAttribute}
+              className="bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
+            >
+              Add Custom Field
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     const schema = getFieldSchemaForCategory(formData.category || "");
 
     if (!schema) return null;
@@ -261,6 +379,9 @@ export function ProductForm({
     if (!formData.name?.trim()) newErrors.name = "Name is required";
     if (!formData.sku?.trim()) newErrors.sku = "SKU is required";
     if (!formData.category) newErrors.category = "Category is required";
+    if (formData.category === "Other" && !customCategory.trim()) {
+      newErrors.customCategory = "Custom category name is required";
+    }
     if ((formData.unitPrice || 0) <= 0)
       newErrors.unitPrice = "Unit price must be greater than 0";
     if ((formData.costPrice || 0) < 0)
@@ -302,6 +423,8 @@ export function ProductForm({
         name: formData.name || "",
         sku: formData.sku || "",
         category: formData.category || "",
+        customCategory:
+          formData.category === "Other" ? customCategory : undefined,
         unitPrice: formData.unitPrice || 0,
         costPrice: formData.costPrice || 0,
         unit: formData.unit || "units",
@@ -320,7 +443,18 @@ export function ProductForm({
         suppliers: formData.suppliers,
         reorderStrategy: formData.reorderStrategy,
         warehouseLocations: formData.warehouseLocations,
-        customAttributes: categoryFields,
+        customAttributes:
+          formData.category === "Other"
+            ? customAttributesList.reduce(
+                (acc, attr) => {
+                  if (attr.title.trim()) {
+                    acc[attr.title.trim()] = attr.value;
+                  }
+                  return acc;
+                },
+                {} as Record<string, string>,
+              )
+            : categoryFields,
         discontinuedDate: formData.discontinuedDate,
         discontinuationReason: formData.discontinuationReason,
         // Preserve existing image if no new image was uploaded
@@ -475,6 +609,21 @@ export function ProductForm({
             <p className="text-red-500 text-xs mt-1">{errors.category}</p>
           )}
         </div>
+
+        {/* Custom Category Input - shown when "Other" is selected */}
+        {formData.category === "Other" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Custom Category Name *
+            </label>
+            <Input
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+              placeholder="e.g., Agricultural Equipment"
+              className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
+            />
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">

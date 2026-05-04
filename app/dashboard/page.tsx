@@ -65,7 +65,7 @@ export default function DashboardPage() {
       {/* Additional Analytics Section */}
       {(user?.role === "admin" || user?.role === "manager") && (
         <div className="px-2 sm:px-0">
-          <Card>
+          <Card className="dark:bg-slate-800">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <BarChart3 className="h-5 w-5" />
