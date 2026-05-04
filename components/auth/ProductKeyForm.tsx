@@ -13,12 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, Key, Shield } from "lucide-react";
+import { AlertCircle, CheckCircle, Key, Shield, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 
 export function ProductKeyForm() {
   const [productKey, setProductKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [restartLoading, setRestartLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [errors, setErrors] = useState<{
     productKey?: string;
@@ -189,6 +191,7 @@ export function ProductKeyForm() {
   };
 
   const restartRegistration = async () => {
+    setRestartLoading(true);
     try {
       await apiRequest(
         "POST",
@@ -201,127 +204,82 @@ export function ProductKeyForm() {
       router.push("/auth/register");
     } catch (error) {
       console.error("Restart registration failed:", error);
+    } finally {
+      setRestartLoading(false);
     }
   };
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 py-8">
-      <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-r from-emerald-600 to-teal-600 dark:from-emerald-800 dark:to-teal-800 rounded-full mb-4">
-            <Key className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-teal-100 mb-2">
-            Activate Your Account
-          </h1>
-          <p className="text-base text-gray-600 dark:text-slate-400">
-            Enter your product key to unlock full access to StockOS
-          </p>
-        </div>
+    <div className="relative">
+      <AuthCard
+        title="Activate Your Account"
+        subtitle="Enter your product key to unlock full access to StockOS"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <AuthInput
+            label="Product Key"
+            type="text"
+            value={productKey}
+            onChange={(e) => {
+              setProductKey(e.target.value);
+              clearFieldError("productKey");
+            }}
+            placeholder="Enter your 16-character product key"
+            error={errors.productKey}
+          />
 
-        {/* Form Card */}
-        <Card className="border-2 border-emerald-200 dark:border-teal-700 bg-white dark:bg-slate-900 shadow-lg">
-          <CardHeader className="pb-4">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 dark:bg-teal-900 rounded-lg">
-                <Shield className="w-5 h-5 text-emerald-600 dark:text-teal-400" />
-              </div>
-              <div>
-                <CardTitle className="text-lg text-gray-900 dark:text-teal-100">
-                  Product Key Validation
-                </CardTitle>
-                <CardDescription className="text-sm text-gray-600 dark:text-slate-400">
-                  Secure your business data with activation
-                </CardDescription>
+          {errors.general && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="text-red-700 dark:text-red-400 text-sm flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
+                {errors.general}
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label
-                  htmlFor="productKey"
-                  className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
-                >
-                  Product Key
-                </label>
-                <Input
-                  id="productKey"
-                  type="text"
-                  value={productKey}
-                  onChange={(e) => {
-                    setProductKey(e.target.value);
-                    clearFieldError("productKey");
-                  }}
-                  placeholder="Enter your 16-character product key"
-                  className="border-2 border-emerald-200 dark:border-teal-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 dark:focus:ring-teal-500 focus:border-emerald-500 dark:focus:border-teal-500 transition-colors"
-                />
-                {errors.productKey && (
-                  <p className="text-red-500 text-sm mt-2 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.productKey}
-                  </p>
-                )}
+          )}
+
+          {success && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+              <div className="text-emerald-700 dark:text-emerald-400 text-sm flex items-center">
+                <CheckCircle className="w-4 h-4 mr-2 shrink-0" />
+                {success}
               </div>
+            </div>
+          )}
 
-              {errors.general && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <div className="text-red-700 dark:text-red-400 text-sm flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
-                    {errors.general}
-                  </div>
-                </div>
-              )}
+          <AuthButton
+            type="submit"
+            isLoading={isLoading}
+            loadingText="Validating..."
+            disabled={isLoading}
+          >
+            <Key className="w-5 h-5 mr-2" />
+            Validate Product Key
+          </AuthButton>
 
-              {success && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                  <div className="text-emerald-700 dark:text-emerald-400 text-sm flex items-center">
-                    <CheckCircle className="w-4 h-4 mr-2 shrink-0" />
-                    {success}
-                  </div>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 dark:from-emerald-800 dark:to-teal-800 dark:hover:from-emerald-900 dark:hover:to-teal-900 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                    Validating...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <Key className="w-5 h-5 mr-2" />
-                    Validate Product Key
-                  </div>
-                )}
-              </Button>
-
-              <p className="text-sm text-gray-500 dark:text-slate-500">
-                Ran into a problem? OR don't have a product key?{" "}
-                <button
-                  type="button"
-                  onClick={restartRegistration}
-                  className="text-emerald-600 cursor-pointer dark:text-emerald-400 hover:underline"
-                >
-                  Restart registration
-                </button>
-              </p>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500 dark:text-slate-500">
-            Need help? Contact our support team for assistance with your product
-            key.
+          <p className="text-sm text-gray-500 dark:text-slate-500 text-center">
+            Ran into a problem? OR don't have a product key?{" "}
+            <button
+              type="button"
+              onClick={restartRegistration}
+              disabled={restartLoading}
+              className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Restart registration
+            </button>
           </p>
+        </form>
+      </AuthCard>
+
+      {/* Restart Registration Loading Overlay */}
+      {restartLoading && (
+        <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin text-teal-600 dark:text-teal-400" />
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Restarting registration...
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

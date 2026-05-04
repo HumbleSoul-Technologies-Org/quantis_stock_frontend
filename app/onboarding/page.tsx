@@ -142,38 +142,47 @@ function OnboardingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-linear from-green-50 to-emerald-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 dark:from-slate-900 dark:via-teal-900/20 dark:to-slate-900 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl mb-6 shadow-lg">
+            <svg
+              className="w-10 h-10 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Welcome to Inventory Manager
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-slate-300 text-lg">
             Let's set up your business to get started
           </p>
         </div>
 
         <span onClick={restartRegistration} className="block text-center mb-6">
-          <span className="text-blue-600 cursor-pointer hover:text-blue-800 underline">
+          <span className="text-teal-600 dark:text-teal-400 cursor-pointer hover:text-teal-700 dark:hover:text-teal-300 underline transition-colors">
             Restart the Registration Process if issues persist
           </span>
         </span>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700 text-sm">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 max-w-2xl mx-auto">
+            <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
           </div>
         )}
 
         {/* Form or Finalizing State */}
         {isFinalizing ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-lg">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center shadow-xl max-w-2xl mx-auto">
             <div className="flex flex-col items-center space-y-4">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-teal-100 to-emerald-100 dark:from-teal-900/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center">
                 <svg
-                  className="animate-spin h-8 w-8 text-emerald-600"
+                  className="animate-spin h-8 w-8 text-teal-600 dark:text-teal-400"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -194,10 +203,10 @@ function OnboardingContent() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Finalizing Business Setup
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-slate-400">
                   Please wait while we complete your business configuration...
                 </p>
               </div>
@@ -208,15 +217,30 @@ function OnboardingContent() {
         )}
 
         {/* Info Box */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-2">
+        <div className="mt-8 bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800 border border-teal-200 dark:border-teal-700 rounded-xl p-6 max-w-2xl mx-auto">
+          <h3 className="font-semibold text-teal-900 dark:text-teal-100 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+            </svg>
             Why we need this information:
           </h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>✓ Set currency for accurate pricing and reporting</li>
-            <li>✓ Configure stock warnings for your business needs</li>
-            <li>✓ Enable notifications to stay on top of inventory</li>
-            <li>✓ Customize settings based on your business type</li>
+          <ul className="text-sm text-teal-800 dark:text-teal-200 space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></span>
+              Set currency for accurate pricing and reporting
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></span>
+              Configure stock warnings for your business needs
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></span>
+              Enable notifications to stay on top of inventory
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></span>
+              Customize settings based on your business type
+            </li>
           </ul>
         </div>
       </div>

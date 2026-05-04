@@ -708,7 +708,9 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
             {business?.businessAddress || "Address Line 1"}
           </div>
           <div className="receipt-subtitle text-xs text-gray-700">
-            {business?.businessPhone || "Phone: XXXX-XXXX-XXXX"}
+            {business?.businessPhone?.contact
+              ? business.businessPhone.contact
+              : "Phone: XXXX-XXXX-XXXX"}
           </div>
           <div className="receipt-title text-base font-bold mt-2">
             SALES RECEIPT

@@ -1,8 +1,14 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Line } from "react-chartjs-2";
 import { commonOptions, processSalesTrendData } from "@/lib/chartUtils";
 import { CalendarDays, TrendingUp } from "lucide-react";
@@ -164,27 +170,16 @@ export function SalesTrendChart() {
             <CardTitle className="text-lg">Sales Trend (Jan-Dec)</CardTitle>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
-              variant={timePeriod === "monthly" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod("monthly")}
-            >
-              Monthly
-            </Button>
-            <Button
-              variant={timePeriod === "weekly" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod("weekly")}
-            >
-              Weekly
-            </Button>
-            <Button
-              variant={timePeriod === "daily" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod("daily")}
-            >
-              Daily
-            </Button>
+            <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
+              <SelectTrigger className="w-40 py-2">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardHeader>

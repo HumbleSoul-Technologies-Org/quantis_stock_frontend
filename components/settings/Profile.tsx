@@ -27,8 +27,8 @@ export function Profile() {
   const [editForm, setEditForm] = useState({
     businessName: business?.businessName || "",
     businessType: business?.businessType || "retail",
-    businessEmail: business?.businessEmail || "",
-    businessPhone: business?.businessPhone || "",
+    businessEmail: business?.businessEmail?.email || "",
+    businessPhone: business?.businessPhone?.contact || 0,
     businessAddress: business?.businessAddress || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,8 +51,14 @@ export function Profile() {
         const payLoad = {
           businessName: editForm.businessName,
           businessType: editForm.businessType,
-          businessEmail: editForm.businessEmail,
-          businessPhone: editForm.businessPhone,
+          businessEmail: {
+            email: editForm.businessEmail,
+            activated: business?.businessEmail?.activated ?? false,
+          },
+          businessPhone: {
+            contact: editForm.businessPhone,
+            activated: business?.businessPhone?.activated ?? false,
+          },
           businessAddress: editForm.businessAddress,
         };
         const res = await apiRequest(
@@ -68,8 +74,14 @@ export function Profile() {
             ...business,
             businessName: editForm.businessName,
             businessType: editForm.businessType,
-            businessEmail: editForm.businessEmail,
-            businessPhone: editForm.businessPhone,
+            businessEmail: {
+              email: editForm.businessEmail,
+              activated: business?.businessEmail?.activated ?? false,
+            },
+            businessPhone: {
+              contact: editForm.businessPhone,
+              activated: business?.businessPhone?.activated ?? false,
+            },
             businessAddress: editForm.businessAddress,
           };
           updateBusiness(updatedBusiness);
@@ -119,7 +131,7 @@ export function Profile() {
                 Business Email
               </label>
               <p className="text-sm text-gray-900 dark:text-slate-100">
-                {business?.businessEmail || "Not set"}
+                {business?.businessEmail?.email || "Not set"}
               </p>
             </div>
             <div>
@@ -127,7 +139,7 @@ export function Profile() {
                 Business Phone
               </label>
               <p className="text-sm text-gray-900 dark:text-slate-100">
-                {business?.businessPhone || "Not set"}
+                {business?.businessPhone?.contact || "Not set"}
               </p>
             </div>
             <div>
@@ -247,12 +259,12 @@ export function Profile() {
                     <Label htmlFor="businessPhone">Business Phone</Label>
                     <Input
                       id="businessPhone"
-                      type="tel"
-                      value={editForm.businessPhone}
+                      type="number"
+                      value={editForm.businessPhone || ""}
                       onChange={(e) =>
                         setEditForm({
                           ...editForm,
-                          businessPhone: e.target.value,
+                          businessPhone: Number(e.target.value),
                         })
                       }
                       className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"

@@ -33,8 +33,14 @@ export interface BusinessSettings {
 export interface BusinessSetup {
   businessName: string;
   businessType: BusinessType;
-  businessEmail?: string; // Optional business email
-  businessPhone?: string; // Optional business phone
+  businessEmail?: {
+    email: string;
+    activated: boolean;
+  };
+  businessPhone?: {
+    contact: number;
+    activated: boolean;
+  };
   businessAddress?: string; // Optional business address
   retailSubType?: RetailSubType; // Optional for backward compatibility
   currency: string; // Currency code (KES, USD, EUR, etc)
@@ -57,8 +63,14 @@ export interface Business {
   ownerId: string; // Reference to admin user who owns the business
   businessName: string;
   businessType: BusinessType;
-  businessEmail?: string; // Optional business email
-  businessPhone?: string; // Optional business phone
+  businessEmail?: {
+    email: string;
+    activated: boolean;
+  };
+  businessPhone?: {
+    contact: number;
+    activated: boolean;
+  };
   businessAddress?: string; // Optional business address
   address?: string; // Optional business address (legacy)
   phone?: string; // Optional business phone (legacy)
