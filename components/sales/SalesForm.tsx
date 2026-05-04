@@ -789,14 +789,14 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
 
         {/* Totals Section */}
         <div className="totals-section border-t-2 border-b-2 border-dashed border-black py-2 my-3">
-          <div className="total-row">
+          {/* <div className="total-row">
             <span>Subtotal:</span>
             <span className="font-semibold">{formatShortNumber(subtotal)}</span>
           </div>
           <div className="total-row">
             <span>Tax (10%):</span>
             <span className="font-semibold">{formatShortNumber(tax)}</span>
-          </div>
+          </div> */}
           <div className="total-row grand-total border-t border-black pt-2 mt-2">
             <span>TOTAL:</span>
             <span>{formatShortNumber(grandTotal)}</span>
@@ -835,8 +835,10 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
             ? `Transaction ID: ${payLoad.txnId}`
             : "please keep this receipt for your records."}
         </div>
-        <div className="footer-message text-lg font-bold mb-2">THANK YOU!</div>
-        <div className="footer-text text-xs text-gray-600">
+        <div className="footer-message text-center text-lg font-bold mb-2">
+          THANK YOU!
+        </div>
+        <div className="footer-text text-center text-xs text-gray-600">
           Please visit us again 😊
         </div>
       </div>

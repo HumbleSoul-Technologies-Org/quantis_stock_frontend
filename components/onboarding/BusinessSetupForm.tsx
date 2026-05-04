@@ -173,7 +173,7 @@ export function BusinessSetupForm({
       currentStep={currentStep}
       totalSteps={steps.length}
       title="Business Setup"
-      subtitle="Complete your business information to get started with StockOS"
+      subtitle="Complete your business information to get started with Quantis stock"
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-8">
         {/* Step Indicator */}

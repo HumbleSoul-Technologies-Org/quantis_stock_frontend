@@ -2,9 +2,7 @@
 
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UnitsSettings } from "@/components/settings/UnitsSettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { Profile } from "@/components/settings/Profile";
 import { Currency } from "@/components/settings/Currency";
@@ -13,9 +11,7 @@ import { Security } from "@/components/settings/Security";
 import {
   Building2,
   DollarSign,
-  Ruler,
   Users as UsersIcon,
-  RefreshCw,
   Bell,
   Shield,
 } from "lucide-react";
@@ -25,9 +21,6 @@ export default function SettingsPage() {
   const { user } = useAuth();
 
   if (!settings || !user) return null;
-
-  const isAdmin = user.role === "admin";
-  const isManager = user.role === "manager";
 
   return (
     <div className="space-y-6">

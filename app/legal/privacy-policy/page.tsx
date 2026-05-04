@@ -121,15 +121,16 @@ export default function PrivacyPolicyPage() {
               1. Introduction
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
-              StockOS is committed to protecting your privacy. This Privacy
-              Policy explains how we collect, use, disclose, and safeguard your
-              information when you use our inventory management platform.
+              Quantis stock is committed to protecting your privacy. This
+              Privacy Policy explains how we collect, use, disclose, and
+              safeguard your information when you use our inventory management
+              platform.
             </p>
             <p className="text-gray-700 dark:text-slate-300">
               Please read this Privacy Policy carefully. If you do not agree
               with our policies and practices, please do not use our platform.
-              By accessing and using StockOS, you acknowledge that you have read
-              and understand this Privacy Policy.
+              By accessing and using Quantis stock, you acknowledge that you
+              have read and understand this Privacy Policy.
             </p>
           </section>
 
@@ -201,7 +202,7 @@ export default function PrivacyPolicyPage() {
               We use the information we collect for the following purposes:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-slate-300 space-y-2">
-              <li>Providing and maintaining the StockOS platform</li>
+              <li>Providing and maintaining the Quantis stock platform</li>
               <li>Processing transactions and sending related information</li>
               <li>
                 Sending transactional emails (password resets, confirmations)
@@ -329,8 +330,8 @@ export default function PrivacyPolicyPage() {
               </li>
             </ul>
             <p className="text-gray-700 dark:text-slate-300 mt-4">
-              To exercise these rights, please contact us at privacy@stockos.com
-              with your request.
+              To exercise these rights, please contact us at
+              privacy@quantisstock.com with your request.
             </p>
           </section>
 
@@ -340,8 +341,8 @@ export default function PrivacyPolicyPage() {
               7. Cookies & Tracking
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
-              StockOS uses cookies and similar tracking technologies to enhance
-              user experience:
+              Quantis stock uses cookies and similar tracking technologies to
+              enhance user experience:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-slate-300 space-y-2">
               <li>
@@ -398,24 +399,24 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-4 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-700">
               <p className="text-gray-900 dark:text-teal-100">
-                <strong>StockOS Privacy Team</strong>
+                <strong>Quantis stock Privacy Team</strong>
               </p>
               <p className="text-gray-700 dark:text-slate-300">
                 Email:{" "}
                 <a
-                  href="mailto:privacy@stockos.com"
+                  href="mailto:privacy@quantisstock.com"
                   className="text-teal-600 dark:text-teal-400 hover:underline"
                 >
-                  privacy@stockos.com
+                  privacy@quantisstock.com
                 </a>
               </p>
               <p className="text-gray-700 dark:text-slate-300">
                 Email:{" "}
                 <a
-                  href="mailto:support@stockos.com"
+                  href="mailto:support@quantisstock.com"
                   className="text-teal-600 dark:text-teal-400 hover:underline"
                 >
-                  support@stockos.com
+                  support@quantisstock.com
                 </a>
               </p>
             </div>
@@ -429,7 +430,7 @@ export default function PrivacyPolicyPage() {
             <p className="text-gray-700 dark:text-slate-300">
               We may update this Privacy Policy from time to time. We will
               notify you of significant changes via email or prominent notice on
-              our platform. Your continued use of StockOS after changes
+              our platform. Your continued use of Quantis stock after changes
               constitutes your acceptance of the updated policy.
             </p>
           </section>

@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { clearUserSession } from "@/lib/authStorage";
 import { ClientOnly } from "@/components/client-only";
+import { BusinessSetup, BusinessOnboardingPayload } from "@/lib/types";
 import { BusinessSetupForm } from "@/components/onboarding/BusinessSetupForm";
-import { BusinessSetup, Business } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
-import Link from "next/link";
 
 function OnboardingContent() {
   const router = useRouter();
@@ -40,7 +39,7 @@ function OnboardingContent() {
     }
   }, [user, business, authLoading, router]);
 
-  const handleSubmit = async (businessSetup: any) => {
+  const handleSubmit = async (businessSetup: BusinessSetup) => {
     setIsLoading(true);
     setError("");
 
@@ -64,8 +63,7 @@ function OnboardingContent() {
       const currencyInfo =
         currencyMap[businessSetup.currency] || currencyMap["USD"];
 
-      const businessWithSettings: any = {
-        id: `temp-${Date.now()}`, // Temporary ID until backend is ready
+      const businessWithSettings: BusinessOnboardingPayload = {
         ownerId: user?.id || "",
         businessName: businessSetup.businessName,
         businessType: businessSetup.businessType,
@@ -75,8 +73,38 @@ function OnboardingContent() {
         setupCompletedAt: businessSetup.setupCompletedAt,
         settings: {
           currency: currencyInfo,
-
-          notifications: businessSetup.notifications || {},
+          notifications: {
+            resourceChanges: businessSetup.notifications?.resourceChanges || {
+              email: true,
+              sms: false,
+            },
+            salesAlert: businessSetup.notifications?.salesAlert || {
+              email: true,
+              sms: false,
+            },
+            loginFailAttempts: businessSetup.notifications
+              ?.loginFailAttempts || {
+              email: true,
+              sms: false,
+            },
+            systemUpdate: businessSetup.notifications?.systemUpdate || {
+              email: true,
+              sms: false,
+            },
+            returns: businessSetup.notifications?.returns || {
+              email: true,
+              sms: false,
+            },
+            lowStock: businessSetup.notifications?.lowStock || {
+              email: true,
+              sms: false,
+            },
+            userProfileChanges: businessSetup.notifications
+              ?.userProfileChanges || {
+              email: true,
+              sms: false,
+            },
+          },
         },
       };
 
@@ -118,9 +146,7 @@ function OnboardingContent() {
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
-      console.log("====================================");
-      console.log(err);
-      console.log("====================================");
+      console.error("Onboarding error:", err);
     }
   };
 

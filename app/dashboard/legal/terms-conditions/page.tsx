@@ -130,16 +130,16 @@ export default function TermsAndConditionsPage() {
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
               These Terms and Conditions ("Terms") constitute a legal agreement
-              between you ("User," "you," or "your") and StockOS ("Company,"
-              "we," "us," or "our"). By creating an account and accessing the
-              StockOS platform, you acknowledge that you have read, understood,
-              and agree to be bound by all terms and conditions contained
-              herein.
+              between you ("User," "you," or "your") and Quantis stock
+              ("Company," "we," "us," or "our"). By creating an account and
+              accessing the Quantis stock platform, you acknowledge that you
+              have read, understood, and agree to be bound by all terms and
+              conditions contained herein.
             </p>
             <p className="text-gray-700 dark:text-slate-300">
-              If you do not agree to these Terms, you must not use the StockOS
-              platform. Your continued use of the platform constitutes your
-              acceptance of these Terms.
+              If you do not agree to these Terms, you must not use the Quantis
+              stock platform. Your continued use of the platform constitutes
+              your acceptance of these Terms.
             </p>
           </section>
 
@@ -149,9 +149,10 @@ export default function TermsAndConditionsPage() {
               2. License to Use
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
-              StockOS grants you a limited, non-exclusive, non-transferable
-              license to access and use the platform for your personal or
-              business inventory management purposes, subject to these Terms.
+              Quantis stock grants you a limited, non-exclusive,
+              non-transferable license to access and use the platform for your
+              personal or business inventory management purposes, subject to
+              these Terms.
             </p>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-teal-200 mt-4">
               2.1 Authorized Use
@@ -177,11 +178,11 @@ export default function TermsAndConditionsPage() {
               2.2 Intellectual Property Rights
             </h3>
             <p className="text-gray-700 dark:text-slate-300">
-              All content, features, and functionality of StockOS (including but
-              not limited to software, code, designs, and graphics) are the
-              exclusive property of StockOS and its licensors. You may not copy,
-              modify, or create derivative works without express written
-              permission.
+              All content, features, and functionality of Quantis stock
+              (including but not limited to software, code, designs, and
+              graphics) are the exclusive property of Quantis stock and its
+              licensors. You may not copy, modify, or create derivative works
+              without express written permission.
             </p>
           </section>
 
@@ -192,7 +193,7 @@ export default function TermsAndConditionsPage() {
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
               You retain ownership of all data, content, and information you
-              upload or input into StockOS ("User Content"). By using the
+              upload or input into Quantis stock ("User Content"). By using the
               platform, you grant us a license to use, store, and process your
               User Content for the purposes of providing the service.
             </p>
@@ -218,8 +219,8 @@ export default function TermsAndConditionsPage() {
             </h3>
             <p className="text-gray-700 dark:text-slate-300">
               While we implement security measures to protect your data, we
-              recommend maintaining regular backups. StockOS is not liable for
-              loss or corruption of data due to technical failures or user
+              recommend maintaining regular backups. Quantis stock is not liable
+              for loss or corruption of data due to technical failures or user
               error.
             </p>
           </section>
@@ -263,9 +264,9 @@ export default function TermsAndConditionsPage() {
               5. Disclaimer of Warranties
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
-              STOCKOS IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES
-              OF ANY KIND, EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED
-              BY LAW, WE DISCLAIM ALL WARRANTIES, INCLUDING:
+              QUANTIS STOCK IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT
+              WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT
+              PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, INCLUDING:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-slate-300 space-y-2">
               <li>
@@ -289,8 +290,8 @@ export default function TermsAndConditionsPage() {
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
               TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT
-              SHALL STOCKOS, ITS OFFICERS, DIRECTORS, OR EMPLOYEES BE LIABLE
-              FOR:
+              SHALL QUANTIS STOCK, ITS OFFICERS, DIRECTORS, OR EMPLOYEES BE
+              LIABLE FOR:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-slate-300 space-y-2">
               <li>
@@ -315,9 +316,9 @@ export default function TermsAndConditionsPage() {
               7. Indemnification
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
-              You agree to indemnify, defend, and hold harmless StockOS from any
-              claims, damages, losses, or expenses (including reasonable
-              attorney fees) arising from:
+              You agree to indemnify, defend, and hold harmless Quantis stock
+              from any claims, damages, losses, or expenses (including
+              reasonable attorney fees) arising from:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-slate-300 space-y-2">
               <li>Your use of the platform or violation of these Terms</li>
@@ -353,9 +354,9 @@ export default function TermsAndConditionsPage() {
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
               These Terms are governed by and construed in accordance with the
-              laws of the jurisdiction where StockOS is incorporated, without
-              regard to its conflict of law principles. You agree to submit to
-              the exclusive jurisdiction of the courts located in that
+              laws of the jurisdiction where Quantis stock is incorporated,
+              without regard to its conflict of law principles. You agree to
+              submit to the exclusive jurisdiction of the courts located in that
               jurisdiction.
             </p>
           </section>
@@ -371,24 +372,24 @@ export default function TermsAndConditionsPage() {
             </p>
             <div className="mt-4 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-700">
               <p className="text-gray-900 dark:text-teal-100">
-                <strong>StockOS Legal Team</strong>
+                <strong>Quantis stock Legal Team</strong>
               </p>
               <p className="text-gray-700 dark:text-slate-300">
                 Email:{" "}
                 <a
-                  href="mailto:legal@stockos.com"
+                  href="mailto:legal@quantisstock.com"
                   className="text-teal-600 dark:text-teal-400 hover:underline"
                 >
-                  legal@stockos.com
+                  legal@quantisstock.com
                 </a>
               </p>
               <p className="text-gray-700 dark:text-slate-300">
                 Email:{" "}
                 <a
-                  href="mailto:support@stockos.com"
+                  href="mailto:support@quantisstock.com"
                   className="text-teal-600 dark:text-teal-400 hover:underline"
                 >
-                  support@stockos.com
+                  support@quantisstock.com
                 </a>
               </p>
             </div>
@@ -400,11 +401,11 @@ export default function TermsAndConditionsPage() {
               Changes to These Terms
             </h3>
             <p className="text-gray-700 dark:text-slate-300">
-              StockOS reserves the right to update or modify these Terms at any
-              time. Significant changes will be communicated via email or
-              prominent notice on the platform. Your continued use of StockOS
-              following the posting of revised Terms means you accept and agree
-              to the changes.
+              Quantis stock reserves the right to update or modify these Terms
+              at any time. Significant changes will be communicated via email or
+              prominent notice on the platform. Your continued use of Quantis
+              stock following the posting of revised Terms means you accept and
+              agree to the changes.
             </p>
           </section>
 

@@ -7,7 +7,7 @@ import { EncryptionErrorBoundary } from "@/components/EncryptionErrorBoundary";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StockOS - Stock Management System",
+  title: "Quantis stock - Stock Management System",
   description: "Comprehensive inventory and stock management solution",
 };
 

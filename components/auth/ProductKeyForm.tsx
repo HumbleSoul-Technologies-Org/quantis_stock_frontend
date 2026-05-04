@@ -5,17 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { clearUserSession } from "@/lib/authStorage";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { AlertCircle, CheckCircle, Key, Shield, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Key, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 import {
@@ -167,9 +158,7 @@ export function ProductKeyForm() {
           ? error.message
           : "An unexpected error occurred. Please try again.";
       setError("root", { message: errorMessage });
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      console.error("Product key validation failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -200,7 +189,7 @@ export function ProductKeyForm() {
     <div className="relative">
       <AuthCard
         title="Activate Your Account"
-        subtitle="Enter your product key to unlock full access to StockOS"
+        subtitle="Enter your product key to unlock full access to Quantis stock"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <AuthInput

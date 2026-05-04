@@ -45,11 +45,11 @@ function RecentActivityContent() {
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
         {recentActivities.length === 0 ? (
-          <p className="text-gray-500 dark:text-slate-400 text-xs sm:text-sm">
+          <p className="text-gray-500 text-center dark:text-slate-400 text-xs sm:text-sm">
             No recent activity
           </p>
         ) : (
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-3 sm:space-y-4 overflow-y-auto max-h-full">
             {recentActivities.map((activity, index) => {
               const Icon = activityIconMap[activity.type] || AlertCircle;
               return (

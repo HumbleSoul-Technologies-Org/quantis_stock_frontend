@@ -56,9 +56,6 @@ function SuppliersPageContent() {
       const supplierId = supplier.id ?? supplier._id;
       if (supplierId) {
         // Update existing supplier
-        const existingSupplier = safeSuppliers.find(
-          (s) => s.id === supplierId || s._id === supplierId,
-        );
 
         await updateSupplier(supplierId, supplier);
 
@@ -67,6 +64,7 @@ function SuppliersPageContent() {
           await logActivity({
             type: "supplier",
             action: "update",
+            status: "success",
             title: `Supplier Updated: ${supplier.name}`,
             description: `Supplier "${supplier.name}" was updated`,
             referenceId: supplierId,
@@ -78,8 +76,8 @@ function SuppliersPageContent() {
               phone: supplier.phone,
             },
             businessId: user?.businessId,
-            createdBy: user?.id || user?._id,
-          } as any);
+            createdBy: user?.id || user?._id || "",
+          });
         } catch (error) {
           console.warn("Failed to log supplier update activity:", error);
         }
@@ -94,6 +92,7 @@ function SuppliersPageContent() {
           await logActivity({
             type: "supplier",
             action: "create",
+            status: "success",
             title: `Supplier Created: ${supplier.name}`,
             description: `New supplier "${supplier.name}" was created`,
             referenceId: supplier.id || supplier._id,
@@ -105,8 +104,8 @@ function SuppliersPageContent() {
               phone: supplier.phone,
             },
             businessId: user?.businessId,
-            createdBy: user?.id || user?._id,
-          } as any);
+            createdBy: user?.id || user?._id || "",
+          });
         } catch (error) {
           console.warn("Failed to log supplier create activity:", error);
         }
@@ -131,6 +130,7 @@ function SuppliersPageContent() {
         logActivity({
           type: "supplier",
           action: "delete",
+          status: "success",
           title: `Supplier Deleted: ${supplier.name}`,
           description: `Supplier "${supplier.name}" was deleted`,
           referenceId: id,
@@ -142,8 +142,8 @@ function SuppliersPageContent() {
             phone: supplier.phone,
           },
           businessId: user?.businessId,
-          createdBy: user?.id || user?._id,
-        } as any);
+          createdBy: user?.id || user?._id || "",
+        });
       } catch (error) {
         console.warn("Failed to log supplier delete activity:", error);
       }

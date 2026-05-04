@@ -1,6 +1,6 @@
-# Resend Email Service Setup for StockOS Maintenance Notifications
+# Resend Email Service Setup for Quantis stock Maintenance Notifications
 
-This guide explains how to set up Resend email service for sending maintenance notifications in your StockOS application. The application uses Resend to notify subscribers when maintenance starts and completes.
+This guide explains how to set up Resend email service for sending maintenance notifications in your Quantis stock application. The application uses Resend to notify subscribers when maintenance starts and completes.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ This guide explains how to set up Resend email service for sending maintenance n
 
 ## Overview
 
-StockOS uses the following components for email notifications:
+Quantis stock uses the following components for email notifications:
 
 - **Email Service**: Located in `lib/emailService.ts`, supports multiple providers (SendGrid, Resend, Console)
 - **Maintenance Notifications**: API endpoints in `app/api/maintenance/notify/route.ts` for start/complete notifications
@@ -31,7 +31,7 @@ Domain verification is required to send emails from your domain and improve deli
 
 1. In your Resend dashboard, navigate to **Domains** in the left sidebar
 2. Click **Add Domain**
-3. Enter your domain (e.g., `stockos.com` or `yourapp.com`)
+3. Enter your domain (e.g., `quantisstock.com` or `yourapp.com`)
 4. Click **Add Domain**
 
 Resend will provide DNS records that you need to add to your domain's DNS settings:
@@ -49,13 +49,13 @@ Resend will provide DNS records that you need to add to your domain's DNS settin
 7. Return to Resend and click **Verify** for each record
 8. Wait for all records to show as verified (this may take up to 24 hours)
 
-**Note**: If you're using a subdomain (e.g., `noreply.stockos.com`), verify the root domain first, then add the subdomain.
+**Note**: If you're using a subdomain (e.g., `noreply.quantisstock.com`), verify the root domain first, then add the subdomain.
 
 ### Step 3: Generate API Key
 
 1. In your Resend dashboard, go to **API Keys** in the left sidebar
 2. Click **Create API Key**
-3. Give it a descriptive name (e.g., "StockOS Maintenance Notifications")
+3. Give it a descriptive name (e.g., "Quantis stock Maintenance Notifications")
 4. Select the appropriate permissions (typically "Sending access")
 5. Click **Create**
 6. **Important**: Copy the API key immediately - it won't be shown again!
@@ -69,7 +69,7 @@ Update your `.env.local` file (create one if it doesn't exist) with the followin
 EMAIL_PROVIDER=resend
 EMAIL_API_KEY=your_resend_api_key_here
 EMAIL_FROM=noreply@yourdomain.com
-EMAIL_FROM_NAME=StockOS
+EMAIL_FROM_NAME=Quantis stock
 
 # Maintenance API Key (for sending notifications)
 MAINTENANCE_API_KEY=your_secure_maintenance_api_key

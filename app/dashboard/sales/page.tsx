@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
-import { Sale } from "@/lib/types";
+import { Activity, Product, Sale, SaleReturn, SaleItem } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
 import { RecieptPreview, SalesForm } from "@/components/sales/SalesForm";
 import { SalesTable } from "@/components/sales/SalesTable";
@@ -22,7 +22,6 @@ import {
   Clock,
   DollarSign,
   BarChart3,
-  Calendar,
   Filter,
   RotateCcw,
   View,
@@ -63,38 +62,43 @@ function SalesPageContent() {
   const [filterCustomerName, setFilterCustomerName] = useState("");
 
   // Sales form state
-  const [editingSale, setEditingSale] = useState<any>(null);
-  const [receiptData, setReceiptData] = useState<any>(null);
+  const [editingSale, setEditingSale] = useState<Sale | undefined>(undefined);
+  const [receiptData, setReceiptData] = useState<
+    (Sale & { products: Product[] }) | null
+  >(null);
 
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedSaleForReturn, setSelectedSaleForReturn] = useState<any>(null);
+  const [selectedSaleForReturn, setSelectedSaleForReturn] =
+    useState<Sale | null>(null);
 
   // Returns list state
   const [showReturnsList, setShowReturnsList] = useState(false);
-  const [selectedReturnForDetails, setSelectedReturnForDetails] =
-    useState<any>(null);
+  const [selectedReturnForDetails, setSelectedReturnForDetails] = useState<
+    SaleReturn | undefined
+  >(undefined);
   const [showReturnDetails, setShowReturnDetails] = useState(false);
 
-  const openDialogForAction = (_actionType: string, action: () => void) => {
-    action();
+  const openDialogForAction = (
+    _actionType: string,
+    action: () => Promise<void> | void,
+  ) => {
+    void action();
   };
 
-  const handleAddSale = async (sale: any) => {
+  const handleAddSale = async (sale: Sale) => {
     if (sale.id || sale._id) {
       // Update existing sale
       const saleId = (sale.id as string) || (sale._id as string);
-      const existingSale = safeSales.find(
-        (s) => s.id === saleId || s._id === saleId,
-      );
 
       await updateSale(saleId, sale);
 
       // Log activity: sale updated
       try {
-        await logActivity({
+        const activity: Omit<Activity, "id" | "createdAt"> = {
           type: "sale",
           action: "update",
+          status: "success",
           title: `Sale Updated: ${sale.saleNumber}`,
           description: `Sale "${sale.saleNumber}" was updated`,
           referenceId: saleId,
@@ -106,8 +110,9 @@ function SalesPageContent() {
             itemCount: sale.items?.length || 0,
           },
           businessId: user?.businessId,
-          createdBy: user?.id || user?._id,
-        } as any);
+          createdBy: user?.id || user?._id || "",
+        };
+        await logActivity(activity);
       } catch (error) {
         console.warn("Failed to log sale update activity:", error);
       }
@@ -119,9 +124,10 @@ function SalesPageContent() {
 
       // Log activity: sale created
       try {
-        await logActivity({
+        const activity: Omit<Activity, "id" | "createdAt"> = {
           type: "sale",
           action: "create",
+          status: "success",
           title: `Sale Created: ${sale.saleNumber}`,
           description: `New sale "${sale.saleNumber}" was created`,
           referenceId: sale.id || sale._id,
@@ -133,8 +139,9 @@ function SalesPageContent() {
             itemCount: sale.items?.length || 0,
           },
           businessId: user?.businessId,
-          createdBy: user?.id || user?._id,
-        } as any);
+          createdBy: user?.id || user?._id || "",
+        };
+        await logActivity(activity);
       } catch (error) {
         console.warn("Failed to log sale create activity:", error);
       }
@@ -152,21 +159,22 @@ function SalesPageContent() {
       products: safeProducts,
     });
 
-    setEditingSale(null);
+    setEditingSale(undefined);
   };
 
   const handleDeleteSale = (id: string) => {
     const sale = safeSales.find((s) => s.id === id || s._id === id);
     if (!sale) return;
 
-    openDialogForAction("delete sale", () => {
+    openDialogForAction("delete sale", async () => {
       deleteSale(id);
 
       // Log activity: sale deleted
       try {
-        logActivity({
+        const activity: Omit<Activity, "id" | "createdAt"> = {
           type: "sale",
           action: "delete",
+          status: "success",
           title: `Sale Deleted: ${sale.saleNumber}`,
           description: `Sale "${sale.saleNumber}" was deleted`,
           referenceId: id,
@@ -178,8 +186,9 @@ function SalesPageContent() {
             itemCount: sale.items?.length || 0,
           },
           businessId: user?.businessId,
-          createdBy: user?.id || user?._id,
-        } as any);
+          createdBy: user?.id || user?._id || "",
+        };
+        await logActivity(activity);
       } catch (error) {
         console.warn("Failed to log sale delete activity:", error);
       }
@@ -205,21 +214,22 @@ function SalesPageContent() {
     }
   }, [editingSale]);
 
-  const handleReturnSale = (sale: any) => {
+  const handleReturnSale = (sale: Sale) => {
     openDialogForAction("process sale return", () => {
       setSelectedSaleForReturn(sale);
       setReturnDialogOpen(true);
     });
   };
 
-  const handleProcessReturn = async (saleReturn: any) => {
+  const handleProcessReturn = async (saleReturn: SaleReturn) => {
     await processSaleReturn(saleReturn);
 
     // Log activity: return created
     try {
-      await logActivity({
+      const activity: Omit<Activity, "id" | "createdAt"> = {
         type: "return",
         action: "create",
+        status: "success",
         title: `Return Processed: ${saleReturn.reference}`,
         description: `Return "${saleReturn.reference}" was processed for ${formatCurrency(saleReturn.totalAmount)}`,
         referenceId: saleReturn.id || saleReturn._id,
@@ -232,8 +242,9 @@ function SalesPageContent() {
           originalSaleId: saleReturn.saleId,
         },
         businessId: user?.businessId,
-        createdBy: user?.id || user?._id,
-      } as any);
+        createdBy: user?.id || user?._id || "",
+      };
+      await logActivity(activity);
     } catch (error) {
       console.warn("Failed to log return activity:", error);
     }
@@ -246,13 +257,13 @@ function SalesPageContent() {
 
   const userSales =
     user?.role === "sales"
-      ? safeSales.filter((s: any) => s?.createdBy === (user?.id || user?._id))
+      ? safeSales.filter((s: Sale) => s?.createdBy === (user?.id || user?._id))
       : safeSales;
 
   // Calculate today's sales
   const todaysSales = useMemo(() => {
     const today = new Date().toDateString();
-    return userSales.filter((s: any) => {
+    return userSales.filter((s: Sale) => {
       const saleDate = new Date(s?.date);
       return (
         Number.isFinite(saleDate.getTime()) &&
@@ -265,7 +276,7 @@ function SalesPageContent() {
   // Calculate total sales for today
   const totalSalesToday = useMemo(() => {
     return todaysSales.reduce(
-      (sum: number, sale: any) =>
+      (sum: number, sale: Sale) =>
         sum + (Number.isFinite(sale?.totalAmount) ? sale.totalAmount : 0),
       0,
     );
@@ -275,8 +286,8 @@ function SalesPageContent() {
   const lastSaleTime = useMemo(() => {
     if (todaysSales.length === 0) return null;
     const sorted = [...todaysSales]
-      .filter((s: any) => s?.createdAt)
-      .sort((a: any, b: any) => {
+      .filter((s: Sale) => s?.createdAt)
+      .sort((a: Sale, b: Sale) => {
         const aDate = new Date(a.createdAt!).getTime();
         const bDate = new Date(b.createdAt!).getTime();
         if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) return 0;
@@ -287,18 +298,11 @@ function SalesPageContent() {
     return Number.isFinite(date.getTime()) ? date : null;
   }, [todaysSales]);
 
-  // Calculate today's returns
-  const todaysReturns = useMemo(() => {
-    return todaysSales.filter(
-      (s: any) => s?.status === "returned" || s?.status === "partial",
-    ).length;
-  }, [todaysSales]);
-
   // Calculate today's sale returns (from saleReturns array)
   const todaysSaleReturns = useMemo(() => {
     const today = new Date().toDateString();
     const safeSaleReturns = Array.isArray(saleReturns) ? saleReturns : [];
-    return safeSaleReturns.filter((sr: any) => {
+    return safeSaleReturns.filter((sr: SaleReturn) => {
       const returnDate = new Date(sr?.createdAt!);
       return (
         Number.isFinite(returnDate.getTime()) &&
@@ -310,15 +314,15 @@ function SalesPageContent() {
   // Calculate total refund amount for today
   const totalRefundAmountToday = useMemo(() => {
     return todaysSaleReturns.reduce(
-      (sum: number, sr: any) =>
-        sum + (Number.isFinite(sr?.refundAmount) ? sr.refundAmount : 0),
+      (sum: number, sr: SaleReturn) =>
+        sum + (Number.isFinite(sr?.refundAmount) ? sr.refundAmount! : 0),
       0,
     );
   }, [todaysSaleReturns]);
 
   // Filter sales based on search and filters
   const filteredSales = useMemo(() => {
-    return userSales.filter((sale: any) => {
+    return userSales.filter((sale: Sale) => {
       // Search by sale number or transaction ID
       const saleNumber = (sale?.saleNumber || "").toString().toLowerCase();
       const txnId = (sale?.txnId || "").toString().toLowerCase();
@@ -359,10 +363,9 @@ function SalesPageContent() {
       if (filterProductName) {
         const lowerFilter = filterProductName.toLowerCase();
         matchesProduct = Array.isArray(sale?.items)
-          ? sale.items.some((item: any) => {
+          ? sale.items.some((item: SaleItem) => {
               const prod = safeProducts.find(
-                (p: any) =>
-                  p?.id === item?.productId || p?._id === item?.productId,
+                (p) => p?.id === item?.productId || p?._id === item?.productId,
               );
               return (
                 prod?.name?.toString().toLowerCase().includes(lowerFilter) ||
@@ -738,7 +741,7 @@ function SalesPageContent() {
         onOpenChange={(open) => {
           setShowReturnDetails(open);
           if (!open) {
-            setSelectedReturnForDetails(null);
+            setSelectedReturnForDetails(undefined);
           }
         }}
       />

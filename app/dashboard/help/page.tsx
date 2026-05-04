@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FAQSection } from "@/components/help/FAQSection";
-import { DemoGuide } from "@/components/help/DemoGuide";
 import { ContactForm } from "@/components/help/ContactForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -196,16 +195,16 @@ export default function HelpPage() {
           Help & Support
         </h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
-          Learn how to use StockOS and manage your inventory efficiently
+          Learn how to use Quantis stock and manage your inventory efficiently
         </p>
       </div>
 
       <Card className="border-teal-200 border-2 bg-teal-50 dark:bg-teal-900/20 dark:border-teal-700">
         <CardContent className="pt-6">
           <p className="text-sm text-teal-900 dark:text-teal-200">
-            <strong>New to StockOS?</strong> Start with the "Getting Started"
-            tab below to understand the system and learn how to use each feature
-            step-by-step.
+            <strong>New to Quantis stock?</strong> Start with the "Getting
+            Started" tab below to understand the system and learn how to use
+            each feature step-by-step.
           </p>
         </CardContent>
       </Card>
@@ -325,8 +324,8 @@ export default function HelpPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 dark:text-slate-400 text-sm mb-6">
-                Use these keyboard shortcuts to work more efficiently in
-                StockOS.
+                Use these keyboard shortcuts to work more efficiently in Quantis
+                stock.
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -404,14 +403,16 @@ export default function HelpPage() {
       {/* About Section */}
       <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
         <CardHeader>
-          <CardTitle className="dark:text-teal-100">About StockOS</CardTitle>
+          <CardTitle className="dark:text-teal-100">
+            About Quantis stock
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-gray-700 dark:text-slate-400">
           <p>
-            <strong className="dark:text-teal-100">StockOS</strong> is a modern,
-            comprehensive inventory management system designed for businesses of
-            all sizes to efficiently manage their stock, sales, and supplier
-            relationships.
+            <strong className="dark:text-teal-100">Quantis stock</strong> is a
+            modern, comprehensive inventory management system designed for
+            businesses of all sizes to efficiently manage their stock, sales,
+            and supplier relationships.
           </p>
           <div>
             <strong className="dark:text-teal-100">Core Features:</strong>

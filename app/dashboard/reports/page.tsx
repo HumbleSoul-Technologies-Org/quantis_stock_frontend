@@ -6,7 +6,7 @@ import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { ClientOnly } from "@/components/client-only";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, AlertCircle, TrendingUp } from "lucide-react";
+import { Download, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -26,7 +26,6 @@ function ReportsPageContent() {
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
   const [selectedReport, setSelectedReport] = useState("inventory");
-  const [stockMovementPeriod, setStockMovementPeriod] = useState("monthly");
   const [salesPeriod, setSalesPeriod] = useState("monthly");
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1), // Last 6 months
@@ -84,7 +83,17 @@ function ReportsPageContent() {
     "Nov",
     "Dec",
   ];
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const getWeekNumber = (date: Date): number => {
+    const copiedDate = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+    const dayNumber = (copiedDate.getUTCDay() + 6) % 7;
+    copiedDate.setUTCDate(copiedDate.getUTCDate() - dayNumber + 3);
+    const firstThursday = new Date(Date.UTC(copiedDate.getUTCFullYear(), 0, 4));
+    const diff = copiedDate.getTime() - firstThursday.getTime();
+    return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+  };
 
   // Process sales data by WEEKLY
   const processSalesDataWeekly = () => {
@@ -170,89 +179,6 @@ function ReportsPageContent() {
     }
   };
 
-  // Helper to get week number
-  const getWeekNumber = (date: Date) => {
-    const d = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-    );
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  };
-
-  // Process stock movement data by WEEKLY
-  const processStockMovementDataWeekly = () => {
-    const weeklyData: Record<
-      string,
-      { week: string; stockIn: number; stockOut: number }
-    > = {};
-
-    safeStockMovements.forEach((movement) => {
-      const date = new Date(movement.createdAt!);
-      if (date >= dateRange.start && date <= dateRange.end) {
-        const year = date.getFullYear();
-        const week = getWeekNumber(date);
-        const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
-
-        if (!weeklyData[weekKey]) {
-          weeklyData[weekKey] = { week: weekKey, stockIn: 0, stockOut: 0 };
-        }
-
-        if (movement.type === "in") {
-          weeklyData[weekKey].stockIn += movement.quantity;
-        } else if (movement.type === "out") {
-          weeklyData[weekKey].stockOut += movement.quantity;
-        }
-      }
-    });
-
-    return Object.values(weeklyData).sort((a, b) =>
-      a.week.localeCompare(b.week),
-    );
-  };
-
-  // Process stock movement data by ANNUAL
-  const processStockMovementDataAnnually = () => {
-    const annualData: Record<
-      string,
-      { year: string; stockIn: number; stockOut: number }
-    > = {};
-
-    safeStockMovements.forEach((movement) => {
-      const date = new Date(movement.createdAt!);
-      if (date >= dateRange.start && date <= dateRange.end) {
-        const year = `${date.getFullYear()}`;
-
-        if (!annualData[year]) {
-          annualData[year] = { year, stockIn: 0, stockOut: 0 };
-        }
-
-        if (movement.type === "in") {
-          annualData[year].stockIn += movement.quantity;
-        } else if (movement.type === "out") {
-          annualData[year].stockOut += movement.quantity;
-        }
-      }
-    });
-
-    return Object.values(annualData).sort((a, b) =>
-      a.year.localeCompare(b.year),
-    );
-  };
-
-  // Get the appropriate data based on selected period
-  const getStockMovementData = () => {
-    switch (stockMovementPeriod) {
-      case "weekly":
-        return processStockMovementDataWeekly();
-      case "annual":
-        return processStockMovementDataAnnually();
-      default:
-        return processStockMovementData();
-    }
-  };
-
   // Chart configuration for stock movement trends
   const chartConfig = {
     stockIn: {
@@ -262,22 +188,6 @@ function ReportsPageContent() {
     stockOut: {
       label: "Stock Out",
       color: "#ef4444",
-    },
-  };
-
-  // Chart configuration for sales trends
-  const salesChartConfig = {
-    revenue: {
-      label: "Revenue",
-      color: "hsl(var(--chart-1))",
-    },
-    salesCount: {
-      label: "Sales Count",
-      color: "hsl(var(--chart-2))",
-    },
-    aov: {
-      label: "Avg Order Value",
-      color: "hsl(var(--chart-3))",
     },
   };
 
@@ -331,16 +241,6 @@ function ReportsPageContent() {
         (Number.isFinite(p?.unitPrice) ? p.unitPrice : 0),
     0,
   );
-  const averageStockLevel =
-    safeProducts.length > 0
-      ? Math.round(
-          safeProducts.reduce(
-            (sum, p) =>
-              sum + (Number.isFinite(p?.currentStock) ? p.currentStock : 0),
-            0,
-          ) / safeProducts.length,
-        )
-      : 0;
 
   // Sales Summary
   const completedSales = safeSales.filter((s) => s?.status === "completed");
@@ -1183,7 +1083,7 @@ function ReportsPageContent() {
                       processStockMovementData().reduce(
                         (max, curr) =>
                           curr.stockIn > max.stockIn ? curr : max,
-                        { stockIn: 0, month: "N/A" } as any,
+                        { stockIn: 0, month: "N/A", stockOut: 0 },
                       ).month
                     }
                   </p>
@@ -1195,7 +1095,7 @@ function ReportsPageContent() {
                       processStockMovementData().reduce(
                         (max, curr) =>
                           curr.stockOut > max.stockOut ? curr : max,
-                        { stockOut: 0, month: "N/A" } as any,
+                        { stockIn: 0, month: "N/A", stockOut: 0 },
                       ).month
                     }
                   </p>
@@ -1206,9 +1106,7 @@ function ReportsPageContent() {
         </Card>
       )}
 
-      {selectedReport === "audit" && (
-        <AuditReport />
-      )}
+      {selectedReport === "audit" && <AuditReport />}
     </div>
   );
 }

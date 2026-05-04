@@ -96,8 +96,8 @@ export function DemoGuide() {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600 dark:text-slate-400 text-sm mb-6">
-            Follow these steps to learn all the key features of StockOS. This
-            guide covers everything from basic setup to advanced reporting.
+            Follow these steps to learn all the key features of Quantis stock.
+            This guide covers everything from basic setup to advanced reporting.
           </p>
 
           <div className="space-y-4">

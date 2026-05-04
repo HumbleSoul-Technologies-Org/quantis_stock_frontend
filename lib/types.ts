@@ -30,6 +30,30 @@ export interface BusinessSettings {
   };
 }
 
+export interface BusinessOnboardingPayload {
+  ownerId: string;
+  businessName: string;
+  businessType: BusinessType;
+  businessEmail?: {
+    email: string;
+    activated: boolean;
+  };
+  businessPhone?: {
+    contact: number;
+    activated: boolean;
+  };
+  businessAddress?: string;
+  setupCompletedAt: string;
+  settings: {
+    currency: {
+      code: string;
+      symbol: string;
+      decimalPlaces: number;
+    };
+    notifications: BusinessSettings["notifications"];
+  };
+}
+
 export interface BusinessSetup {
   businessName: string;
   businessType: BusinessType;

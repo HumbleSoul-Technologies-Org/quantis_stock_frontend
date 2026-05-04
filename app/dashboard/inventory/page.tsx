@@ -49,9 +49,6 @@ function InventoryPageContent() {
     notifyLowStock,
     notifyStockOut,
     notifyResourceCreated,
-    notifyResourceUpdated,
-    notifyResourceDeleted,
-    notifyDataSync,
     notifySuccess,
     notifyError,
   } = useNotificationActions();
@@ -130,7 +127,7 @@ function InventoryPageContent() {
     action();
   };
 
-  const handleAddMovement = async (movement: any) => {
+  const handleAddMovement = async (movement: StockMovement) => {
     await addStockMovement(movement);
 
     const product = safeProducts.find(
@@ -143,6 +140,7 @@ function InventoryPageContent() {
       await logActivity({
         type: "stock",
         action: "create",
+        status: "success",
         title: `Stock Movement: ${movement.type} for ${productName}`,
         description: `Stock ${movement.type} of ${movement.quantity} units for "${productName}"`,
         referenceId: movement.id || movement._id,
@@ -156,8 +154,8 @@ function InventoryPageContent() {
           reason: movement.reason,
         },
         businessId: user?.businessId,
-        createdBy: user?.id || user?._id,
-      } as any);
+        createdBy: user?.id || user?._id || "",
+      });
     } catch (error) {
       console.warn("Failed to log stock movement activity:", error);
     }
@@ -195,10 +193,10 @@ function InventoryPageContent() {
     }
   };
 
-  const handleStockIn = (product: any) => {
+  const handleStockIn = (product: Product) => {
     openDialogForAction("create stock movement", () => {
       setSelectedMovement(null);
-      setSelectedProductId(product._id || product.id);
+      setSelectedProductId(product._id || product.id || "");
       setShowDialog(true);
     });
   };
@@ -305,7 +303,7 @@ function InventoryPageContent() {
 
   // Calculate stock in summary stats
   const totalUnitsStockedIn = filteredStockInHistory.reduce(
-    (sum: number, m: any) => sum + m.quantity,
+    (sum: number, m: StockMovement) => sum + m.quantity,
     0,
   );
   const totalStockInTransactions = filteredStockInHistory.length;
@@ -316,7 +314,7 @@ function InventoryPageContent() {
   }, [sortedMovements]);
 
   const totalUnitsStockedOut = stockOutMovements.reduce(
-    (sum: number, m: any) => sum + (m.quantity || 0),
+    (sum: number, m: StockMovement) => sum + (m.quantity || 0),
     0,
   );
 
@@ -455,7 +453,9 @@ function InventoryPageContent() {
               </label>
               <select
                 value={stockFilter}
-                onChange={(e) => setStockFilter(e.target.value as any)}
+                onChange={(e) =>
+                  setStockFilter(e.target.value as "all" | "low" | "out")
+                }
                 className="w-full px-4 py-2 border-2 border-teal-200 dark:border-teal-700 dark:bg-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="all">All Items</option>
@@ -500,11 +500,12 @@ function InventoryPageContent() {
                   setSelectedMovement(null);
                   setSelectedProductId("");
                   clearProductIdFromUrl();
-                } catch (error: any) {
+                } catch (error: unknown) {
                   notifyError(
                     "Stock movement failed",
-                    error?.message ||
-                      "Unable to save the stock movement. Please try again.",
+                    error instanceof Error
+                      ? error.message
+                      : "Unable to save the stock movement. Please try again.",
                   );
                 }
               }}

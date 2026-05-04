@@ -185,10 +185,10 @@ export default function MaintenancePage() {
           <p className="text-sm">
             For urgent inquiries, please contact our support team at{" "}
             <a
-              href="mailto:support@stockos.com"
+              href="mailto:support@quantisstock.com"
               className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             >
-              support@stockos.io
+              support@quantisstock.com
             </a>
           </p>
         </div>

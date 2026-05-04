@@ -121,17 +121,17 @@ export default function PrivacyPolicyPage() {
               1. Introduction
             </h2>
             <p className="text-gray-700 dark:text-slate-300">
-              StockOS ("Company," "we," "us," "our," or "Platform") is committed
-              to protecting your privacy. This Privacy Policy explains how we
-              collect, use, disclose, and safeguard your information when you
-              visit our website and use our inventory management system.
+              Quantis stock ("Company," "we," "us," "our," or "Platform") is
+              committed to protecting your privacy. This Privacy Policy explains
+              how we collect, use, disclose, and safeguard your information when
+              you visit our website and use our inventory management system.
             </p>
             <p className="text-gray-700 dark:text-slate-300">
               Please read this Privacy Policy carefully. If you do not agree
               with our policies and practices, please do not use our Platform.
-              By accessing and using StockOS, you acknowledge that you have
-              read, understood, and agree to be bound by all the terms of this
-              Privacy Policy.
+              By accessing and using Quantis stock, you acknowledge that you
+              have read, understood, and agree to be bound by all the terms of
+              this Privacy Policy.
             </p>
           </section>
 

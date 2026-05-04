@@ -108,7 +108,7 @@ class EmailService {
 
   // Maintenance-specific email templates
   async sendMaintenanceStartNotification(subscribers: string[]): Promise<boolean> {
-    const subject = 'StockOS - Maintenance Started';
+    const subject = 'Quantis stock - Maintenance Started';
     const html = `
       <!DOCTYPE html>
       <html>
@@ -118,8 +118,8 @@ class EmailService {
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
           <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #2563eb;">StockOS Maintenance Started</h1>
-            <p>Dear StockOS User,</p>
+            <h1 style="color: #2563eb;">Quantis stock Maintenance Started</h1>
+            <p>Dear Quantis stock User,</p>
             <p>We're currently performing scheduled maintenance on our system to bring you improved features and better performance.</p>
             <p><strong>Expected Duration:</strong> 2-4 hours</p>
             <p><strong>What we're doing:</strong></p>
@@ -131,7 +131,7 @@ class EmailService {
             </ul>
             <p>You'll receive another notification when maintenance is complete and the system is back online.</p>
             <p>Thank you for your patience!</p>
-            <p>Best regards,<br>The StockOS Team</p>
+            <p>Best regards,<br>The Quantis stock Team</p>
           </div>
         </body>
       </html>
@@ -145,7 +145,7 @@ class EmailService {
   }
 
   async sendMaintenanceCompleteNotification(subscribers: string[]): Promise<boolean> {
-    const subject = 'StockOS - Maintenance Complete - System Back Online';
+    const subject = 'Quantis stock - Maintenance Complete - System Back Online';
     const html = `
       <!DOCTYPE html>
       <html>
@@ -155,9 +155,9 @@ class EmailService {
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
           <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #059669;">StockOS is Back Online!</h1>
-            <p>Dear StockOS User,</p>
-            <p>Great news! Our scheduled maintenance has been completed successfully and StockOS is now back online.</p>
+            <h1 style="color: #059669;">Quantis stock is Back Online!</h1>
+            <p>Dear Quantis stock User,</p>
+            <p>Great news! Our scheduled maintenance has been completed successfully and Quantis stock is now back online.</p>
             <p><strong>What we accomplished:</strong></p>
             <ul>
               <li>✅ System updates completed</li>
@@ -165,9 +165,9 @@ class EmailService {
               <li>✅ Security enhancements applied</li>
               <li>✅ Bug fixes deployed</li>
             </ul>
-            <p>You can now access StockOS at <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://yourapp.com'}" style="color: #2563eb;">your dashboard</a>.</p>
+            <p>You can now access Quantis stock at <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://yourapp.com'}" style="color: #2563eb;">your dashboard</a>.</p>
             <p>Thank you for your patience during the maintenance period!</p>
-            <p>Best regards,<br>The StockOS Team</p>
+            <p>Best regards,<br>The Quantis stock Team</p>
           </div>
         </body>
       </html>
@@ -185,8 +185,8 @@ class EmailService {
 const emailConfig: EmailConfig = {
   provider: (process.env.EMAIL_PROVIDER as EmailConfig['provider']) || 'resend',
   apiKey: process.env.EMAIL_API_KEY,
-  fromEmail: process.env.EMAIL_FROM || 'noreply@stockos.com',
-  fromName: process.env.EMAIL_FROM_NAME || 'StockOS',
+  fromEmail: process.env.EMAIL_FROM || 'noreply@quantisstock.com',
+  fromName: process.env.EMAIL_FROM_NAME || 'Quantis stock',
 };
 
 export const emailService = new EmailService(emailConfig);

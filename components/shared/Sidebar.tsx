@@ -70,12 +70,12 @@ export function Sidebar() {
       icon: Settings,
       roles: ["admin", "manager"],
     },
-    {
-      href: "/dashboard/help",
-      label: "Help",
-      icon: HelpCircle,
-      roles: ["admin", "manager", "sales", "accountant"],
-    },
+    // {
+    //   href: "/dashboard/help",
+    //   label: "Help",
+    //   icon: HelpCircle,
+    //   roles: ["admin", "manager", "sales", "accountant"],
+    // },
   ];
 
   const visibleItems = menuItems.filter((item) =>
@@ -103,7 +103,7 @@ export function Sidebar() {
         </button>
         <div>
           <h1 className="text-lg font-bold text-green-700 dark:text-green-300">
-            StockOS
+            Quantis stock
           </h1>
         </div>
         <div className="w-10" />
@@ -125,7 +125,7 @@ export function Sidebar() {
       >
         <div className="p-4 lg:p-6 mt-14 lg:mt-0">
           <h1 className="text-2xl font-bold text-green-700 dark:text-green-300">
-            {business ? business?.businessName : "StockOS"}
+            {business ? business?.businessName : "Quantis stock"}
           </h1>
           <p className="text-sm text-green-600 dark:text-teal-400 mt-1">
             Stock Management

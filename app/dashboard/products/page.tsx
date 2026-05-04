@@ -27,7 +27,6 @@ function ProductsPageContent() {
     notifyResourceCreated,
     notifyResourceUpdated,
     notifyResourceDeleted,
-    notifySuccess,
   } = useNotificationActions();
 
   const safeProducts = Array.isArray(products) ? products : [];
@@ -54,9 +53,6 @@ function ProductsPageContent() {
     if ((product && product.id) || product._id) {
       // Update existing product
       const productId = (product.id as string) || (product._id as string);
-      const existingProduct = safeProducts.find(
-        (p) => p.id === productId || p._id === productId,
-      );
 
       await updateProduct(productId, product);
 
@@ -65,6 +61,7 @@ function ProductsPageContent() {
         await logActivity({
           type: "product",
           action: "update",
+          status: "success",
           title: `Product Updated: ${product.name}`,
           description: `Product "${product.name}" (SKU: ${product.sku}) was updated`,
           referenceId: productId,
@@ -76,8 +73,8 @@ function ProductsPageContent() {
             category: product.category,
           },
           businessId: user?.businessId,
-          createdBy: user?.id || user?._id,
-        } as any);
+          createdBy: user?.id || user?._id || "",
+        });
       } catch (error) {
         console.warn("Failed to log product update activity:", error);
       }
@@ -92,6 +89,7 @@ function ProductsPageContent() {
         await logActivity({
           type: "product",
           action: "create",
+          status: "success",
           title: `Product Created: ${product.name}`,
           description: `New product "${product.name}" (SKU: ${product.sku}) was created`,
           referenceId: product.id || product._id,
@@ -105,8 +103,8 @@ function ProductsPageContent() {
             costPrice: product.costPrice,
           },
           businessId: user?.businessId,
-          createdBy: user?.id || user?._id,
-        } as any);
+          createdBy: user?.id || user?._id || "",
+        });
       } catch (error) {
         console.warn("Failed to log product create activity:", error);
       }
@@ -128,6 +126,7 @@ function ProductsPageContent() {
       logActivity({
         type: "product",
         action: "delete",
+        status: "success",
         title: `Product Deleted: ${product.name}`,
         description: `Product "${product.name}" (SKU: ${product.sku}) was deleted`,
         referenceId: id,
@@ -139,8 +138,8 @@ function ProductsPageContent() {
           category: product.category,
         },
         businessId: user?.businessId,
-        createdBy: user?.id || user?._id,
-      } as any);
+        createdBy: user?.id || user?._id || "",
+      });
     } catch (error) {
       console.warn("Failed to log product delete activity:", error);
     }

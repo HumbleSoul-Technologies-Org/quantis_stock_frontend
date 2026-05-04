@@ -37,22 +37,22 @@ export async function POST(request: NextRequest) {
     // Send test email
     const success = await emailService.sendEmail({
       to,
-      subject: 'Test Email from StockOS',
+      subject: 'Test Email from Quantis stock',
       html: `
         <html>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #059669;">StockOS Email Integration Test</h1>
+              <h1 style="color: #059669;">Quantis stock Email Integration Test</h1>
               <p>This is a test email to verify that the Resend email integration is working correctly.</p>
               <p>If you received this email, the integration is functioning properly!</p>
               <p>Sent at: ${new Date().toISOString()}</p>
-              <p>Best regards,<br>The StockOS Team</p>
+              <p>Best regards,<br>The Quantis stock Team</p>
             </div>
           </body>
         </html>
       `,
       text: `
-        StockOS Email Integration Test
+        Quantis stock Email Integration Test
 
         This is a test email to verify that the Resend email integration is working correctly.
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         Sent at: ${new Date().toISOString()}
 
         Best regards,
-        The StockOS Team
+        The Quantis stock Team
       `,
     });
 
