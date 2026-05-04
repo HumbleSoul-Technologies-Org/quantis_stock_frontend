@@ -22,6 +22,8 @@ import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
 import { set } from "date-fns";
 import Select from "react-select";
+import { printService } from "@/lib/printService";
+import { useToast } from "@/components/ui/use-toast";
 // import { Printer } from "lucide-react";
 
 interface SalesFormProps {
@@ -599,6 +601,7 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
   const { user, business } = useAuth();
   const { formatCurrency } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Format number with k/M/B suffix and no decimals
   const formatShortNumber = (num: number): string => {
@@ -624,6 +627,69 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handlePrintToPos = async () => {
+    try {
+      if (!printService.isQzAvailable()) {
+        toast({
+          title: "QZ Tray Not Available",
+          description: "Please install QZ Tray to enable POS printing.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!printService.isQzConnected()) {
+        const connected = await printService.connect();
+        if (!connected) {
+          toast({
+            title: "Connection Failed",
+            description:
+              "Could not connect to QZ Tray. Please check if it's running.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const receiptData = {
+        saleNumber: payLoad?.saleNumber || "---",
+        date: payLoad?.date || new Date().toISOString(),
+        customerName: payLoad?.customerName || "Walk-in",
+        items: items.map((item: any) => {
+          const product = payLoad?.products?.find(
+            (p: any) => p.id === item.productId || p._id === item.productId,
+          );
+          return {
+            name: product?.name || "Product",
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          };
+        }),
+        totalAmount: grandTotal,
+        paymentType: payLoad?.paymentType || "cash",
+        txnId: payLoad?.txnId,
+        notes: payLoad?.notes,
+        cashier: payLoad?.createdBy || user?.username || "---",
+      };
+
+      await printService.printReceipt(receiptData);
+
+      toast({
+        title: "Receipt Printed",
+        description: "Receipt sent to POS printer successfully.",
+      });
+    } catch (error) {
+      console.error("POS Print error:", error);
+      toast({
+        title: "Print Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to print receipt.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -763,7 +829,9 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
 
         {/* Footer */}
         <div className="receipt-number text-xs text-gray-600 mb-3">
-          {payLoad?.txnId || "TXN-" + new Date().getTime()}
+          {payLoad?.txnId
+            ? `Transaction ID: ${payLoad.txnId}`
+            : "please keep this receipt for your records."}
         </div>
         <div className="footer-message text-lg font-bold mb-2">THANK YOU!</div>
         <div className="footer-text text-xs text-gray-600">
@@ -803,7 +871,7 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
       `}</style>
       <div className="flex gap-2 justify-center no-print">
         <Button
-          onClick={handlePrint}
+          onClick={handlePrintToPos}
           className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2"
         >
           <Printer className="w-4 h-4" />

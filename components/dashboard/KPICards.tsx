@@ -15,6 +15,10 @@ import {
   formatPercentage,
   processKPIData,
   getStockMovementLossValue,
+  getDailyRevenueTrend,
+  getDailySalesCountTrend,
+  getDailyLossTrend,
+  getDailyInventoryValueTrend,
 } from "@/lib/chartUtils";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -145,16 +149,8 @@ export function RevenueKPICard() {
   const { formatCurrency } = useSettings();
   const kpiData = processKPIData(sales, products, stockMovements);
 
-  // Generate sparkline data from recent sales (last 7 days)
-  const recentSales = sales
-    .filter((sale) => {
-      const saleDate = new Date(sale.date);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return saleDate >= weekAgo;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map((sale) => sale.totalAmount);
+  // Generate sparkline data from recent sales (last 7 days) using real sales history
+  const recentSales = getDailyRevenueTrend(sales, 7);
 
   return (
     <KPICard
@@ -175,16 +171,8 @@ export function SalesKPICard() {
   const { formatCurrency } = useSettings();
   const kpiData = processKPIData(sales, products, stockMovements);
 
-  // Generate sparkline data from recent sales counts (last 7 days)
-  const recentDays = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    return date.toISOString().split("T")[0];
-  });
-
-  const sparklineData = recentDays.map((date) => {
-    return sales.filter((sale) => sale.date.startsWith(date)).length;
-  });
+  // Generate sparkline data from recent sales counts (last 7 days) using real sales history
+  const sparklineData = getDailySalesCountTrend(sales, 7);
 
   return (
     <KPICard
@@ -201,40 +189,26 @@ export function SalesKPICard() {
 }
 
 export function LossesKPICard() {
-  const { sales, products, stockMovements } = useData();
+  const { sales, products, stockMovements, saleReturns } = useData();
   const { formatCurrency } = useSettings();
   const kpiData = processKPIData(sales, products, stockMovements);
 
-  // Generate sparkline data from recent stock movements (last 7 days)
-  const recentDays = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    return date.toISOString().split("T")[0];
-  });
-
-  const sparklineData = recentDays.map((date) => {
-    return stockMovements
-      .filter(
-        (movement) =>
-          movement.createdAt?.startsWith(date) &&
-          ["damage", "expiry", "theft"].some((reason) =>
-            movement.reason?.toLowerCase().includes(reason),
-          ),
-      )
-      .reduce(
-        (sum, movement) => sum + getStockMovementLossValue(movement, products),
-        0,
-      );
-  });
+  // Generate sparkline data from recent loss activity (last 7 days) using real movement and return history
+  const sparklineData = getDailyLossTrend(
+    stockMovements,
+    saleReturns,
+    products,
+    7,
+  );
 
   return (
     <KPICard
       title="Total Losses"
       value={kpiData.losses.value}
-      change={0} // For losses, we don't calculate change the same way
+      change={kpiData.losses.change}
       changeLabel="this month"
       icon={<AlertTriangle className="h-4 w-4" />}
-      trend="neutral"
+      trend={kpiData.losses.change >= 0 ? "down" : "up"}
       sparklineData={sparklineData}
       formatCurrency={formatCurrency}
     />
@@ -242,33 +216,30 @@ export function LossesKPICard() {
 }
 
 export function InventoryValueKPICard() {
-  const { products } = useData();
+  const { sales, products, stockMovements } = useData();
   const { formatCurrency } = useSettings();
-
-  // Calculate total inventory value
-  const totalValue = products.reduce(
-    (sum, product) => sum + product.currentStock * product.unitPrice,
-    0,
-  );
+  const kpiData = processKPIData(sales, products, stockMovements);
 
   // Calculate low stock items
   const lowStockCount = products.filter(
     (product) => product.currentStock <= product.reorderLevel,
   ).length;
 
-  // Generate sparkline data (mock for now - could be historical inventory values)
-  const sparklineData = Array.from({ length: 7 }, () =>
-    Math.floor(totalValue * (0.95 + Math.random() * 0.1)),
+  // Generate sparkline data from recent inventory value history (last 7 days)
+  const sparklineData = getDailyInventoryValueTrend(
+    products,
+    stockMovements,
+    7,
   );
 
   return (
     <KPICard
       title="Inventory Value"
-      value={totalValue}
-      change={0} // Could calculate vs previous period
+      value={kpiData.inventory.value}
+      change={kpiData.inventory.change}
       changeLabel={`${lowStockCount} low stock items`}
       icon={<Package className="h-4 w-4" />}
-      trend="neutral"
+      trend={kpiData.inventory.change >= 0 ? "up" : "down"}
       sparklineData={sparklineData}
       formatCurrency={formatCurrency}
     />

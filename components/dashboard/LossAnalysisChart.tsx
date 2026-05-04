@@ -25,24 +25,21 @@ export function LossAnalysisChart() {
     products,
   );
 
+  const lossColors = [
+    "red", // Damage
+    "crimson", // Expiry
+    "orange", // Theft
+    "yellow", // Other
+  ];
+
   const barChartData = {
     labels: lossesData.map((item) => item.reason),
     datasets: [
       {
         label: `Loss Value (${currencySymbol})`,
         data: lossesData.map((item) => item.value),
-        backgroundColor: [
-          "var(--chart-3)", // Damage - red
-          "var(--chart-4)", // Expiry - orange
-          "var(--chart-5)", // Theft - yellow
-          "var(--chart-2)", // Other - green
-        ],
-        borderColor: [
-          "var(--chart-3)",
-          "var(--chart-4)",
-          "var(--chart-5)",
-          "var(--chart-2)",
-        ],
+        backgroundColor: lossColors,
+        borderColor: lossColors,
         borderWidth: 1,
         borderRadius: 4,
         borderSkipped: false,
@@ -55,12 +52,7 @@ export function LossAnalysisChart() {
     datasets: [
       {
         data: lossesData.map((item) => item.value),
-        backgroundColor: [
-          "var(--chart-3)", // Damage - red
-          "var(--chart-4)", // Expiry - orange
-          "var(--chart-5)", // Theft - yellow
-          "var(--chart-2)", // Other - green
-        ],
+        backgroundColor: lossColors,
         borderColor: "#fff",
         borderWidth: 2,
         hoverBorderWidth: 3,
@@ -104,7 +96,14 @@ export function LossAnalysisChart() {
         },
         ticks: {
           callback: function (value: any) {
-            return `${currencySymbol}${(value / 1000).toFixed(0)}k`;
+            const numericValue = Number(value);
+            if (numericValue >= 1_000_000) {
+              return `${currencySymbol}${(numericValue / 1_000_000).toFixed(1)}M`;
+            }
+            if (numericValue >= 1_000) {
+              return `${currencySymbol}${(numericValue / 1000).toFixed(0)}k`;
+            }
+            return `${currencySymbol}${numericValue}`;
           },
         },
       },
@@ -214,12 +213,7 @@ export function LossAnalysisChart() {
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{
-                    backgroundColor: [
-                      "var(--chart-3)",
-                      "var(--chart-4)",
-                      "var(--chart-5)",
-                      "var(--chart-2)",
-                    ][index],
+                    backgroundColor: lossColors[index],
                   }}
                 />
                 <span className="text-xs text-muted-foreground">

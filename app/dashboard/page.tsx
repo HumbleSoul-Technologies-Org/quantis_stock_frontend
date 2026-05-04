@@ -63,7 +63,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Additional Analytics Section */}
-      {(user?.role === "admin" || user?.role === "manager") && (
+      {/* {(user?.role === "admin" || user?.role === "manager") && (
         <div className="px-2 sm:px-0">
           <Card className="dark:bg-slate-800">
             <CardHeader>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-      )}
+      )} */}
 
       <RecentActivity />
     </div>

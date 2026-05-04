@@ -24,17 +24,31 @@ export function SalesTrendChart() {
   const chartData = {
     labels:
       timePeriod === "monthly"
-        ? salesData.map((item) => ("month" in item ? item.month : item.period))
-        : salesData.map((item) => ("period" in item ? item.period : "")),
+        ? salesData.map((item) =>
+            "month" in item
+              ? item.month
+              : "period" in item
+                ? item.period
+                : "dayLabel" in item
+                  ? item.dayLabel
+                  : "hourLabel" in item
+                    ? item.hourLabel
+                    : "",
+          )
+        : timePeriod === "weekly"
+          ? salesData.map((item) => ("dayLabel" in item ? item.dayLabel : ""))
+          : salesData.map((item) =>
+              "hourLabel" in item ? item.hourLabel : "",
+            ),
     datasets: [
       {
         label: "Sales Count",
         data: salesData.map((item) => item.sales),
-        borderColor: "var(--chart-1)",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
+        borderColor: "#14b8a6",
+        backgroundColor: "rgba(20, 184, 166, 0.15)",
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: "var(--chart-1)",
+        pointBackgroundColor: "#14b8a6",
         pointBorderColor: "#fff",
         pointBorderWidth: 2,
         pointRadius: 4,
@@ -43,11 +57,11 @@ export function SalesTrendChart() {
       {
         label: "Revenue",
         data: salesData.map((item) => item.revenue),
-        borderColor: "var(--chart-2)",
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
+        borderColor: "#3b82f6",
+        backgroundColor: "rgba(59, 130, 246, 0.15)",
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: "var(--chart-2)",
+        pointBackgroundColor: "#3b82f6",
         pointBorderColor: "#fff",
         pointBorderWidth: 2,
         pointRadius: 4,
@@ -87,8 +101,8 @@ export function SalesTrendChart() {
             timePeriod === "monthly"
               ? "Month"
               : timePeriod === "weekly"
-                ? "Week"
-                : "Date",
+                ? "Day"
+                : "Time",
           color: "var(--foreground)",
         },
       },
@@ -120,7 +134,14 @@ export function SalesTrendChart() {
         ticks: {
           color: "var(--foreground)",
           callback: function (value: any) {
-            return `${currencySymbol}${(value / 1000).toFixed(0)}k`;
+            const numericValue = Number(value);
+            if (numericValue >= 1_000_000) {
+              return `${currencySymbol}${(numericValue / 1_000_000).toFixed(1)}M`;
+            }
+            if (numericValue >= 1_000) {
+              return `${currencySymbol}${(numericValue / 1000).toFixed(0)}k`;
+            }
+            return `${currencySymbol}${numericValue}`;
           },
         },
       },

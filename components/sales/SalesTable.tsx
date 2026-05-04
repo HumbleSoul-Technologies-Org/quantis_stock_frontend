@@ -16,6 +16,8 @@ import { format } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
+import { printService } from "@/lib/printService";
+import { useToast } from "@/components/ui/use-toast";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -32,9 +34,10 @@ export function SalesTable({
   onReturn,
   onEdit,
 }: SalesTableProps) {
-  const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
+  const { toast } = useToast();
   const { user } = useAuth();
+  const formatCurrencyShort = useFormatCurrencyShort();
+  const { formatCurrency } = useSettings();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
 
   const toggleExpand = (saleId: string) => {
@@ -159,6 +162,64 @@ export function SalesTable({
     setTimeout(() => {
       printWindow.print();
     }, 250);
+  };
+
+  const handlePrintToPos = async (sale: Sale) => {
+    try {
+      if (!printService.isQzAvailable()) {
+        toast({
+          title: "QZ Tray Not Available",
+          description: "Please install QZ Tray to enable POS printing.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!printService.isQzConnected()) {
+        const connected = await printService.connect();
+        if (!connected) {
+          toast({
+            title: "Connection Failed",
+            description:
+              "Could not connect to QZ Tray. Please check if it's running.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const receiptData = {
+        saleNumber: sale.saleNumber,
+        date: sale.date,
+        customerName: sale.customerName,
+        items: sale.items.map((item) => ({
+          name: getProductName(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.total,
+        })),
+        totalAmount: sale.totalAmount,
+        paymentType: sale.paymentType,
+        txnId: sale.txnId,
+        notes: sale.notes,
+        cashier: sale.createdBy,
+      };
+
+      await printService.printReceipt(receiptData);
+
+      toast({
+        title: "Receipt Printed",
+        description: "Receipt sent to POS printer successfully.",
+      });
+    } catch (error) {
+      console.error("POS Print error:", error);
+      toast({
+        title: "Print Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to print receipt.",
+        variant: "destructive",
+      });
+    }
   };
 
   const sorted = sales.sort(
@@ -340,11 +401,11 @@ export function SalesTable({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handlePrint(sale)}
-                        className="text-blue-600 hover:bg-blue-50 gap-1"
+                        onClick={() => handlePrintToPos(sale)}
+                        className="text-green-600 hover:bg-green-50 gap-1"
                       >
                         <Printer className="w-4 h-4" />
-                        Print
+                        Print to POS
                       </Button>
                       {onEdit &&
                         user &&

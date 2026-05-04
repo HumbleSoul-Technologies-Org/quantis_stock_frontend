@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
 import { BrowserCompatibilityCheck } from "@/components/BrowserCompatibilityCheck";
@@ -18,6 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
+        <Script
+          src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.2/qz-tray.js"
+          strategy="beforeInteractive"
+        />
         <EncryptionErrorBoundary>
           <Providers>
             {children}
