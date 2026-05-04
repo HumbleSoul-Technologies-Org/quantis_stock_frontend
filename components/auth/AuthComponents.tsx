@@ -115,23 +115,30 @@ export function AuthButton({
 interface AuthInputProps {
   label: string;
   type?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   error?: string;
   disabled?: boolean;
   focusColor?: "green" | "blue";
+  // For React Hook Form compatibility
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  value?: string;
+  ref?: React.Ref<HTMLInputElement>;
+  name?: string;
 }
 
 export function AuthInput({
   label,
   type = "text",
-  value,
-  onChange,
   placeholder,
   error,
   disabled = false,
   focusColor = "green",
+  onChange,
+  onBlur,
+  value,
+  ref,
+  name,
 }: AuthInputProps) {
   const focusClasses =
     focusColor === "green"
@@ -147,6 +154,9 @@ export function AuthInput({
         type={type}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
+        ref={ref}
+        name={name}
         placeholder={placeholder}
         disabled={disabled}
         className={`w-full h-12 px-4 border-2 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 rounded-xl transition-all duration-200 ${

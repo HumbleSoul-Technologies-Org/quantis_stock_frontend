@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,54 +18,37 @@ import {
 import { AlertCircle, CheckCircle, Key, Shield, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
+import {
+  productKeySchema,
+  ProductKeyFormData,
+} from "@/lib/validations/authSchemas";
 
 export function ProductKeyForm() {
-  const [productKey, setProductKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [restartLoading, setRestartLoading] = useState(false);
   const [success, setSuccess] = useState("");
-  const [errors, setErrors] = useState<{
-    productKey?: string;
-    general?: string;
-  }>({});
 
   const { loginWithApiData, user, business } = useAuth();
   const router = useRouter();
 
-  const clearFieldError = (field: string) => {
-    setErrors((prev) => ({
-      ...prev,
-      [field]: undefined,
-    }));
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<ProductKeyFormData>({
+    resolver: zodResolver(productKeySchema),
+  });
 
-  const validateForm = (): boolean => {
-    const newErrors: typeof errors = {};
-
-    if (!productKey.trim()) {
-      newErrors.productKey = "Product key is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+  const onSubmit = async (data: ProductKeyFormData) => {
     setSuccess("");
-
-    if (!validateForm()) {
-      return;
-    }
-
     setIsLoading(true);
 
     try {
       // Check for demo key first (configurable via environment variable)
       const demoKey =
         process.env.NEXT_PUBLIC_DEMO_PRODUCT_KEY || "466882-256-demo-key";
-      if (productKey.trim() === demoKey) {
+      if (data.productKey.trim() === demoKey) {
         // For demo activation, only set the activation key fields
         // Keep all user credentials and other business data intact
         if (business) {
@@ -137,7 +122,7 @@ export function ProductKeyForm() {
         return;
       } else {
         const payload = {
-          productKey: productKey.trim(),
+          productKey: data.productKey.trim(),
         };
 
         const res = await apiRequest(
@@ -149,8 +134,8 @@ export function ProductKeyForm() {
 
         if (!res.ok) {
           const text = await res.text();
-          setErrors({
-            general: `Invalid product key: ${text || "Please check your key and try again"}`,
+          setError("root", {
+            message: `Invalid product key: ${text || "Please check your key and try again"}`,
           });
           setIsLoading(false);
           return;
@@ -181,7 +166,7 @@ export function ProductKeyForm() {
         error instanceof Error
           ? error.message
           : "An unexpected error occurred. Please try again.";
-      setErrors({ general: errorMessage });
+      setError("root", { message: errorMessage });
       console.log("====================================");
       console.log(error);
       console.log("====================================");
@@ -204,6 +189,9 @@ export function ProductKeyForm() {
       router.push("/auth/register");
     } catch (error) {
       console.error("Restart registration failed:", error);
+      setError("root", {
+        message: "Unable to restart registration. Please try again later.",
+      });
     } finally {
       setRestartLoading(false);
     }
@@ -214,24 +202,20 @@ export function ProductKeyForm() {
         title="Activate Your Account"
         subtitle="Enter your product key to unlock full access to StockOS"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <AuthInput
             label="Product Key"
             type="text"
-            value={productKey}
-            onChange={(e) => {
-              setProductKey(e.target.value);
-              clearFieldError("productKey");
-            }}
+            {...register("productKey")}
             placeholder="Enter your 16-character product key"
-            error={errors.productKey}
+            error={errors.productKey?.message}
           />
 
-          {errors.general && (
+          {errors.root && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
               <div className="text-red-700 dark:text-red-400 text-sm flex items-center">
                 <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
-                {errors.general}
+                {errors.root.message}
               </div>
             </div>
           )}

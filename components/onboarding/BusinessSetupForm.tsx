@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { BusinessSetup } from "@/lib/types";
 import { CURRENCIES, RETAIL_CONFIG } from "@/lib/business-config";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,10 @@ import {
   OnboardingButton,
   OnboardingInput,
 } from "./OnboardingComponents";
+import {
+  businessSetupSchema,
+  BusinessSetupFormData,
+} from "@/lib/validations/businessSchemas";
 
 interface BusinessSetupFormProps {
   onSubmit: (businessSetup: BusinessSetup) => void;
@@ -43,30 +49,40 @@ export function BusinessSetupForm({
   onSubmit,
   isLoading = false,
 }: BusinessSetupFormProps) {
-  const [businessName, setBusinessName] = useState("");
-  const [businessEmail, setBusinessEmail] = useState({
-    email: "",
-    activated: false,
-  });
-  const [businessPhone, setBusinessPhone] = useState({
-    contact: 0,
-    activated: false,
-  });
-  const [businessAddress, setBusinessAddress] = useState("");
-  const [currency, setCurrency] = useState("");
-  const [lowStockThreshold, setLowStockThreshold] = useState(20);
-  const [notifications, setNotifications] = useState({
-    resourceChanges: { email: false, sms: false },
-    salesAlert: { email: false, sms: false },
-    loginFailAttempts: { email: false, sms: false },
-    systemUpdate: { email: false, sms: false },
-    returns: { email: false, sms: false },
-    lowStock: { email: false, sms: false },
-    userProfileChanges: { email: false, sms: false },
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+    watch,
+    setValue,
+    trigger,
+  } = useForm<BusinessSetupFormData>({
+    resolver: zodResolver(businessSetupSchema),
+    defaultValues: {
+      businessName: "",
+      businessEmail: { email: "", activated: false },
+      businessPhone: { contact: undefined, activated: false },
+      businessAddress: "",
+      businessType: "retail",
+      currency: "",
+      lowStockThreshold: 20,
+      notifications: {
+        resourceChanges: { email: false, sms: false },
+        salesAlert: { email: false, sms: false },
+        loginFailAttempts: { email: false, sms: false },
+        systemUpdate: { email: false, sms: false },
+        returns: { email: false, sms: false },
+        lowStock: { email: false, sms: false },
+        userProfileChanges: { email: false, sms: false },
+      },
+      setupCompletedAt: new Date().toISOString(),
+    },
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [currentStep, setCurrentStep] = useState(1);
+  const watchedNotifications = watch("notifications");
 
   const steps = [
     {
@@ -89,34 +105,27 @@ export function BusinessSetupForm({
     },
   ];
 
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {};
+  const validateStep = async (step: number): Promise<boolean> => {
+    let fieldsToValidate: (keyof BusinessSetupFormData)[] = [];
 
     if (step === 1) {
-      if (!businessName?.trim()) {
-        newErrors.businessName = "Business name is required";
-      }
-      if (!businessEmail?.email?.trim()) {
-        newErrors.businessEmail = "Business email is required";
-      }
-      if (!businessPhone?.contact) {
-        newErrors.businessPhone = "Business phone is required";
-      }
-      if (!businessAddress?.trim()) {
-        newErrors.businessAddress = "Business address is required";
-      }
+      fieldsToValidate = [
+        "businessName",
+        "businessEmail",
+        "businessPhone",
+        "businessAddress",
+      ];
     } else if (step === 2) {
-      if (!currency?.trim()) {
-        newErrors.currency = "Currency is required";
-      }
+      fieldsToValidate = ["currency"];
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = await trigger(fieldsToValidate);
+    return isValid;
   };
 
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
+  const nextStep = async () => {
+    const isValid = await validateStep(currentStep);
+    if (isValid) {
       setCurrentStep((prev) => Math.min(prev + 1, steps.length));
     }
   };
@@ -126,64 +135,37 @@ export function BusinessSetupForm({
   };
 
   const toggleNotification = (
-    category: keyof typeof notifications,
+    category: keyof BusinessSetupFormData["notifications"],
     channel: "email" | "sms",
   ) => {
-    setNotifications({
-      ...notifications,
-      [category]: {
-        ...notifications[category],
-        [channel]: !notifications[category][channel],
+    const currentValue = watchedNotifications?.[category]?.[channel] || false;
+    setValue(
+      `notifications.${category as string}.${channel}` as any,
+      !currentValue,
+    );
+  };
+
+  const onFormSubmit = (data: BusinessSetupFormData) => {
+    const businessSetup: BusinessSetup = {
+      businessName: data.businessName,
+      businessEmail: data.businessEmail,
+      businessPhone: data.businessPhone,
+      businessAddress: data.businessAddress || "",
+      businessType: data.businessType,
+      currency: data.currency,
+      lowStockThreshold: data.lowStockThreshold,
+      notifications: data.notifications || {
+        resourceChanges: { email: false, sms: false },
+        salesAlert: { email: false, sms: false },
+        loginFailAttempts: { email: false, sms: false },
+        systemUpdate: { email: false, sms: false },
+        returns: { email: false, sms: false },
+        lowStock: { email: false, sms: false },
+        userProfileChanges: { email: false, sms: false },
       },
-    });
-  };
-
-  const handleCompleteSetup = () => {
-    // This function completes the setup without saving settings
-    // The settings should be saved separately using Save Settings button
-    const businessSetup = {
-      businessName,
-      businessEmail,
-      businessPhone,
-      businessAddress,
-      businessType: "retail",
-      currency,
-      lowStockThreshold,
-      notifications,
-      setupCompletedAt: new Date().toISOString(),
+      setupCompletedAt: data.setupCompletedAt,
     };
-    onSubmit(businessSetup as any);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    // Validate all required fields
-    if (!businessName?.trim()) {
-      newErrors.businessName = "Business name is required";
-    }
-    if (!businessEmail?.email?.trim()) {
-      newErrors.businessEmail = "Business email is required";
-    }
-    if (!businessPhone?.contact) {
-      newErrors.businessPhone = "Business phone is required";
-    }
-    if (!businessAddress?.trim()) {
-      newErrors.businessAddress = "Business address is required";
-    }
-    if (!currency?.trim()) {
-      newErrors.currency = "Currency is required";
-    }
-    if (lowStockThreshold < 1 || lowStockThreshold > 100) {
-      newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
-    }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      handleCompleteSetup();
-    }
+    onSubmit(businessSetup);
   };
 
   return (
@@ -193,7 +175,7 @@ export function BusinessSetupForm({
       title="Business Setup"
       subtitle="Complete your business information to get started with StockOS"
     >
-      <div className="space-y-8">
+      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-8">
         {/* Step Indicator */}
         <StepIndicator steps={steps} currentStep={currentStep} />
 
@@ -209,52 +191,37 @@ export function BusinessSetupForm({
               <div className="space-y-6">
                 <OnboardingInput
                   label="Business Name"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
+                  {...register("businessName")}
                   placeholder="e.g., My Retail Store"
-                  error={errors.businessName}
+                  error={errors.businessName?.message}
                   required
                 />
 
                 <OnboardingInput
                   label="Business Email"
                   type="email"
-                  value={businessEmail.email}
-                  onChange={(e) =>
-                    setBusinessEmail({
-                      ...businessEmail,
-                      email: e.target.value,
-                    })
-                  }
+                  {...register("businessEmail.email")}
                   placeholder="business@example.com"
-                  error={errors.businessEmail}
+                  error={errors.businessEmail?.email?.message}
                   required
                 />
 
                 <OnboardingInput
                   label="Business Phone"
-                  type="text"
-                  value={
-                    businessPhone.contact ? String(businessPhone.contact) : ""
-                  }
-                  onChange={(e) =>
-                    setBusinessPhone({
-                      ...businessPhone,
-                      contact: Number(e.target.value),
-                    })
-                  }
-                  placeholder="07xx-xxx-xxx"
-                  error={errors.businessPhone}
+                  type="number"
+                  {...register("businessPhone.contact", {
+                    valueAsNumber: true,
+                  })}
+                  placeholder="0712345678"
+                  error={errors.businessPhone?.contact?.message}
                   required
                 />
 
                 <OnboardingInput
                   label="Business Address"
-                  value={businessAddress}
-                  onChange={(e) => setBusinessAddress(e.target.value)}
+                  {...register("businessAddress")}
                   placeholder="123 Main Street, City, State, ZIP"
-                  error={errors.businessAddress}
-                  required
+                  error={errors.businessAddress?.message}
                 />
               </div>
             </OnboardingCard>
@@ -273,8 +240,7 @@ export function BusinessSetupForm({
                     Currency <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
+                    {...register("currency")}
                     className="w-full h-12 px-4 border-2 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 rounded-xl transition-all duration-200 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 border-slate-300 dark:border-slate-600 focus:border-teal-500 dark:focus:border-teal-400"
                   >
                     <option value="">Select your currency</option>
@@ -287,7 +253,7 @@ export function BusinessSetupForm({
                   {errors.currency && (
                     <p className="text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-1">
                       <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                      {errors.currency}
+                      {errors.currency.message}
                     </p>
                   )}
                 </div>
@@ -298,16 +264,19 @@ export function BusinessSetupForm({
                   </label>
                   <Input
                     type="number"
-                    value={lowStockThreshold}
-                    onChange={(e) =>
-                      setLowStockThreshold(Number(e.target.value))
-                    }
+                    {...register("lowStockThreshold", { valueAsNumber: true })}
                     placeholder="20"
                     className="border-2 focus:ring-2 focus:ring-teal-500 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600"
                   />
                   <p className="text-sm text-slate-600 dark:text-slate-400">
                     Get notified when stock falls below this number
                   </p>
+                  {errors.lowStockThreshold && (
+                    <p className="text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-1">
+                      <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                      {errors.lowStockThreshold.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </OnboardingCard>
@@ -322,52 +291,54 @@ export function BusinessSetupForm({
             >
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(notifications).map(([key, channels]) => (
-                    <div
-                      key={key}
-                      className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4"
-                    >
-                      <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-3 capitalize">
-                        {key.replace(/([A-Z])/g, " $1").toLowerCase()}
-                      </h4>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={channels.email}
-                            onChange={() =>
-                              toggleNotification(
-                                key as keyof typeof notifications,
-                                "email",
-                              )
-                            }
-                            className="w-4 h-4 text-teal-600 bg-slate-100 border-slate-300 rounded focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-                          />
-                          <Mail className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            Email
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={channels.sms}
-                            onChange={() =>
-                              toggleNotification(
-                                key as keyof typeof notifications,
-                                "sms",
-                              )
-                            }
-                            className="w-4 h-4 text-teal-600 bg-slate-100 border-slate-300 rounded focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-                          />
-                          <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            SMS
-                          </span>
-                        </label>
+                  {Object.entries(watchedNotifications || {}).map(
+                    ([key, channels]) => (
+                      <div
+                        key={key}
+                        className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4"
+                      >
+                        <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-3 capitalize">
+                          {key.replace(/([A-Z])/g, " $1").toLowerCase()}
+                        </h4>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={channels?.email || false}
+                              onChange={() =>
+                                toggleNotification(
+                                  key as keyof BusinessSetupFormData["notifications"],
+                                  "email",
+                                )
+                              }
+                              className="w-4 h-4 text-teal-600 bg-slate-100 border-slate-300 rounded focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                            />
+                            <Mail className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                              Email
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={channels?.sms || false}
+                              onChange={() =>
+                                toggleNotification(
+                                  key as keyof BusinessSetupFormData["notifications"],
+                                  "sms",
+                                )
+                              }
+                              className="w-4 h-4 text-teal-600 bg-slate-100 border-slate-300 rounded focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                            />
+                            <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                              SMS
+                            </span>
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             </OnboardingCard>
@@ -404,7 +375,7 @@ export function BusinessSetupForm({
           {currentStep === steps.length ? (
             <OnboardingButton
               variant="primary"
-              onClick={handleCompleteSetup}
+              type="submit"
               disabled={isLoading}
               icon={CheckCircle2}
               iconPosition="right"
@@ -422,7 +393,7 @@ export function BusinessSetupForm({
             </OnboardingButton>
           )}
         </div>
-      </div>
+      </form>
     </OnboardingLayout>
   );
 }

@@ -95,7 +95,7 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                 <div
                   className={`w-12 h-12 rounded-full border-3 flex items-center justify-center mb-3 transition-all duration-300 ${
                     isCompleted
-                      ? "bg-gradient-to-r from-teal-500 to-emerald-600 border-teal-500 text-white shadow-lg"
+                      ? "bg-linear-to-r from-teal-500 to-emerald-600 border-teal-500 text-white shadow-lg"
                       : isCurrent
                         ? "border-teal-500 text-teal-600 bg-teal-50 dark:bg-teal-900/20 shadow-md"
                         : "border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500"
@@ -226,23 +226,30 @@ export function OnboardingButton({
 interface OnboardingInputProps {
   label: string;
   type?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  // For React Hook Form compatibility
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  value?: string;
+  ref?: React.Ref<HTMLInputElement>;
+  name?: string;
 }
 
 export function OnboardingInput({
   label,
   type = "text",
-  value,
-  onChange,
   placeholder,
   error,
   disabled = false,
   required = false,
+  onChange,
+  onBlur,
+  value,
+  ref,
+  name,
 }: OnboardingInputProps) {
   return (
     <div className="space-y-2">
@@ -254,6 +261,9 @@ export function OnboardingInput({
         type={type}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
+        ref={ref}
+        name={name}
         placeholder={placeholder}
         disabled={disabled}
         required={required}

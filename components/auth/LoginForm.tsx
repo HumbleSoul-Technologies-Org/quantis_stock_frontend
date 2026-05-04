@@ -1,60 +1,68 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
+import { loginSchema, type LoginFormData } from "@/lib/validations/authSchemas";
 
 export function LoginForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { loginWithApiData, updateBusiness, updateBusinessSetup } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     setError("");
     setIsLoading(true);
 
     try {
       const res = await apiRequest("POST", "/users/login", {
-        username,
-        password,
+        username: data.username,
+        password: data.password,
       });
 
-      const data = await res.json();
+      const responseData = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Login failed");
+        setError(responseData.message || "Login failed");
         return;
       }
 
       // Extract user data from backend response
       const userData = {
-        id: data.user._id || data.user.id,
-        username: data.user.username,
-        role: data.user.role,
-        businessId: data.user.businessId, // Critical: get businessId from response
-        business: data.user.business, // For backward compatibility
-        token: data.token,
+        id: responseData.user._id || responseData.user.id,
+        username: responseData.user.username,
+        role: responseData.user.role,
+        businessId: responseData.user.businessId, // Critical: get businessId from response
+        business: responseData.user.business, // For backward compatibility
+        token: responseData.token,
       };
 
       // Update auth context with API user data
       loginWithApiData(userData);
 
       // Update business setup in context if provided (for backward compatibility)
-      if (data.user.business) {
-        updateBusiness(data.user.business);
-        updateBusinessSetup(data.user.business);
+      if (responseData.user.business) {
+        updateBusiness(responseData.user.business);
+        updateBusinessSetup(responseData.user.business);
       }
       // Determine redirect based on whether user has business set up
       // If user has businessId or business data, they're ready for dashboard
       // If not, they need to complete onboarding
-      if (userData.businessId || data.user.business) {
+      if (userData.businessId || responseData.user.business) {
         router.push("/dashboard");
       } else {
         // User needs to complete business setup
@@ -70,7 +78,7 @@ export function LoginForm() {
   return (
     <AuthLayout logoColor="green">
       <AuthCard title="Welcome Back" subtitle="Sign in to your account">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {error && (
             <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0" />
@@ -81,18 +89,18 @@ export function LoginForm() {
           <AuthInput
             label="Username"
             type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            {...register("username")}
             placeholder="Enter your username"
+            error={errors.username?.message}
             focusColor="green"
           />
 
           <AuthInput
             label="Password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            {...register("password")}
             placeholder="Enter your password"
+            error={errors.password?.message}
             focusColor="green"
           />
 

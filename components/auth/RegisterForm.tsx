@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { clearUserSession } from "@/lib/authStorage";
 import { useRouter } from "next/navigation";
@@ -8,108 +10,66 @@ import { AlertCircle, CheckCircle, X, ExternalLink } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
+import {
+  registerSchema,
+  type RegisterFormData,
+} from "@/lib/validations/authSchemas";
 
 export function RegisterForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [acceptLegal, setAcceptLegal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [viewingLegal, setViewingLegal] = useState<"privacy" | "terms" | null>(
     null,
   );
 
-  // Field-level errors
-  const [errors, setErrors] = useState<{
-    username?: string;
-    password?: string;
-    confirmPassword?: string;
-    legal?: string;
-    general?: string;
-  }>({});
-
   const { loginWithApiData, user } = useAuth();
   const router = useRouter();
 
-  // Clear errors when user starts typing
-  const clearFieldError = (field: string) => {
-    setErrors((prev) => ({
-      ...prev,
-      [field]: undefined,
-    }));
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
 
-  const validateForm = (): boolean => {
-    const newErrors: typeof errors = {};
-
-    if (!username.trim()) {
-      newErrors.username = "Username is required";
-    }
-
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Confirm password is required";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    if (!acceptLegal) {
-      newErrors.legal =
-        "You must accept the Privacy Policy and Terms & Conditions to continue";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+  const onSubmit = async (data: RegisterFormData) => {
     setSuccess("");
-
-    // Validate form first
-    if (!validateForm()) {
-      return;
-    }
-
     setIsLoading(true);
 
     try {
       // Create new admin user
       const payload = {
-        username: username.trim(),
-        password: password,
+        username: data.username.trim(),
+        email: data.email.trim(),
+        password: data.password,
         role: "admin",
-        tAndC: acceptLegal,
-        privacyPolicy: acceptLegal,
+        tAndC: data.acceptLegal,
+        privacyPolicy: data.acceptLegal,
       };
 
       const res = await apiRequest("POST", "/users/register", payload);
 
       if (!res.ok) {
         const text = await res.text();
-        setErrors({
-          general: `Failed to create account: ${text || "Please try again"}`,
+        setError("root", {
+          message: `Failed to create account: ${text || "Please try again"}`,
         });
         setIsLoading(false);
         return;
       }
 
-      const data = await res.json();
+      const responseData = await res.json();
       const newUser = {
-        id: data.user.id,
-        username: data.user.username,
-        role: data.user.role,
-        createdAt: data.user.createdAt,
-        token: data.token,
-        businessId: data.user.businessId, // Include business data if returned by backend
-        business: data.user.business, // Include business data if returned by backend
+        id: responseData.user.id,
+        username: responseData.user.username,
+        email: responseData.user.email,
+        role: responseData.user.role,
+        createdAt: responseData.user.createdAt,
+        token: responseData.token,
+        businessId: responseData.user.businessId, // Include business data if returned by backend
+        business: responseData.user.business, // Include business data if returned by backend
       };
 
       setSuccess("Account created successfully! Redirecting...");
@@ -124,7 +84,7 @@ export function RegisterForm() {
         error instanceof Error
           ? error.message
           : "An unexpected error occurred. Please try again.";
-      setErrors({ general: errorMessage });
+      setError("root", { message: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -143,8 +103,8 @@ export function RegisterForm() {
       router.push("/auth/register");
     } catch (error) {
       console.error("Restart registration failed:", error);
-      setErrors({
-        general: "Unable to restart registration. Please try again later.",
+      setError("root", {
+        message: "Unable to restart registration. Please try again later.",
       });
     }
   };
@@ -152,12 +112,12 @@ export function RegisterForm() {
   return (
     <AuthLayout logoColor="blue">
       <AuthCard title="Create Account" subtitle="Set up your admin account">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* General Error */}
-          {errors.general && (
+          {errors.root && (
             <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{errors.general}</span>
+              <span>{errors.root.message}</span>
             </div>
           )}
 
@@ -172,13 +132,19 @@ export function RegisterForm() {
           <AuthInput
             label="Username"
             type="text"
-            value={username}
-            onChange={(e) => {
-              setUsername(e.target.value);
-              clearFieldError("username");
-            }}
+            {...register("username")}
             placeholder="Enter username"
-            error={errors.username}
+            error={errors.username?.message}
+            disabled={isLoading}
+            focusColor="blue"
+          />
+
+          <AuthInput
+            label="Email"
+            type="email"
+            {...register("email")}
+            placeholder="Enter email address"
+            error={errors.email?.message}
             disabled={isLoading}
             focusColor="blue"
           />
@@ -186,13 +152,9 @@ export function RegisterForm() {
           <AuthInput
             label="Password"
             type="password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              clearFieldError("password");
-            }}
-            placeholder="Enter password (min 6 characters)"
-            error={errors.password}
+            {...register("password")}
+            placeholder="Enter password (min 8 characters)"
+            error={errors.password?.message}
             disabled={isLoading}
             focusColor="blue"
           />
@@ -200,22 +162,18 @@ export function RegisterForm() {
           <AuthInput
             label="Confirm Password"
             type="password"
-            value={confirmPassword}
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              clearFieldError("confirmPassword");
-            }}
+            {...register("confirmPassword")}
             placeholder="Confirm password"
-            error={errors.confirmPassword}
+            error={errors.confirmPassword?.message}
             disabled={isLoading}
             focusColor="blue"
           />
 
           {/* Legal Error */}
-          {errors.legal && (
+          {errors.acceptLegal && (
             <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <span>{errors.legal}</span>
+              <span>{errors.acceptLegal.message}</span>
             </div>
           )}
 
@@ -223,17 +181,13 @@ export function RegisterForm() {
           <div className="flex items-start gap-3 p-4 border-2 border-slate-200 dark:border-slate-600 rounded-xl hover:border-blue-300 dark:hover:border-blue-500 transition bg-slate-50 dark:bg-slate-700">
             <input
               type="checkbox"
-              id="legal"
-              checked={acceptLegal}
-              onChange={(e) => {
-                setAcceptLegal(e.target.checked);
-                if (errors.legal) clearFieldError("legal");
-              }}
+              id="acceptLegal"
+              {...register("acceptLegal")}
               disabled={isLoading}
               className="w-4 h-4 mt-1 accent-blue-600 dark:accent-blue-500 cursor-pointer"
             />
             <label
-              htmlFor="legal"
+              htmlFor="acceptLegal"
               className="flex-1 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               I accept the{" "}
@@ -335,12 +289,9 @@ export function RegisterForm() {
               <Button
                 type="button"
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                onClick={() => {
-                  setAcceptLegal(true);
-                  setViewingLegal(null);
-                }}
+                onClick={() => setViewingLegal(null)}
               >
-                Accept & Close
+                Close
               </Button>
             </div>
           </div>
