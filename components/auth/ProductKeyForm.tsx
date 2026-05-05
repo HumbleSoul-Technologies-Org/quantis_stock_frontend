@@ -38,132 +38,67 @@ export function ProductKeyForm() {
     setIsLoading(true);
 
     try {
-      // Check for demo key first (configurable via environment variable)
-      const demoKey =
-        process.env.NEXT_PUBLIC_DEMO_PRODUCT_KEY || "466882-256-demo-key";
-      if (data.productKey.trim() === demoKey) {
-        // For demo activation, only set the activation key fields
-        // Keep all user credentials and other business data intact
-        if (business) {
-          const updatedBusiness = business
-            ? {
-                ...business,
-                activated: true,
-                activationKey: demoKey,
-              }
-            : {
-                id: `temp-${Date.now()}`,
-                ownerId: user?.id,
-                businessName: "Demo Business",
-                businessType: "retail" as const,
-                setupCompletedAt: new Date().toISOString(),
-                activated: true,
-                activationKey: demoKey,
-                settings: {
-                  businessId: `temp-${Date.now()}`,
-                  currency: { code: "USD", symbol: "$", decimalPlaces: 2 },
-                  units: {
-                    weightUnits: ["kg", "lbs", "oz", "g"],
-                    volumeUnits: ["L", "ml", "gallons", "fl oz"],
-                    lengthUnits: [
-                      "m",
-                      "cm",
-                      "mm",
-                      "inches",
-                      "feet",
-                      "km",
-                      "yards",
-                    ],
-                    countUnits: [
-                      "units",
-                      "pieces",
-                      "boxes",
-                      "cases",
-                      "packs",
-                      "cartons",
-                      "bottles",
-                      "tablets",
-                      "capsules",
-                    ],
-                  },
-                  notifications: {
-                    resourceChanges: { email: false, sms: false },
-                    salesAlert: { email: false, sms: false },
-                    loginFailAttempts: { email: false, sms: false },
-                    systemUpdate: { email: false, sms: false },
-                    returns: { email: false, sms: false },
-                    lowStock: { email: false, sms: false },
-                    userProfileChanges: { email: false, sms: false },
-                  },
-                  security: { autoLogoutTimeout: 0 },
-                },
-              };
+      const payload = {
+        productKey: data.productKey.trim(),
+      };
 
-          const updatedUser = {
-            ...user,
-            business: updatedBusiness,
-          };
+      const res = await apiRequest(
+        "POST",
+        `/users/${user?.id}/verify-key`,
+        payload,
+        user?.token,
+      );
 
-          setSuccess("Demo Mode Activated! Redirecting...");
-          toast({
-            title: "Demo Mode Activated",
-            description:
-              "Welcome to demo mode! You now have full access to Quantis stock.",
-          });
-
-          // // Update auth context with only activation fields changed
-          loginWithApiData(updatedUser as any);
-          router.push("/dashboard");
-        }
-
+      if (!res.ok) {
+        const text = await res.text();
+        const errorMsg = text || "Please check your key and try again";
+        setError("root", {
+          message: `Invalid product key: ${errorMsg}`,
+        });
+        toast({
+          variant: "destructive",
+          title: "Invalid Product Key",
+          description: errorMsg,
+        });
         setIsLoading(false);
         return;
+      }
+
+      const userData = await res.json();
+      // userData structure: { message, user: { id, username, email, role, businessId, isDemoActivation?, business }, isDemoActivation? }
+      const isDemoActivation =
+        userData.isDemoActivation || userData.user?.isDemoActivation || false;
+
+      const newUser = {
+        id: userData.user.id,
+        username: userData.user.username,
+        role: userData.user.role,
+        createdAt: userData.user.createdAt,
+        token: user?.token || "", // Preserve existing token if available
+        businessId: userData.user.businessId,
+        business: userData.user.business,
+        isDemoActivation: isDemoActivation, // Store demo flag
+      };
+
+      if (isDemoActivation) {
+        setSuccess("Demo key verified! Welcome to demo mode. Redirecting...");
+        toast({
+          title: "Demo Mode Activated",
+          description:
+            "Your demo account will reset daily at 00:00 UTC. Redirecting...",
+        });
       } else {
-        const payload = {
-          productKey: data.productKey.trim(),
-        };
-
-        const res = await apiRequest(
-          "POST",
-          `/users/${user?.id}/verify-key`,
-          payload,
-          user?.token,
-        );
-
-        if (!res.ok) {
-          const text = await res.text();
-          const errorMsg = text || "Please check your key and try again";
-          setError("root", {
-            message: `Invalid product key: ${errorMsg}`,
-          });
-          toast({
-            variant: "destructive",
-            title: "Invalid Product Key",
-            description: errorMsg,
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        const userData = await res.json();
-        // userData structure: { id, username, email, role, businessId, business: { activated, activationKey, ... } }
-        const newUser = {
-          id: userData.user.id,
-          username: userData.user.username,
-          role: userData.user.role,
-          createdAt: userData.user.createdAt,
-          token: user?.token || "", // Preserve existing token if available
-          businessId: userData.user.businessId, // Include business data if returned by backend
-          business: userData.user.business, // Include business data if returned by backend
-        };
-
         setSuccess("Product key validated successfully! Redirecting...");
+        toast({
+          title: "Key Verified",
+          description: "Your business is now activated.",
+        });
+      }
 
-        // Update auth context with the validated data
-        loginWithApiData(newUser);
-        if (user || (business && business.activated)) {
-          router.push("/dashboard");
-        }
+      // Update auth context with the validated data
+      loginWithApiData(newUser);
+      if (user || (business && business.activated)) {
+        router.push("/dashboard");
       }
     } catch (error) {
       const errorMessage =

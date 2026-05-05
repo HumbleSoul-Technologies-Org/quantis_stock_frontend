@@ -6,7 +6,7 @@ export const businessEmailSchema = z.object({
     .string()
     .min(1, "Business email is required")
     .email("Please enter a valid email address"),
-  activated: z.boolean().default(false),
+  verified: z.boolean().default(false),
 });
 
 // Business Phone Schema
@@ -18,7 +18,7 @@ export const businessPhoneSchema = z.object({
     .regex(/^[0-9]+$/, "Phone number must contain only digits")
     .min(9, "Phone number must be at least 9 digits")
     .max(15, "Phone number is too long"),
-  activated: z.boolean().default(false),
+  verified: z.boolean().default(false),
 });
 
 // Business Setup Schema

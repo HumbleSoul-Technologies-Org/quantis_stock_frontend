@@ -36,11 +36,11 @@ export interface BusinessOnboardingPayload {
   businessType: BusinessType;
   businessEmail?: {
     email: string;
-    activated: boolean;
+    verified: boolean;
   };
   businessPhone?: {
-    contact: number;
-    activated: boolean;
+    contact: string;
+    verified: boolean;
   };
   businessAddress?: string;
   setupCompletedAt: string;
@@ -59,11 +59,11 @@ export interface BusinessSetup {
   businessType: BusinessType;
   businessEmail?: {
     email: string;
-    activated: boolean;
+    verified: boolean;
   };
   businessPhone?: {
-    contact: number;
-    activated: boolean;
+    contact: string;
+    verified: boolean;
   };
   businessAddress?: string; // Optional business address
   retailSubType?: RetailSubType; // Optional for backward compatibility
@@ -89,11 +89,11 @@ export interface Business {
   businessType: BusinessType;
   businessEmail?: {
     email: string;
-    activated: boolean;
+    verified: boolean;
   };
   businessPhone?: {
-    contact: number;
-    activated: boolean;
+    contact: string;
+    verified: boolean;
   };
   businessAddress?: string; // Optional business address
   address?: string; // Optional business address (legacy)
@@ -103,6 +103,10 @@ export interface Business {
   user?: any; // Array of user IDs associated with this business
   activated?: boolean; // New: whether the business is activated via product key
   activationKey?: string; // New: the product key used for activation
+  isDemoActivation?: boolean; // New: demo activation flag
+  lastDemoResetAt?: Date | string; // New: last demo reset timestamp
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface User {

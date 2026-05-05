@@ -121,17 +121,6 @@ function OnboardingContent() {
         // Update business in context with the correct response field
         const businessPayload = data.business || data.businessData;
 
-        // Reset activation fields after demo onboarding completion
-        // This prevents users from being redirected back to product key form
-        if (business?.activationKey) {
-          const demoKey =
-            process.env.NEXT_PUBLIC_DEMO_PRODUCT_KEY || "466882-256-demo-key";
-          if (business.activationKey === demoKey) {
-            businessPayload.activated = false;
-            businessPayload.activationKey = undefined;
-          }
-        }
-
         updateBusiness(businessPayload);
 
         // Show success toast

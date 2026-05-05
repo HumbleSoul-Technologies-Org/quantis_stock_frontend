@@ -46,8 +46,8 @@ export function BusinessSetupForm({
     resolver: zodResolver(businessSetupSchema),
     defaultValues: {
       businessName: "",
-      businessEmail: { email: "", activated: false },
-      businessPhone: { contact: "", activated: false },
+      businessEmail: { email: "", verified: false },
+      businessPhone: { contact: "", verified: false },
       businessAddress: "",
       businessType: "retail",
       currency: "",
@@ -105,8 +105,8 @@ export function BusinessSetupForm({
       businessName: data.businessName,
       businessEmail: data.businessEmail,
       businessPhone: {
-        contact: Number(data.businessPhone.contact),
-        activated: data.businessPhone.activated,
+        contact: data.businessPhone.contact,
+        verified: data.businessPhone.verified,
       },
       businessAddress: data.businessAddress || "",
       businessType: data.businessType,

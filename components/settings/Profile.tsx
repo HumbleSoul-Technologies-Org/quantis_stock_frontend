@@ -28,7 +28,7 @@ export function Profile() {
     businessName: business?.businessName || "",
     businessType: business?.businessType || "retail",
     businessEmail: business?.businessEmail?.email || "",
-    businessPhone: business?.businessPhone?.contact || 0,
+    businessPhone: business?.businessPhone?.contact || "",
     businessAddress: business?.businessAddress || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,11 +53,11 @@ export function Profile() {
           businessType: editForm.businessType,
           businessEmail: {
             email: editForm.businessEmail,
-            activated: business?.businessEmail?.activated ?? false,
+            verified: business?.businessEmail?.verified ?? false,
           },
           businessPhone: {
             contact: editForm.businessPhone,
-            activated: business?.businessPhone?.activated ?? false,
+            verified: business?.businessPhone?.verified ?? false,
           },
           businessAddress: editForm.businessAddress,
         };
@@ -76,11 +76,11 @@ export function Profile() {
             businessType: editForm.businessType,
             businessEmail: {
               email: editForm.businessEmail,
-              activated: business?.businessEmail?.activated ?? false,
+              verified: business?.businessEmail?.verified ?? false,
             },
             businessPhone: {
               contact: editForm.businessPhone,
-              activated: business?.businessPhone?.activated ?? false,
+              verified: business?.businessPhone?.verified ?? false,
             },
             businessAddress: editForm.businessAddress,
           };
@@ -259,12 +259,14 @@ export function Profile() {
                     <Label htmlFor="businessPhone">Business Phone</Label>
                     <Input
                       id="businessPhone"
-                      type="number"
+                      type="tel"
+                      inputMode="tel"
+                      pattern="[0-9]*"
                       value={editForm.businessPhone || ""}
                       onChange={(e) =>
                         setEditForm({
                           ...editForm,
-                          businessPhone: Number(e.target.value),
+                          businessPhone: e.target.value,
                         })
                       }
                       className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
