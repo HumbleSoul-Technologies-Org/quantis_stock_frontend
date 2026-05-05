@@ -8,6 +8,7 @@ import {
   ReactNode,
   useCallback,
 } from "react";
+import { usePathname } from "next/navigation";
 import { BusinessSettings } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
@@ -153,6 +154,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [lastRateUpdate, setLastRateUpdate] = useState<string | null>(null);
   const { user, business, updateBusiness } = useAuth();
+  const pathname = usePathname();
 
   // Initialize settings from business data or localStorage, then refresh from backend
   useEffect(() => {
@@ -175,7 +177,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Always try to refresh from backend if user is authenticated
+      // Skip refreshing settings from backend while on onboarding to prevent auto-redirect
+      if (pathname === "/onboarding") {
+        setIsLoading(false);
+        return;
+      }
+
+      // Always try to refresh from backend if user is authenticated and not on onboarding
       if (user?.token && user?.businessId) {
         try {
           await refreshSettings();
@@ -193,6 +201,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     (business as any)?.businessSettings,
     user?.token,
     user?.businessId,
+    pathname,
   ]);
 
   // Fetch exchange rates when currency changes (stale-while-revalidate pattern)
