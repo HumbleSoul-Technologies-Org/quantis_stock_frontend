@@ -47,7 +47,7 @@ export const productKeySchema = z.object({
   productKey: z
     .string()
     .min(1, "Product key is required")
-    .regex(/^[A-Za-z0-9]{16}$/, "Product key must be exactly 16 alphanumeric characters"),
+    .regex(/^([a-f0-9]{4}-){7}[a-f0-9]{4}$/, "Product key must be in format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (8 groups of 4 hex digits separated by hyphens)"),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
