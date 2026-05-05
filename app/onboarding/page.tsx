@@ -24,27 +24,14 @@ function OnboardingContent() {
       return;
     }
 
-    // Allow admins to complete onboarding before requiring activation.
+    // Only redirect admins out of onboarding if their business is already activated.
     if (user.role === "admin") {
       if (!business) {
-        router.replace("/onboarding");
         return;
       }
-
-      const hasRequiredOnboardingFields =
-        !!business.businessName &&
-        !!business.setupCompletedAt &&
-        !!business.businessEmail?.email &&
-        !!business.businessPhone?.contact &&
-        !!business.settings?.currency?.code;
 
       if (business.activated) {
         router.replace("/dashboard");
-        return;
-      }
-
-      if (hasRequiredOnboardingFields) {
-        router.replace("/product-key");
         return;
       }
     }
