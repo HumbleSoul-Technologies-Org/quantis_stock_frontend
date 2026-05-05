@@ -31,19 +31,20 @@ function OnboardingContent() {
         return;
       }
 
-      const hasCompletedOnboarding =
+      const hasRequiredOnboardingFields =
         !!business.businessName &&
         !!business.setupCompletedAt &&
-        !!business.settings?.currency?.code &&
-        !!business.settings?.notifications;
-
-      if (hasCompletedOnboarding && !business.activated) {
-        router.replace("/product-key");
-        return;
-      }
+        !!business.businessEmail?.email &&
+        !!business.businessPhone?.contact &&
+        !!business.settings?.currency?.code;
 
       if (business.activated) {
         router.replace("/dashboard");
+        return;
+      }
+
+      if (hasRequiredOnboardingFields) {
+        router.replace("/product-key");
         return;
       }
     }
