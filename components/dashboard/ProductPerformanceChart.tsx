@@ -93,7 +93,7 @@ export function ProductPerformanceChart() {
   const topCategory = categoryData.length > 0 ? categoryData[0] : null;
 
   return (
-    <Card className="dark:bg-slate-800">
+    <Card className="dark:bg-slate-800 max-h-112.5 overflow-y-auto">
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2">

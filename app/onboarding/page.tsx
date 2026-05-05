@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { clearUserSession } from "@/lib/authStorage";
 import { ClientOnly } from "@/components/client-only";
 import { BusinessSetup, BusinessOnboardingPayload } from "@/lib/types";
@@ -12,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 function OnboardingContent() {
   const router = useRouter();
   const { user, business, updateBusiness, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [error, setError] = useState("");
@@ -131,18 +133,37 @@ function OnboardingContent() {
         }
 
         updateBusiness(businessPayload);
+
+        // Show success toast
+        toast({
+          title: "Business Setup Complete",
+          description:
+            "Your business has been set up successfully. Redirecting...",
+        });
+
         // Show finalizing state while we navigate to product key activation
         setIsLoading(false);
         setIsFinalizing(true);
         router.replace("/product-key");
       } else {
-        setError(
-          data.message || "Failed to create business. Please try again.",
-        );
+        const errorMsg =
+          data.message || "Failed to create business. Please try again.";
+        setError(errorMsg);
+        toast({
+          variant: "destructive",
+          title: "Setup Failed",
+          description: errorMsg,
+        });
         setIsLoading(false);
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      const errorMsg = "An error occurred. Please try again.";
+      setError(errorMsg);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
       setIsLoading(false);
       console.error("Onboarding error:", err);
     }

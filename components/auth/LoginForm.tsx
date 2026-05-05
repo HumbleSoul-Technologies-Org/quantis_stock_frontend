@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
 import { loginSchema, type LoginFormData } from "@/lib/validations/authSchemas";
@@ -15,6 +16,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { loginWithApiData, updateBusiness, updateBusinessSetup } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const {
     register,
@@ -37,7 +39,13 @@ export function LoginForm() {
       const responseData = await res.json();
 
       if (!res.ok) {
-        setError(responseData.message || "Login failed");
+        const errorMsg = responseData.message || "Login failed";
+        setError(errorMsg);
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: errorMsg,
+        });
         return;
       }
 
@@ -59,6 +67,13 @@ export function LoginForm() {
         updateBusiness(responseData.user.business);
         updateBusinessSetup(responseData.user.business);
       }
+
+      // Show success toast
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${userData.username}!`,
+      });
+
       // Determine redirect based on whether user has business set up
       // If user has businessId or business data, they're ready for dashboard
       // If not, they need to complete onboarding
@@ -69,7 +84,14 @@ export function LoginForm() {
         router.push("/onboarding");
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Login failed");
+      const errorMsg =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      setError(errorMsg);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
     } finally {
       setIsLoading(false);
     }

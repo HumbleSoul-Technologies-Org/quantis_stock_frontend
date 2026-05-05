@@ -5,6 +5,7 @@ import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
+import { useToast } from "@/components/ui/use-toast";
 import { ClientOnly } from "@/components/client-only";
 import { StockMovementForm } from "@/components/inventory/StockMovementForm";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
@@ -52,6 +53,7 @@ function InventoryPageContent() {
     notifySuccess,
     notifyError,
   } = useNotificationActions();
+  const { toast } = useToast();
 
   const safeProducts = Array.isArray(products) ? products : [];
   const safeStockMovements = Array.isArray(stockMovements)

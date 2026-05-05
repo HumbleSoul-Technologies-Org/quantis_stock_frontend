@@ -325,7 +325,7 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
   if (period === 'monthly') {
     const monthlyData = months.map((month, index) => {
       const monthSales = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
+        const saleDate = getSaleDate(sale);
         return saleDate.getMonth() === index && saleDate.getFullYear() === new Date().getFullYear();
       });
 
@@ -375,7 +375,7 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
       day.setDate(monday.getDate() + index);
       const dayKey = day.toISOString().split('T')[0];
       const dailySales = sales.filter((sale) => {
-        const saleDate = new Date(sale.date);
+        const saleDate = getSaleDate(sale);
         return saleDate.toISOString().split('T')[0] === dayKey;
       });
 
@@ -392,7 +392,7 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
   return aggregated.map(item => ({
     period: item.period,
     sales: sales.filter(sale => {
-      const saleDate = new Date(sale.date);
+      const saleDate = getSaleDate(sale);
       let key: string;
 
       switch (period) {

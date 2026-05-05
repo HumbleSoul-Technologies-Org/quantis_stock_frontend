@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
+import { useToast } from "@/components/ui/use-toast";
 import { Supplier } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
 import { SupplierDialog } from "@/components/suppliers/SupplierDialog";
@@ -28,6 +29,7 @@ function SuppliersPageContent() {
     notifyResourceUpdated,
     notifyResourceDeleted,
   } = useNotificationActions();
+  const { toast } = useToast();
 
   const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];
   const safeProducts = Array.isArray(products) ? products : [];
@@ -83,6 +85,10 @@ function SuppliersPageContent() {
         }
 
         notifyResourceUpdated("Supplier", supplier.name);
+        toast({
+          title: "Supplier Updated",
+          description: `"${supplier.name}" has been updated successfully.`,
+        });
       } else {
         // Create new supplier
         await addSupplier(supplier);
@@ -111,8 +117,19 @@ function SuppliersPageContent() {
         }
 
         notifyResourceCreated("Supplier", supplier.name);
+        toast({
+          title: "Supplier Created",
+          description: `"${supplier.name}" has been created successfully.`,
+        });
       }
     } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to save supplier";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
       console.error("Failed to save supplier:", error);
     } finally {
       setShowDialog(false);
@@ -121,34 +138,49 @@ function SuppliersPageContent() {
   };
 
   const handleDeleteSupplier = (id: string) => {
-    const supplier = safeSuppliers.find((s) => s.id === id || s._id === id);
-    if (supplier) {
-      deleteSupplier(id);
+    try {
+      const supplier = safeSuppliers.find((s) => s.id === id || s._id === id);
+      if (supplier) {
+        deleteSupplier(id);
 
-      // Log activity: supplier deleted
-      try {
-        logActivity({
-          type: "supplier",
-          action: "delete",
-          status: "success",
-          title: `Supplier Deleted: ${supplier.name}`,
-          description: `Supplier "${supplier.name}" was deleted`,
-          referenceId: id,
-          entityType: "supplier",
-          entityId: id,
-          metadata: {
-            supplierName: supplier.name,
-            email: supplier.email,
-            phone: supplier.phone,
-          },
-          businessId: user?.businessId,
-          createdBy: user?.id || user?._id || "",
+        // Log activity: supplier deleted
+        try {
+          logActivity({
+            type: "supplier",
+            action: "delete",
+            status: "success",
+            title: `Supplier Deleted: ${supplier.name}`,
+            description: `Supplier "${supplier.name}" was deleted`,
+            referenceId: id,
+            entityType: "supplier",
+            entityId: id,
+            metadata: {
+              supplierName: supplier.name,
+              email: supplier.email,
+              phone: supplier.phone,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id || "",
+          });
+        } catch (error) {
+          console.warn("Failed to log supplier delete activity:", error);
+        }
+
+        notifyResourceDeleted("Supplier", supplier.name);
+        toast({
+          title: "Supplier Deleted",
+          description: `"${supplier.name}" has been deleted successfully.`,
         });
-      } catch (error) {
-        console.warn("Failed to log supplier delete activity:", error);
       }
-
-      notifyResourceDeleted("Supplier", supplier.name);
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to delete supplier";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
+      console.error("Failed to delete supplier:", error);
     }
   };
 

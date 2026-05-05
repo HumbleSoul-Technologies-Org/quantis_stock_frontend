@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { clearUserSession } from "@/lib/authStorage";
 import { AlertCircle, CheckCircle, Key, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 import {
@@ -21,6 +22,7 @@ export function ProductKeyForm() {
 
   const { loginWithApiData, user, business } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const {
     register,
@@ -103,6 +105,11 @@ export function ProductKeyForm() {
           };
 
           setSuccess("Demo Mode Activated! Redirecting...");
+          toast({
+            title: "Demo Mode Activated",
+            description:
+              "Welcome to demo mode! You now have full access to Quantis stock.",
+          });
 
           // // Update auth context with only activation fields changed
           loginWithApiData(updatedUser as any);
@@ -125,8 +132,14 @@ export function ProductKeyForm() {
 
         if (!res.ok) {
           const text = await res.text();
+          const errorMsg = text || "Please check your key and try again";
           setError("root", {
-            message: `Invalid product key: ${text || "Please check your key and try again"}`,
+            message: `Invalid product key: ${errorMsg}`,
+          });
+          toast({
+            variant: "destructive",
+            title: "Invalid Product Key",
+            description: errorMsg,
           });
           setIsLoading(false);
           return;
@@ -158,6 +171,11 @@ export function ProductKeyForm() {
           ? error.message
           : "An unexpected error occurred. Please try again.";
       setError("root", { message: errorMessage });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+      });
       console.error("Product key validation failed:", error);
     } finally {
       setIsLoading(false);
@@ -175,12 +193,24 @@ export function ProductKeyForm() {
       );
       // Clear the current auth session and redirect to registration page
       clearUserSession();
+      toast({
+        title: "Registration Reset",
+        description:
+          "Your registration has been reset. Redirecting to registration page...",
+      });
       router.push("/auth/register");
     } catch (error) {
-      console.error("Restart registration failed:", error);
+      const errorMessage =
+        "Unable to restart registration. Please try again later.";
       setError("root", {
-        message: "Unable to restart registration. Please try again later.",
+        message: errorMessage,
       });
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: errorMessage,
+      });
+      console.error("Restart registration failed:", error);
     } finally {
       setRestartLoading(false);
     }

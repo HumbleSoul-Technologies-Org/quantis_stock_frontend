@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
+import { useToast } from "@/components/ui/use-toast";
 import { Product } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
 import { ProductDialog } from "@/components/products/ProductDialog";
@@ -28,6 +29,7 @@ function ProductsPageContent() {
     notifyResourceUpdated,
     notifyResourceDeleted,
   } = useNotificationActions();
+  const { toast } = useToast();
 
   const safeProducts = Array.isArray(products) ? products : [];
   const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];
@@ -50,101 +52,135 @@ function ProductsPageContent() {
   ).filter(Boolean);
 
   const handleAddProduct = async (product: Product) => {
-    if ((product && product.id) || product._id) {
-      // Update existing product
-      const productId = (product.id as string) || (product._id as string);
+    try {
+      if ((product && product.id) || product._id) {
+        // Update existing product
+        const productId = (product.id as string) || (product._id as string);
 
-      await updateProduct(productId, product);
+        await updateProduct(productId, product);
 
-      // Log activity: product updated
-      try {
-        await logActivity({
-          type: "product",
-          action: "update",
-          status: "success",
-          title: `Product Updated: ${product.name}`,
-          description: `Product "${product.name}" (SKU: ${product.sku}) was updated`,
-          referenceId: productId,
-          entityType: "product",
-          entityId: productId,
-          metadata: {
-            productName: product.name,
-            sku: product.sku,
-            category: product.category,
-          },
-          businessId: user?.businessId,
-          createdBy: user?.id || user?._id || "",
+        // Log activity: product updated
+        try {
+          await logActivity({
+            type: "product",
+            action: "update",
+            status: "success",
+            title: `Product Updated: ${product.name}`,
+            description: `Product "${product.name}" (SKU: ${product.sku}) was updated`,
+            referenceId: productId,
+            entityType: "product",
+            entityId: productId,
+            metadata: {
+              productName: product.name,
+              sku: product.sku,
+              category: product.category,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id || "",
+          });
+        } catch (error) {
+          console.warn("Failed to log product update activity:", error);
+        }
+
+        notifyResourceUpdated("Product", product.name);
+        toast({
+          title: "Product Updated",
+          description: `"${product.name}" has been updated successfully.`,
         });
-      } catch (error) {
-        console.warn("Failed to log product update activity:", error);
-      }
+      } else {
+        // Create new product
+        await addProduct(product);
 
-      notifyResourceUpdated("Product", product.name);
-    } else {
-      // Create new product
-      await addProduct(product);
+        // Log activity: product created
+        try {
+          await logActivity({
+            type: "product",
+            action: "create",
+            status: "success",
+            title: `Product Created: ${product.name}`,
+            description: `New product "${product.name}" (SKU: ${product.sku}) was created`,
+            referenceId: product.id || product._id,
+            entityType: "product",
+            entityId: product.id || product._id,
+            metadata: {
+              productName: product.name,
+              sku: product.sku,
+              category: product.category,
+              unitPrice: product.unitPrice,
+              costPrice: product.costPrice,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id || "",
+          });
+        } catch (error) {
+          console.warn("Failed to log product create activity:", error);
+        }
 
-      // Log activity: product created
-      try {
-        await logActivity({
-          type: "product",
-          action: "create",
-          status: "success",
-          title: `Product Created: ${product.name}`,
-          description: `New product "${product.name}" (SKU: ${product.sku}) was created`,
-          referenceId: product.id || product._id,
-          entityType: "product",
-          entityId: product.id || product._id,
-          metadata: {
-            productName: product.name,
-            sku: product.sku,
-            category: product.category,
-            unitPrice: product.unitPrice,
-            costPrice: product.costPrice,
-          },
-          businessId: user?.businessId,
-          createdBy: user?.id || user?._id || "",
+        notifyResourceCreated("Product", product.name);
+        toast({
+          title: "Product Created",
+          description: `"${product.name}" has been created successfully.`,
         });
-      } catch (error) {
-        console.warn("Failed to log product create activity:", error);
       }
-
-      notifyResourceCreated("Product", product.name);
+      setShowDialog(false);
+      setEditingProduct(undefined);
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to save product";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
+      console.error("Error saving product:", error);
     }
-    setShowDialog(false);
-    setEditingProduct(undefined);
   };
 
   const handleDeleteProduct = (id: string) => {
-    const product = safeProducts.find((p) => p.id === id || p._id === id);
-    if (!product) return;
-
-    deleteProduct(id);
-
-    // Log activity: product deleted
     try {
-      logActivity({
-        type: "product",
-        action: "delete",
-        status: "success",
-        title: `Product Deleted: ${product.name}`,
-        description: `Product "${product.name}" (SKU: ${product.sku}) was deleted`,
-        referenceId: id,
-        entityType: "product",
-        entityId: id,
-        metadata: {
-          productName: product.name,
-          sku: product.sku,
-          category: product.category,
-        },
-        businessId: user?.businessId,
-        createdBy: user?.id || user?._id || "",
+      const product = safeProducts.find((p) => p.id === id || p._id === id);
+      if (!product) return;
+
+      deleteProduct(id);
+
+      // Log activity: product deleted
+      try {
+        logActivity({
+          type: "product",
+          action: "delete",
+          status: "success",
+          title: `Product Deleted: ${product.name}`,
+          description: `Product "${product.name}" (SKU: ${product.sku}) was deleted`,
+          referenceId: id,
+          entityType: "product",
+          entityId: id,
+          metadata: {
+            productName: product.name,
+            sku: product.sku,
+            category: product.category,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id || "",
+        });
+      } catch (error) {
+        console.warn("Failed to log product delete activity:", error);
+      }
+
+      notifyResourceDeleted("Product", product.name);
+      toast({
+        title: "Product Deleted",
+        description: `"${product.name}" has been deleted successfully.`,
       });
     } catch (error) {
-      console.warn("Failed to log product delete activity:", error);
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to delete product";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
+      console.error("Error deleting product:", error);
     }
-
-    notifyResourceDeleted("Product", product.name);
   };
 
   const handleEditProduct = (product: Product) => {

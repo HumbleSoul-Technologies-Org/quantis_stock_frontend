@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
@@ -33,6 +34,7 @@ export function RegisterForm() {
 
   const { loginWithApiData, user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const {
     register,
@@ -62,8 +64,14 @@ export function RegisterForm() {
 
       if (!res.ok) {
         const text = await res.text();
+        const errorMsg = text || "Please try again";
         setError("root", {
-          message: `Failed to create account: ${text || "Please try again"}`,
+          message: `Failed to create account: ${errorMsg}`,
+        });
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: errorMsg,
         });
         setIsLoading(false);
         return;
@@ -83,6 +91,13 @@ export function RegisterForm() {
 
       setSuccess("Account created successfully! Redirecting...");
 
+      // Show success toast
+      toast({
+        title: "Account Created",
+        description:
+          "Your account has been created successfully. Redirecting...",
+      });
+
       // Auto-login after creation
       loginWithApiData(newUser);
       setTimeout(() => {
@@ -94,6 +109,11 @@ export function RegisterForm() {
           ? error.message
           : "An unexpected error occurred. Please try again.";
       setError("root", { message: errorMessage });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
