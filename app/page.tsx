@@ -12,10 +12,26 @@ export default function Home() {
     if (!isLoading) {
       if (user) {
         // Check redirect logic based on user role and business status
-        if (user.role === "admin" && !business) {
-          router.push("/onboarding");
-        } else if (user.role === "admin" && !business?.activated) {
-          router.push("/product-key");
+        if (user.role === "admin") {
+          if (!business) {
+            router.push("/onboarding");
+          } else if (business.activated) {
+            router.push("/dashboard");
+          } else {
+            const hasCompletedOnboarding =
+              !!business.businessName &&
+              !!business.setupCompletedAt &&
+              !!business.businessEmail?.email &&
+              !!business.businessPhone?.contact &&
+              !!business.settings?.currency?.code &&
+              !!business.settings?.notifications;
+
+            if (hasCompletedOnboarding) {
+              router.push("/product-key");
+            } else {
+              router.push("/onboarding");
+            }
+          }
         } else {
           router.push("/dashboard");
         }
