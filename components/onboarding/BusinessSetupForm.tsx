@@ -7,16 +7,11 @@ import { BusinessSetup } from "@/lib/types";
 import { CURRENCIES } from "@/lib/business-config";
 import { Input } from "@/components/ui/input";
 import {
-  Store,
-  Globe,
-  Bell,
-  CheckCircle2,
   Building2,
   DollarSign,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Mail,
-  MessageSquare,
 } from "lucide-react";
 import {
   OnboardingLayout,
@@ -46,8 +41,6 @@ export function BusinessSetupForm({
     handleSubmit,
     formState: { errors },
     setError,
-    watch,
-    setValue,
     trigger,
   } = useForm<BusinessSetupFormData>({
     resolver: zodResolver(businessSetupSchema),
@@ -59,20 +52,9 @@ export function BusinessSetupForm({
       businessType: "retail",
       currency: "",
       lowStockThreshold: 20,
-      notifications: {
-        resourceChanges: { email: false, sms: false },
-        salesAlert: { email: false, sms: false },
-        loginFailAttempts: { email: false, sms: false },
-        systemUpdate: { email: false, sms: false },
-        returns: { email: false, sms: false },
-        lowStock: { email: false, sms: false },
-        userProfileChanges: { email: false, sms: false },
-      },
       setupCompletedAt: new Date().toISOString(),
     },
   });
-
-  const watchedNotifications = watch("notifications");
 
   const steps = [
     {
@@ -86,12 +68,6 @@ export function BusinessSetupForm({
       title: "Currency",
       icon: DollarSign,
       description: "Regional Settings",
-    },
-    {
-      id: 3,
-      title: "Notifications",
-      icon: Bell,
-      description: "Alert Preferences",
     },
   ];
 
@@ -124,17 +100,6 @@ export function BusinessSetupForm({
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const toggleNotification = (
-    category: keyof BusinessSetupFormData["notifications"],
-    channel: "email" | "sms",
-  ) => {
-    const currentValue = watchedNotifications?.[category]?.[channel] || false;
-    setValue(
-      `notifications.${category as string}.${channel}` as any,
-      !currentValue,
-    );
-  };
-
   const onFormSubmit = (data: BusinessSetupFormData) => {
     const businessSetup: BusinessSetup = {
       businessName: data.businessName,
@@ -147,15 +112,6 @@ export function BusinessSetupForm({
       businessType: data.businessType,
       currency: data.currency,
       lowStockThreshold: data.lowStockThreshold,
-      notifications: data.notifications || {
-        resourceChanges: { email: false, sms: false },
-        salesAlert: { email: false, sms: false },
-        loginFailAttempts: { email: false, sms: false },
-        systemUpdate: { email: false, sms: false },
-        returns: { email: false, sms: false },
-        lowStock: { email: false, sms: false },
-        userProfileChanges: { email: false, sms: false },
-      },
       setupCompletedAt: data.setupCompletedAt,
     };
     onSubmit(businessSetup);
@@ -269,68 +225,6 @@ export function BusinessSetupForm({
                       <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                       {errors.lowStockThreshold.message}
                     </p>
-                  )}
-                </div>
-              </div>
-            </OnboardingCard>
-          )}
-
-          {/* Step 3: Notifications */}
-          {currentStep === 3 && (
-            <OnboardingCard
-              title="Notification Preferences"
-              subtitle="Choose how you want to stay updated"
-              icon={Bell}
-            >
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(watchedNotifications || {}).map(
-                    ([key, channels]) => (
-                      <div
-                        key={key}
-                        className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4"
-                      >
-                        <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-3 capitalize">
-                          {key.replace(/([A-Z])/g, " $1").toLowerCase()}
-                        </h4>
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={channels?.email || false}
-                              onChange={() =>
-                                toggleNotification(
-                                  key as keyof BusinessSetupFormData["notifications"],
-                                  "email",
-                                )
-                              }
-                              className="w-4 h-4 text-teal-600 bg-slate-100 border-slate-300 rounded focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-                            />
-                            <Mail className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
-                              Email
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={channels?.sms || false}
-                              onChange={() =>
-                                toggleNotification(
-                                  key as keyof BusinessSetupFormData["notifications"],
-                                  "sms",
-                                )
-                              }
-                              className="w-4 h-4 text-teal-600 bg-slate-100 border-slate-300 rounded focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-                            />
-                            <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
-                              SMS
-                            </span>
-                          </label>
-                        </div>
-                      </div>
-                    ),
                   )}
                 </div>
               </div>

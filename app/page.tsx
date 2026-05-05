@@ -23,8 +23,7 @@ export default function Home() {
               !!business.setupCompletedAt &&
               !!business.businessEmail?.email &&
               !!business.businessPhone?.contact &&
-              !!business.settings?.currency?.code &&
-              !!business.settings?.notifications;
+              !!business.settings?.currency?.code;
 
             if (hasCompletedOnboarding) {
               router.push("/product-key");
