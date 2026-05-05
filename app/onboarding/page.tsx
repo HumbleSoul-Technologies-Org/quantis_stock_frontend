@@ -25,16 +25,26 @@ function OnboardingContent() {
     }
 
     // Allow admins to complete onboarding before requiring activation.
-    if (
-      user.role === "admin" &&
-      business &&
-      !!business.businessName &&
-      business.settings !== null
-    ) {
-      if (!business.activated) {
+    if (user.role === "admin") {
+      if (!business) {
+        router.replace("/onboarding");
+        return;
+      }
+
+      const hasCompletedOnboarding =
+        !!business.businessName &&
+        !!business.setupCompletedAt &&
+        !!business.settings?.currency?.code &&
+        !!business.settings?.notifications;
+
+      if (hasCompletedOnboarding && !business.activated) {
         router.replace("/product-key");
-      } else {
+        return;
+      }
+
+      if (business.activated) {
         router.replace("/dashboard");
+        return;
       }
     }
   }, [user, business, authLoading, router]);

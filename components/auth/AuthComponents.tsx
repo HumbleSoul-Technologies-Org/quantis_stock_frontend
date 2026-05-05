@@ -119,6 +119,8 @@ interface AuthInputProps {
   error?: string;
   disabled?: boolean;
   focusColor?: "green" | "blue";
+  trailingIcon?: ReactNode;
+  onIconClick?: () => void;
   // For React Hook Form compatibility
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -134,6 +136,8 @@ export function AuthInput({
   error,
   disabled = false,
   focusColor = "green",
+  trailingIcon,
+  onIconClick,
   onChange,
   onBlur,
   value,
@@ -150,21 +154,32 @@ export function AuthInput({
       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
         {label}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        ref={ref}
-        name={name}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={`w-full h-12 px-4 border-2 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 rounded-xl transition-all duration-200 ${
-          error
-            ? "border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20 focus:border-red-500 dark:focus:border-red-500"
-            : `border-slate-300 dark:border-slate-600 ${focusClasses}`
-        }`}
-      />
+      <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          ref={ref}
+          name={name}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={`w-full h-12 px-4 border-2 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 rounded-xl transition-all duration-200 ${
+            error
+              ? "border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20 focus:border-red-500 dark:focus:border-red-500"
+              : `border-slate-300 dark:border-slate-600 ${focusClasses}`
+          } ${trailingIcon ? "pr-12" : ""}`}
+        />
+        {trailingIcon && (
+          <button
+            type="button"
+            onClick={onIconClick}
+            className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          >
+            {trailingIcon}
+          </button>
+        )}
+      </div>
       {error && (
         <p className="text-red-600 dark:text-red-400 text-xs font-medium">
           {error}

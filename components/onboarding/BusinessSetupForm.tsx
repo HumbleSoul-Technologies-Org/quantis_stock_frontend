@@ -4,23 +4,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BusinessSetup } from "@/lib/types";
-import { CURRENCIES, RETAIL_CONFIG } from "@/lib/business-config";
-import { Button } from "@/components/ui/button";
+import { CURRENCIES } from "@/lib/business-config";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Store,
   Globe,
   Bell,
   CheckCircle2,
-  AlertCircle,
   Building2,
   DollarSign,
   ChevronLeft,
@@ -64,7 +54,7 @@ export function BusinessSetupForm({
     defaultValues: {
       businessName: "",
       businessEmail: { email: "", activated: false },
-      businessPhone: { contact: undefined, activated: false },
+      businessPhone: { contact: "", activated: false },
       businessAddress: "",
       businessType: "retail",
       currency: "",
@@ -149,7 +139,10 @@ export function BusinessSetupForm({
     const businessSetup: BusinessSetup = {
       businessName: data.businessName,
       businessEmail: data.businessEmail,
-      businessPhone: data.businessPhone,
+      businessPhone: {
+        contact: Number(data.businessPhone.contact),
+        activated: data.businessPhone.activated,
+      },
       businessAddress: data.businessAddress || "",
       businessType: data.businessType,
       currency: data.currency,
@@ -208,10 +201,10 @@ export function BusinessSetupForm({
 
                 <OnboardingInput
                   label="Business Phone"
-                  type="number"
-                  {...register("businessPhone.contact", {
-                    valueAsNumber: true,
-                  })}
+                  type="tel"
+                  inputMode="tel"
+                  pattern="[0-9]*"
+                  {...register("businessPhone.contact")}
                   placeholder="0712345678"
                   error={errors.businessPhone?.contact?.message}
                   required

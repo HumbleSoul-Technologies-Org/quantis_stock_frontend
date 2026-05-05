@@ -6,7 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { clearUserSession } from "@/lib/authStorage";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle, X, ExternalLink } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  X,
+  ExternalLink,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
@@ -21,6 +28,8 @@ export function RegisterForm() {
   const [viewingLegal, setViewingLegal] = useState<"privacy" | "terms" | null>(
     null,
   );
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { loginWithApiData, user } = useAuth();
   const router = useRouter();
@@ -151,22 +160,38 @@ export function RegisterForm() {
 
           <AuthInput
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             {...register("password")}
             placeholder="Enter password (min 8 characters)"
             error={errors.password?.message}
             disabled={isLoading}
             focusColor="blue"
+            trailingIcon={
+              showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )
+            }
+            onIconClick={() => setShowPassword((prev) => !prev)}
           />
 
           <AuthInput
             label="Confirm Password"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             {...register("confirmPassword")}
             placeholder="Confirm password"
             error={errors.confirmPassword?.message}
             disabled={isLoading}
             focusColor="blue"
+            trailingIcon={
+              showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )
+            }
+            onIconClick={() => setShowConfirmPassword((prev) => !prev)}
           />
 
           {/* Legal Error */}

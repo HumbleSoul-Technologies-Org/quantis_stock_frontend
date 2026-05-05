@@ -230,6 +230,16 @@ interface OnboardingInputProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  inputMode?:
+    | "search"
+    | "text"
+    | "none"
+    | "email"
+    | "tel"
+    | "url"
+    | "numeric"
+    | "decimal";
+  pattern?: string;
   // For React Hook Form compatibility
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -245,6 +255,8 @@ export function OnboardingInput({
   error,
   disabled = false,
   required = false,
+  inputMode,
+  pattern,
   onChange,
   onBlur,
   value,
@@ -259,6 +271,8 @@ export function OnboardingInput({
       </label>
       <input
         type={type}
+        inputMode={inputMode}
+        pattern={pattern}
         value={value}
         onChange={onChange}
         onBlur={onBlur}

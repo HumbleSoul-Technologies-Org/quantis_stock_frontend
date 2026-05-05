@@ -11,13 +11,13 @@ export const businessEmailSchema = z.object({
 
 // Business Phone Schema
 export const businessPhoneSchema = z.object({
-  contact: z
-    .number({
-      required_error: "Business phone is required",
-      invalid_type_error: "Business phone must be a number",
-    })
-    .min(1000000000, "Phone number must be at least 10 digits")
-    .max(999999999999999, "Phone number is too long"),
+  contact: z.string({
+    required_error: "Business phone is required",
+    invalid_type_error: "Business phone must be a number",
+  })
+    .regex(/^[0-9]+$/, "Phone number must contain only digits")
+    .min(9, "Phone number must be at least 9 digits")
+    .max(15, "Phone number is too long"),
   activated: z.boolean().default(false),
 });
 
