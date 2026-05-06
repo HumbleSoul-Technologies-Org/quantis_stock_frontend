@@ -126,13 +126,40 @@ export const formatPercentage = (value: number): string => {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 };
 
+export const parseDateValue = (date: string | Date): Date => {
+  if (typeof date === 'string') {
+    const dateOnlyMatch = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(date);
+    if (dateOnlyMatch) {
+      const year = Number(dateOnlyMatch[1]);
+      const month = Number(dateOnlyMatch[2]) - 1;
+      const day = Number(dateOnlyMatch[3]);
+      return new Date(year, month, day);
+    }
+    return new Date(date);
+  }
+  return date;
+};
+
 export const getDateKey = (date: string | Date): string => {
-  const parsed = typeof date === 'string' ? new Date(date) : date;
-  return parsed.toISOString().split('T')[0];
+  const dateObj = parseDateValue(date);
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const getLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export const getSaleDate = (sale: Sale): Date => {
-  return new Date(sale.createdAt ?? sale.date);
+  if (sale.createdAt) {
+    return new Date(sale.createdAt);
+  }
+  return parseDateValue(sale.date);
 };
 
 export const getRecentDateKeys = (days: number, endDate = new Date()): string[] => {
@@ -263,17 +290,19 @@ export const aggregateByPeriod = (
   const grouped: { [key: string]: number } = {};
 
   data.forEach(item => {
-    const date = new Date(item[dateField]);
+    const date = parseDateValue(item[dateField]);
     let key: string;
 
     switch (period) {
       case 'daily':
-        key = date.toISOString().split('T')[0];
+        key = getDateKey(date);
         break;
       case 'weekly':
+        const dayOfWeek = date.getDay();
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split('T')[0];
+        weekStart.setDate(date.getDate() - ((dayOfWeek + 6) % 7));
+        weekStart.setHours(0, 0, 0, 0);
+        key = getDateKey(weekStart);
         break;
       case 'monthly':
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -323,10 +352,11 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   if (period === 'monthly') {
+    const currentYear = new Date().getFullYear();
     const monthlyData = months.map((month, index) => {
       const monthSales = sales.filter(sale => {
         const saleDate = getSaleDate(sale);
-        return saleDate.getMonth() === index && saleDate.getFullYear() === new Date().getFullYear();
+        return saleDate.getUTCMonth() === index && saleDate.getUTCFullYear() === currentYear;
       });
 
       return {
@@ -341,14 +371,14 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
 
   if (period === 'daily') {
     const today = new Date();
-    const currentDateKey = today.toISOString().split('T')[0];
-    const hours = Array.from({ length: 18 }, (_, index) => index + 6); // 06:00 AM through 11:00 PM
+    const currentDateKey = getLocalDateKey(today);
+    const hours = Array.from({ length: 24 }, (_, index) => index); // 00:00 through 23:00
 
     return hours.map((hour) => {
       const hourlySales = sales.filter((sale) => {
         const saleDate = getSaleDate(sale);
         return (
-          saleDate.toISOString().split('T')[0] === currentDateKey &&
+          getLocalDateKey(saleDate) === currentDateKey &&
           saleDate.getHours() === hour
         );
       });
@@ -373,10 +403,10 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
     return weekDays.map((label, index) => {
       const day = new Date(monday);
       day.setDate(monday.getDate() + index);
-      const dayKey = day.toISOString().split('T')[0];
+      const dayKey = getDateKey(day);
       const dailySales = sales.filter((sale) => {
         const saleDate = getSaleDate(sale);
-        return saleDate.toISOString().split('T')[0] === dayKey;
+        return getDateKey(saleDate) === dayKey;
       });
 
       return {
@@ -387,7 +417,7 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
     });
   }
 
-  // For weekly, aggregate by period
+  // For weekly, aggregate by period using UTC-safe date keys
   const aggregated = aggregateByPeriod(sales, 'date', 'totalAmount', period);
   return aggregated.map(item => ({
     period: item.period,
@@ -397,9 +427,10 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
 
       switch (period) {
         case 'weekly':
+          const dayOfWeek = saleDate.getUTCDay();
           const weekStart = new Date(saleDate);
-          weekStart.setDate(saleDate.getDate() - saleDate.getDay());
-          key = weekStart.toISOString().split('T')[0];
+          weekStart.setUTCDate(saleDate.getUTCDate() - ((dayOfWeek + 6) % 7));
+          key = getDateKey(weekStart);
           break;
         default:
           return false;

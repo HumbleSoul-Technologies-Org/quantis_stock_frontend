@@ -225,7 +225,8 @@ export function SalesForm({
         customerName,
         paymentType,
         txnId: newTxnId,
-        ...(isEditing && { _id: sale._id }), // Preserve _id if editing
+        createdAt: isEditing ? sale.createdAt : new Date().toISOString(),
+        ...(isEditing && { _id: sale._id }),
       };
 
       // Submit the sale
@@ -696,7 +697,7 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
     <div className="space-y-4">
       <div
         ref={receiptRef}
-        className="receipt-container bg-white dark:bg-white text-black p-4 rounded-lg font-mono max-w-xs mx-auto border border-gray-300 dark:border-gray-300"
+        className="receipt-container bg-white dark:bg-white text-black p-4 rounded-xl font-mono max-w-[380px] mx-auto border border-gray-300 dark:border-gray-300 shadow-sm"
         style={{ fontFamily: "monospace" }}
       >
         {/* Header */}
@@ -870,6 +871,23 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
             border: none;
             border-radius: 0;
             page-break-after: always;
+          }
+          .receipt-container table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .receipt-container th,
+          .receipt-container td {
+            border: none;
+            padding: 2px 0;
+          }
+          .receipt-container th {
+            font-weight: 700;
+          }
+          .receipt-container .receipt-header,
+          .receipt-container .totals-section,
+          .receipt-container .payment-info {
+            border-color: #000;
           }
         }
       `}</style>

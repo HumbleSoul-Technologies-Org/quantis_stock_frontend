@@ -90,21 +90,22 @@ export function SalesTable({
         <head>
           <title>Sales Receipt - ${sale.saleNumber}</title>
           <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            .header h1 { margin: 0; color: #333; }
-            .header p { margin: 5px 0; color: #666; }
-            .sale-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-            .info-block { }
-            .info-block strong { display: block; margin-bottom: 2px; }
-            .info-block span { color: #666; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th { background-color: #f0f0f0; padding: 10px; text-align: left; border-bottom: 2px solid #333; }
-            .summary { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+            body { font-family: "Courier New", Courier, monospace; max-width: 80mm; margin: 0 auto; padding: 10px; color: #111; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #111; padding-bottom: 10px; }
+            .header h1 { margin: 0; font-size: 18px; letter-spacing: 0.04em; }
+            .header p { margin: 4px 0; color: #333; font-size: 11px; }
+            .sale-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 11px; }
+            .info-block strong { display: block; margin-bottom: 2px; font-size: 11px; }
+            .info-block span { color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11px; }
+            th, td { padding: 4px 2px; }
+            th { text-align: left; border-bottom: 1px dashed #111; }
+            td { border-bottom: 1px dashed #ddd; }
+            .summary { display: block; margin-bottom: 14px; font-size: 11px; }
             .summary-box { text-align: right; }
-            .total-row { font-size: 18px; font-weight: bold; color: #333; margin-top: 10px; }
-            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
-            @media print { body { margin: 0; padding: 10px; } }
+            .total-row { font-size: 13px; font-weight: bold; color: #111; margin-top: 8px; }
+            .footer { margin-top: 18px; padding-top: 10px; border-top: 1px dashed #ddd; color: #333; font-size: 10px; }
+            @media print { body { margin: 0; padding: 5px; } }
           </style>
         </head>
         <body>

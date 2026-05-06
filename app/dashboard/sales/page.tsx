@@ -423,10 +423,10 @@ function SalesPageContent() {
         </p>
       </div>
 
-      <section className="w-full flex gap-2 p-4">
+      <section className="w-full flex flex-col gap-4 p-4 lg:flex-row">
         <Card
           ref={formRef}
-          className="border-2 dark:border-teal-700 w-1/2 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md scroll-mt-4"
+          className="hidden lg:block border-2 dark:border-teal-700 lg:w-1/2 dark:bg-slate-800 dark:text-slate-100 border-blue-200 shadow-md scroll-mt-4"
         >
           <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">
@@ -443,7 +443,7 @@ function SalesPageContent() {
         {/* Sales Form Card */}
         <Card
           ref={formRef}
-          className="border-2 dark:border-teal-700 w-5/5 dark:bg-slate-800 dark:text-slate-100 border-blue-200  shadow-md scroll-mt-4"
+          className="border-2 dark:border-teal-700 w-full lg:w-1/2 dark:bg-slate-800 dark:text-slate-100 border-blue-200 shadow-md scroll-mt-4"
         >
           <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">

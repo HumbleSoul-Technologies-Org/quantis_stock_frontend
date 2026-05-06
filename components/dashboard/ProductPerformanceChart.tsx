@@ -115,27 +115,6 @@ export function ProductPerformanceChart() {
             >
               By Revenue
             </Button>
-            <Button
-              variant={timePeriod === "daily" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod("daily")}
-            >
-              Daily
-            </Button>
-            <Button
-              variant={timePeriod === "weekly" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod("weekly")}
-            >
-              Weekly
-            </Button>
-            <Button
-              variant={timePeriod === "monthly" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod("monthly")}
-            >
-              Monthly
-            </Button>
           </div>
         </div>
       </CardHeader>

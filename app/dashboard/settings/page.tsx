@@ -33,18 +33,18 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 gap-1 bg-gray-100 dark:bg-slate-700 p-1">
+      <Tabs defaultValue="profile" className="space-y-4 py-10">
+        <TabsList className="flex w-full gap-1 overflow-x-auto whitespace-nowrap rounded-2xl bg-gray-100 dark:bg-slate-700 px-3 py-1 sm:px-1">
           <TabsTrigger
             value="profile"
-            className="text-xs md:text-sm flex items-center gap-1"
+            className="inline-flex ml-5 shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
           >
             <Building2 className="w-4 h-4" />
             Profile
           </TabsTrigger>
           <TabsTrigger
             value="currency"
-            className="text-xs md:text-sm flex items-center gap-1"
+            className="inline-flex shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
           >
             <DollarSign className="w-4 h-4" />
             Currency
@@ -58,21 +58,21 @@ export default function SettingsPage() {
           </TabsTrigger> */}
           <TabsTrigger
             value="users"
-            className="text-xs md:text-sm flex items-center gap-1"
+            className="inline-flex shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
           >
             <UsersIcon className="w-4 h-4" />
             Users
           </TabsTrigger>
           <TabsTrigger
             value="notifications"
-            className="text-xs md:text-sm flex items-center gap-1"
+            className="inline-flex shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
           >
             <Bell className="w-4 h-4" />
             Notifications
           </TabsTrigger>
           <TabsTrigger
             value="security"
-            className="text-xs md:text-sm flex items-center gap-1"
+            className="inline-flex shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
           >
             <Shield className="w-4 h-4" />
             Security

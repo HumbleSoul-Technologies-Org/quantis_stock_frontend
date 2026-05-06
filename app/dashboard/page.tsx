@@ -54,12 +54,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3 px-2 sm:px-0">
-        <SalesTrendChart />
-        <LossAnalysisChart />
-        <ProductPerformanceChart />
-        <RecentActivity />
-      </div>
+      {["admin", "manager", "accountant"].includes(user?.role || "") && (
+        <div className="hidden lg:grid gap-4 lg:grid-cols-3 px-2 sm:px-0">
+          <SalesTrendChart />
+          <LossAnalysisChart />
+          <ProductPerformanceChart />
+          <RecentActivity />
+        </div>
+      )}
+      <div className="px-2 sm:px-0"></div>
     </div>
   );
 }
