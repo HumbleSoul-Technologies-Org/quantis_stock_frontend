@@ -32,7 +32,7 @@ export function LoginForm() {
 
     try {
       const res = await apiRequest("POST", "/users/login", {
-        username: data.username,
+        identifier: data.identifier,
         password: data.password,
       });
 
@@ -109,11 +109,11 @@ export function LoginForm() {
           )}
 
           <AuthInput
-            label="Username"
+            label="Username or Email"
             type="text"
-            {...register("username")}
-            placeholder="Enter your username"
-            error={errors.username?.message}
+            {...register("identifier")}
+            placeholder="Enter your username or email"
+            error={errors.identifier?.message}
             focusColor="green"
           />
 

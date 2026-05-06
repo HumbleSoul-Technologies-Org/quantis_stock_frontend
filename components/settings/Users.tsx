@@ -268,10 +268,10 @@ export function Users() {
         const data = await res.json();
 
         const newUser: TeamUser = {
-          id: data.user._id,
-          name: createUserForm.name,
-          email: createUserForm.email,
-          role: createUserForm.role,
+          id: data.user.id,
+          name: data.user.username,
+          email: data.user.email,
+          role: data.user.role,
           createdAt: data.user.createdAt,
           lastLogin: null,
         };
@@ -388,7 +388,7 @@ export function Users() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: any) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
@@ -450,7 +450,7 @@ export function Users() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-blue-200 border-2 dark:bg-slate-800 dark:border-teal-300">
+      <Card className="border-blue-200 min-h-screen border-2 dark:bg-slate-800 dark:border-teal-300">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="dark:text-teal-100">
             Team Users ({teamUsers.length})

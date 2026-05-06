@@ -37,7 +37,7 @@ function RecentActivityContent() {
     .slice(0, 10);
 
   return (
-    <Card className="mt-4 sm:mt-6 max-h-112.5 overflow-y-auto border-green-200 dark:border-teal-700 border-2 bg-white dark:bg-slate-800">
+    <Card className="mt-4 sm:mt-6 max-h-175 overflow-y-auto border-green-200 dark:border-teal-700 border-2 bg-white dark:bg-slate-800">
       <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
         <CardTitle className="text-lg sm:text-xl dark:text-teal-100">
           Recent Activity

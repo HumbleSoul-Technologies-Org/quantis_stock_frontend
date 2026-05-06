@@ -2,11 +2,18 @@ import { z } from "zod";
 
 // Auth Schemas
 export const loginSchema = z.object({
-  username: z
+  identifier: z
     .string()
-    .min(1, "Username is required")
-    .min(3, "Username must be at least 3 characters")
-    .max(50, "Username must be less than 50 characters"),
+    .min(1, "Username or email is required")
+    .refine(
+      (val) => {
+        // Check if it's a valid email or valid username format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const usernameRegex = /^[a-zA-Z0-9_]{3,50}$/;
+        return emailRegex.test(val) || usernameRegex.test(val);
+      },
+      "Please enter a valid username (3-50 characters, alphanumeric + underscore) or email address"
+    ),
   password: z
     .string()
     .min(1, "Password is required")
