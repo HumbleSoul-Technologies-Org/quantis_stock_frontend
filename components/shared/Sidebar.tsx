@@ -38,7 +38,7 @@ export function Sidebar() {
       href: "/dashboard/products",
       label: "Products",
       icon: Package,
-      roles: ["admin", "manager", "accountant", "sales"],
+      roles: ["admin", "manager", "accountant"],
     },
     {
       href: "/dashboard/inventory",
@@ -62,7 +62,7 @@ export function Sidebar() {
       href: "/dashboard/reports",
       label: "Reports",
       icon: BarChart3,
-      roles: ["admin", "manager", "accountant", "sales"],
+      roles: ["admin", "manager", "accountant"],
     },
     {
       href: "/dashboard/settings",
