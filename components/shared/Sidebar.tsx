@@ -82,8 +82,8 @@ export function Sidebar() {
     item.roles.includes(user.role),
   );
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/auth/login");
   };
 

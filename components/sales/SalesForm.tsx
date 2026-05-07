@@ -641,23 +641,32 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
         return;
       }
 
-      if (!printService.isQzConnected()) {
-        const connected = await printService.connect();
-        if (!connected) {
-          toast({
-            title: "Connection Failed",
-            description:
-              "Could not connect to QZ Tray. Please check if it's running.",
-            variant: "destructive",
-          });
-          return;
-        }
+      const connected = await printService.ensureConnected();
+      if (!connected) {
+        toast({
+          title: "Connection Failed",
+          description:
+            "Could not connect to QZ Tray. Please check if it's running.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const receiptData = {
+        // Transaction info
         saleNumber: payLoad?.saleNumber || "---",
         date: payLoad?.date || new Date().toISOString(),
+
+        // Customer info
         customerName: payLoad?.customerName || "Walk-in",
+        cashier: payLoad?.createdBy || user?.username || "---",
+
+        // Business info
+        businessName: business?.businessName,
+        businessAddress: business?.businessAddress,
+        businessPhone: business?.businessPhone?.contact,
+
+        // Items
         items: items.map((item: any) => {
           const product = payLoad?.products?.find(
             (p: any) => p.id === item.productId || p._id === item.productId,
@@ -670,10 +679,11 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
           };
         }),
         totalAmount: grandTotal,
+
+        // Payment info
         paymentType: payLoad?.paymentType || "cash",
         txnId: payLoad?.txnId,
         notes: payLoad?.notes,
-        cashier: payLoad?.createdBy || user?.username || "---",
       };
 
       await printService.printReceipt(receiptData);

@@ -176,17 +176,15 @@ export function SalesTable({
         return;
       }
 
-      if (!printService.isQzConnected()) {
-        const connected = await printService.connect();
-        if (!connected) {
-          toast({
-            title: "Connection Failed",
-            description:
-              "Could not connect to QZ Tray. Please check if it's running.",
-            variant: "destructive",
-          });
-          return;
-        }
+      const connected = await printService.ensureConnected();
+      if (!connected) {
+        toast({
+          title: "Connection Failed",
+          description:
+            "Could not connect to QZ Tray. Please check if it's running.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const receiptData = {

@@ -170,7 +170,7 @@ export function Security() {
           confirmPassword: "",
         });
         setTimeout(() => setMessage(null), 3000);
-        logout();
+        await logout();
       }
     } catch (error) {
       setMessage({

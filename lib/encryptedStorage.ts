@@ -103,11 +103,18 @@ class EncryptedStorageService {
       console.log(`✅ [ENCRYPTED_STORAGE] Decrypted key: "${key}"`);
       return decrypted;
     } catch (error) {
-      console.error(`❌ [ENCRYPTED_STORAGE] Failed to decrypt key "${key}":`, error);
+      // Check if this is likely a key mismatch (expected when session changes)
+      const isKeyMismatch = error instanceof DOMException && error.name === 'OperationError';
       
-      // Corruption detected - try to recover
+      if (isKeyMismatch) {
+        console.warn(`⚠️ [ENCRYPTED_STORAGE] Key "${key}" encrypted with old session key - clearing and continuing`);
+      } else {
+        console.error(`❌ [ENCRYPTED_STORAGE] Failed to decrypt key "${key}":`, error);
+      }
+      
+      // Corruption/key mismatch detected - try to recover
       try {
-        console.warn(`[ENCRYPTED_STORAGE] Attempting recovery by clearing corrupted key "${key}"`);
+        console.log(`[ENCRYPTED_STORAGE] Clearing inaccessible key "${key}"`);
         localStorage.removeItem(key);
       } catch (clearError) {
         console.error(`[ENCRYPTED_STORAGE] Failed to clear corrupted key:`, clearError);

@@ -21,7 +21,7 @@ interface AuthContextType {
   business: Business | null; // New: separate business state
   isLoading: boolean;
   loginWithApiData: (userData: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateCredentials: (
     newUsername: string,
     newPassword: string,
@@ -86,20 +86,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const logout = (): void => {
+  const logout = async (): Promise<void> => {
     setUser(null);
     setBusiness(null);
 
-    // Clear encrypted session (fire and forget, with error logging)
-    clearUserSession().catch((error) => {
+    // Clear encrypted session
+    await clearUserSession().catch((error) => {
       console.error("[AUTH_CONTEXT] Failed to clear user session:", error);
     });
 
     // Clear encryption key from session
     try {
-      sessionKeyManager.clearKey();
+      sessionKeyManager.lockKey();
     } catch (error) {
-      console.error("[AUTH_CONTEXT] Failed to clear encryption key:", error);
+      console.error("[AUTH_CONTEXT] Failed to lock encryption key:", error);
     }
   };
 

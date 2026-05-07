@@ -87,35 +87,43 @@ export async function clearUserSession(): Promise<void> {
   if (typeof window === "undefined") return;
 
   try {
-    const keysToDelete = [
+    // Use encryptedStorageService to clear all encrypted keys at once
+    await encryptedStorageService.clearAllEncrypted();
+
+    // Also clear any remaining non-encrypted keys
+    const additionalKeys = [
+      "state",
+      "notificationState",
+    ];
+    for (const key of additionalKeys) {
+      localStorage.removeItem(key);
+    }
+
+    // Lock the encryption key
+    sessionKeyManager.lockKey();
+
+    console.log('[AUTH_STORAGE] Cleared all user sessions and locked encryption key');
+  } catch (error) {
+    console.error("[AUTH_STORAGE] Failed to clear user session:", error);
+    // Fallback: force remove all sensitive keys manually
+    const fallbackKeys = [
       USER_SESSION_KEY,
       "userData",
       "businessData",
       "state",
       "businessSettings",
       "erp_system_state",
+      "erp_system_merged_cache",
+      "erp_system_offline_items",
       "teamUsers",
+      "notificationState",
     ];
-
-    // Use secure deletion if key is initialized, otherwise just remove
-    for (const key of keysToDelete) {
-      if (sessionKeyManager.isInitialized() && encryptedStorageService.isEncrypted(key)) {
-        await encryptedStorageService.secureDelete(key);
-      } else {
+    for (const key of fallbackKeys) {
+      try {
         localStorage.removeItem(key);
+      } catch (e) {
+        console.warn(`[AUTH_STORAGE] Failed to remove key "${key}":`, e);
       }
     }
-
-    // Also lock the encryption key
-    sessionKeyManager.lockKey();
-
-    console.log('[AUTH_STORAGE] Cleared all user sessions and locked encryption key');
-  } catch (error) {
-    console.error("[AUTH_STORAGE] Failed to clear user session:", error);
-    // Fallback: force remove all sensitive keys
-    localStorage.removeItem(USER_SESSION_KEY);
-    localStorage.removeItem("userData");
-    localStorage.removeItem("businessData");
-    localStorage.removeItem("businessSettings");
   }
 }
