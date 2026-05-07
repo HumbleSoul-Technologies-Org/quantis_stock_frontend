@@ -472,6 +472,85 @@ const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL ;
     }
   }
 
+  private showPrintingProgressDialog(): () => void {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'printing-progress-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(2px);
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 300px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    `;
+
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #10b981;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    `;
+
+    // Create message
+    const message = document.createElement('p');
+    message.textContent = 'Printing Receipt...';
+    message.style.cssText = `
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: #374151;
+    `;
+
+    // Add spinner animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Assemble modal
+    modal.appendChild(spinner);
+    modal.appendChild(message);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Return cleanup function
+    return () => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    };
+  }
+
   public async printReceipt(receiptData: ReceiptData): Promise<void> {
   if (!this.ensureQz()) {
     throw new Error('QZ Tray not available');
@@ -497,6 +576,9 @@ const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL ;
   // Format data for QZ Tray - plain text string array for ESC/POS
   const printData = [escPosString];
 
+  // Show printing progress dialog
+  const hideProgressDialog = this.showPrintingProgressDialog();
+
   const startTime = performance.now();
 
   try {
@@ -507,6 +589,9 @@ const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL ;
     this.persistReceipt(receiptData, 'printed', printer, printDuration).catch(() => {
       /* Logged internally */
     });
+
+    // Hide progress dialog on success
+    hideProgressDialog();
   } catch (error) {
     const printDuration = Math.round(performance.now() - startTime);
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -514,6 +599,9 @@ const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL ;
     this.persistReceipt(receiptData, 'failed', printer, printDuration, errorMessage).catch(() => {
       /* Logged internally */
     });
+
+    // Hide progress dialog on error
+    hideProgressDialog();
 
     console.error('[PRINT] Print failed:', error);
     throw error;

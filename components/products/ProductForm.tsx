@@ -12,6 +12,7 @@ import {
   getFieldSchemaForCategory,
   FieldDefinition,
 } from "@/lib/business-config";
+import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
 
 import { useAuth } from "@/context/AuthContext";
 
@@ -193,6 +194,13 @@ export function ProductForm({
       }));
     }
   }, [product?.id]);
+
+  useEffect(() => {
+    if (errors.general) {
+      const { general, ...rest } = errors;
+      setErrors(rest);
+    }
+  }, [formData, customCategory, customAttributesList]);
 
   // Generic field renderer for any field type
   const renderField = (fieldDef: FieldDefinition) => {
@@ -490,7 +498,15 @@ export function ProductForm({
       }
     } catch (error) {
       console.error("Failed to save product:", error);
-      setErrors({ general: "Failed to save product. Please try again." });
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseFormError(errorText);
+      if (Object.keys(parsedErrors).length > 0) {
+        setErrors(parsedErrors);
+      } else {
+        setErrors({
+          general: errorText || "Failed to save product. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

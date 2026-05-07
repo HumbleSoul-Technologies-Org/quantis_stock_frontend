@@ -29,7 +29,11 @@ export function SalesDialog({
 }: SalesDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        disableOutsideClick
+        disableEscape
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Create New Sale</DialogTitle>
           <DialogDescription>

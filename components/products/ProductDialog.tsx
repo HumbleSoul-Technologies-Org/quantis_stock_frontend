@@ -29,7 +29,11 @@ export function ProductDialog({
 }: ProductDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto dark:bg-slate-800">
+      <DialogContent
+        disableOutsideClick
+        disableEscape
+        className="max-w-3xl max-h-[90vh] overflow-y-auto dark:bg-slate-800"
+      >
         <DialogHeader>
           <DialogTitle>
             {product ? "Edit Product" : "Add New Product"}

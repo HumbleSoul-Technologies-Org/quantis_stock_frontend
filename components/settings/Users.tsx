@@ -32,12 +32,18 @@ import {
   Ban,
   Key,
   Loader,
+  AlertCircle,
 } from "lucide-react";
 import { TeamUser } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "../ui/badge";
 import { format, set } from "date-fns";
+import {
+  getApiErrorText,
+  parseUserFormError,
+  parseResetPasswordError,
+} from "@/lib/errorParsers";
 
 export function Users() {
   const { user, business } = useAuth();
@@ -58,6 +64,9 @@ export function Users() {
   const [createUserErrors, setCreateUserErrors] = useState<
     Record<string, string>
   >({});
+  const [createUserFormError, setCreateUserFormError] = useState<string | null>(
+    null,
+  );
   const [showCreateUserForm, setShowCreateUserForm] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
@@ -72,6 +81,9 @@ export function Users() {
   const [resetPasswordErrors, setResetPasswordErrors] = useState<
     Record<string, string>
   >({});
+  const [resetPasswordFormError, setResetPasswordFormError] = useState<
+    string | null
+  >(null);
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
 
   const isAdmin = user?.role === "admin";
@@ -208,6 +220,7 @@ export function Users() {
 
     try {
       setProcessing(true);
+      setCreateUserFormError(null);
       if (editingUserId) {
         const payLoad = {
           username: createUserForm.name,
@@ -215,17 +228,13 @@ export function Users() {
           role: createUserForm.role,
           businessId: business?._id || user?.businessId,
         };
+
         const res = await apiRequest(
           "PUT",
           `/users/${editingUserId}/update`,
           payLoad,
           user?.token,
         );
-        if (!res.ok) {
-          const text = await res.text();
-          toast.error(`Failed to update user: ${text}`);
-          return;
-        }
         const data = await res.json();
 
         const updatedUser: TeamUser = {
@@ -259,12 +268,6 @@ export function Users() {
           payLoad,
           user?.token,
         );
-        if (!res.ok) {
-          const text = await res.text();
-          toast.error(`Failed to create user: ${text}`);
-          return;
-        }
-
         const data = await res.json();
 
         const newUser: TeamUser = {
@@ -293,8 +296,20 @@ export function Users() {
         role: "sales",
       });
       setCreateUserErrors({});
+      setCreateUserFormError(null);
     } catch (error) {
-      toast.error("An error occurred");
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseUserFormError(errorText);
+
+      if (Object.keys(parsedErrors).length > 0) {
+        setCreateUserErrors(parsedErrors);
+      } else {
+        setCreateUserFormError(errorText || "Failed to save user");
+      }
+
+      toast.error(
+        `Failed to ${editingUserId ? "update" : "create"} user: ${errorText}`,
+      );
     } finally {
       setProcessing(false);
     }
@@ -308,22 +323,18 @@ export function Users() {
     }
 
     try {
+      setResetPasswordFormError(null);
       const payLoad = {
         newPassword: resetPasswordForm.newPassword,
         businessId: business?._id || user?.businessId,
       };
 
-      const res = await apiRequest(
+      await apiRequest(
         "POST",
         `/users/${resetPasswordUserId}/user-password/change`,
         payLoad,
         user?.token,
       );
-      if (!res.ok) {
-        const text = await res.text();
-        toast.error(`Failed to reset password: ${text}`);
-        return;
-      }
 
       notifySuccess("Password reset successfully");
       setShowResetPasswordDialog(false);
@@ -333,7 +344,16 @@ export function Users() {
         confirmPassword: "",
       });
     } catch (error) {
-      toast.error("An error occurred");
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseResetPasswordError(errorText);
+
+      if (Object.keys(parsedErrors).length > 0) {
+        setResetPasswordErrors(parsedErrors);
+      } else {
+        setResetPasswordFormError(errorText || "Failed to reset password");
+      }
+
+      toast.error(`Failed to reset password: ${errorText}`);
     }
   };
 
@@ -425,6 +445,7 @@ export function Users() {
       confirmPassword: "",
     });
     setResetPasswordErrors({});
+    setResetPasswordFormError(null);
   };
 
   const formatDate = (dateString: string | Date | undefined) => {
@@ -467,6 +488,7 @@ export function Users() {
                 role: "sales",
               });
               setCreateUserErrors({});
+              setCreateUserFormError(null);
             }}
             className="dark:bg-teal-600 dark:text-white bg-blue-600 hover:bg-blue-700  dark:hover:bg-teal-800 gap-2"
           >
@@ -494,7 +516,10 @@ export function Users() {
               }
             }}
           >
-            <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-teal-700">
+            <DialogContent
+              disableOutsideClick
+              className="sm:max-w-md dark:bg-slate-800 dark:border-teal-700"
+            >
               <DialogHeader>
                 <DialogTitle className="dark:text-teal-100">
                   {editingUserId ? "Edit Team User" : "Create New Team User"}
@@ -514,12 +539,18 @@ export function Users() {
                   <Input
                     type="text"
                     value={createUserForm.name}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setCreateUserForm({
                         ...createUserForm,
                         name: e.target.value,
-                      })
-                    }
+                      });
+                      if (createUserFormError) setCreateUserFormError(null);
+                      if (createUserErrors.name)
+                        setCreateUserErrors({
+                          ...createUserErrors,
+                          name: "",
+                        });
+                    }}
                     placeholder="Full name"
                     className={
                       createUserErrors.name
@@ -541,12 +572,18 @@ export function Users() {
                   <Input
                     type="email"
                     value={createUserForm.email}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setCreateUserForm({
                         ...createUserForm,
                         email: e.target.value,
-                      })
-                    }
+                      });
+                      if (createUserFormError) setCreateUserFormError(null);
+                      if (createUserErrors.email)
+                        setCreateUserErrors({
+                          ...createUserErrors,
+                          email: "",
+                        });
+                    }}
                     placeholder="Email address"
                     className={
                       createUserErrors.email
@@ -569,12 +606,18 @@ export function Users() {
                     type="password"
                     disabled={editingUserId !== null}
                     value={createUserForm.password}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setCreateUserForm({
                         ...createUserForm,
                         password: e.target.value,
-                      })
-                    }
+                      });
+                      if (createUserFormError) setCreateUserFormError(null);
+                      if (createUserErrors.password)
+                        setCreateUserErrors({
+                          ...createUserErrors,
+                          password: "",
+                        });
+                    }}
                     placeholder={
                       editingUserId
                         ? "Use Reset Password option to change"
@@ -603,12 +646,18 @@ export function Users() {
                     type="password"
                     disabled={editingUserId !== null}
                     value={createUserForm.confirmPassword}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setCreateUserForm({
                         ...createUserForm,
                         confirmPassword: e.target.value,
-                      })
-                    }
+                      });
+                      if (createUserFormError) setCreateUserFormError(null);
+                      if (createUserErrors.confirmPassword)
+                        setCreateUserErrors({
+                          ...createUserErrors,
+                          confirmPassword: "",
+                        });
+                    }}
                     placeholder={
                       editingUserId
                         ? "Use Reset Password option to change"
@@ -687,6 +736,20 @@ export function Users() {
                   </Button>
                 </div>
               </form>
+
+              {createUserFormError && (
+                <div className="flex items-center gap-3 p-4 mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <div className="flex-1">{createUserFormError}</div>
+                  <button
+                    type="button"
+                    onClick={() => setCreateUserFormError(null)}
+                    className="ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
 
@@ -695,7 +758,10 @@ export function Users() {
             open={showResetPasswordDialog}
             onOpenChange={setShowResetPasswordDialog}
           >
-            <DialogContent className="sm:max-w-md dark:bg-slate-800 dark:border-teal-700">
+            <DialogContent
+              disableOutsideClick
+              className="sm:max-w-md dark:bg-slate-800 dark:border-teal-700"
+            >
               <DialogHeader>
                 <DialogTitle className="dark:text-teal-100">
                   Reset User Password
@@ -714,12 +780,19 @@ export function Users() {
                   <Input
                     type="password"
                     value={resetPasswordForm.newPassword}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setResetPasswordForm({
                         ...resetPasswordForm,
                         newPassword: e.target.value,
-                      })
-                    }
+                      });
+                      if (resetPasswordFormError)
+                        setResetPasswordFormError(null);
+                      if (resetPasswordErrors.newPassword)
+                        setResetPasswordErrors({
+                          ...resetPasswordErrors,
+                          newPassword: "",
+                        });
+                    }}
                     placeholder="Enter new password"
                     className={
                       resetPasswordErrors.newPassword
@@ -741,12 +814,19 @@ export function Users() {
                   <Input
                     type="password"
                     value={resetPasswordForm.confirmPassword}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setResetPasswordForm({
                         ...resetPasswordForm,
                         confirmPassword: e.target.value,
-                      })
-                    }
+                      });
+                      if (resetPasswordFormError)
+                        setResetPasswordFormError(null);
+                      if (resetPasswordErrors.confirmPassword)
+                        setResetPasswordErrors({
+                          ...resetPasswordErrors,
+                          confirmPassword: "",
+                        });
+                    }}
                     placeholder="Confirm password"
                     className={
                       resetPasswordErrors.confirmPassword
@@ -778,6 +858,20 @@ export function Users() {
                   </Button>
                 </div>
               </form>
+
+              {resetPasswordFormError && (
+                <div className="flex items-center gap-3 p-4 mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <div className="flex-1">{resetPasswordFormError}</div>
+                  <button
+                    type="button"
+                    onClick={() => setResetPasswordFormError(null)}
+                    className="ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
 

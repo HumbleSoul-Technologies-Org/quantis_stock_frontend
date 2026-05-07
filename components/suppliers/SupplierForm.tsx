@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { AlertCircle } from "lucide-react";
 import { uploadFile } from "@/lib/cloudinary";
+import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
 
 interface SupplierFormProps {
@@ -123,6 +124,13 @@ export function SupplierForm({
     setUploadedFile("");
     setErrors({});
   }, [supplier]);
+
+  useEffect(() => {
+    if (errors.general) {
+      const { general, ...rest } = errors;
+      setErrors(rest);
+    }
+  }, [formData, addressText, supplyContact]);
 
   const { user } = useAuth();
 
@@ -260,7 +268,15 @@ export function SupplierForm({
       }
     } catch (error) {
       console.error("Failed to save supplier:", error);
-      setErrors({ general: "Failed to save supplier. Please try again." });
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseFormError(errorText);
+      if (Object.keys(parsedErrors).length > 0) {
+        setErrors(parsedErrors);
+      } else {
+        setErrors({
+          general: errorText || "Failed to save supplier. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -10,6 +10,7 @@ import {
   Trash2,
   RotateCcw,
   Edit2,
+  Eye,
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -18,6 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { printService } from "@/lib/printService";
 import { useToast } from "@/components/ui/use-toast";
+import { ReceiptPreviewDialog } from "./ReceiptPreviewDialog";
+import { buildReceiptData } from "@/lib/receiptDataBuilder";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -39,6 +42,9 @@ export function SalesTable({
   const formatCurrencyShort = useFormatCurrencyShort();
   const { formatCurrency } = useSettings();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
+  const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
+  const [selectedSaleForReceipt, setSelectedSaleForReceipt] =
+    useState<Sale | null>(null);
 
   const toggleExpand = (saleId: string) => {
     const newExpanded = new Set(expandedSales);
@@ -61,111 +67,7 @@ export function SalesTable({
     return sale.items.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const handlePrint = (sale: Sale) => {
-    const printWindow = window.open("", "", "width=800,height=600");
-    if (!printWindow) return;
-
-    const totalQty = getTotalQuantity(sale);
-    const itemsHTML = sale.items
-      .map(
-        (item) =>
-          `<tr style="border-bottom: 1px solid #ddd;">
-            <td style="padding: 8px;">${getProductName(item.productId)}</td>
-            <td style="padding: 8px; text-align: center;">${item.quantity}</td>
-            <td style="padding: 8px; text-align: right;">${formatCurrencyShort(item.unitPrice)}</td>
-            <td style="padding: 8px; text-align: right;">${formatCurrencyShort(item.total)}</td>
-          </tr>`,
-      )
-      .join("");
-
-    const paymentInfo = sale.paymentType
-      ? `<p><strong>Payment Method:</strong> ${sale.paymentType}${
-          sale.txnId ? ` | TXN ID: ${sale.txnId}` : ""
-        }</p>`
-      : "";
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Sales Receipt - ${sale.saleNumber}</title>
-          <style>
-            body { font-family: "Courier New", Courier, monospace; max-width: 80mm; margin: 0 auto; padding: 10px; color: #111; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #111; padding-bottom: 10px; }
-            .header h1 { margin: 0; font-size: 18px; letter-spacing: 0.04em; }
-            .header p { margin: 4px 0; color: #333; font-size: 11px; }
-            .sale-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 11px; }
-            .info-block strong { display: block; margin-bottom: 2px; font-size: 11px; }
-            .info-block span { color: #333; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11px; }
-            th, td { padding: 4px 2px; }
-            th { text-align: left; border-bottom: 1px dashed #111; }
-            td { border-bottom: 1px dashed #ddd; }
-            .summary { display: block; margin-bottom: 14px; font-size: 11px; }
-            .summary-box { text-align: right; }
-            .total-row { font-size: 13px; font-weight: bold; color: #111; margin-top: 8px; }
-            .footer { margin-top: 18px; padding-top: 10px; border-top: 1px dashed #ddd; color: #333; font-size: 10px; }
-            @media print { body { margin: 0; padding: 5px; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>SALES RECEIPT</h1>
-            <p>Sale Number: <strong>${sale.saleNumber}</strong></p>
-          </div>
-
-          <div class="sale-info">
-            <div class="info-block">
-              <strong>Customer:</strong>
-              <span>${sale.customerName || "N/A"}</span>
-            </div>
-            <div class="info-block">
-              <strong>Date:</strong>
-              <span>${format(new Date(sale.date), "MMM dd, yyyy")}</span>
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th style="text-align: center; width: 80px;">Qty</th>
-                <th style="text-align: right; width: 100px;">Unit Price</th>
-                <th style="text-align: right; width: 100px;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHTML}
-            </tbody>
-          </table>
-
-          <div class="summary">
-            <div class="summary-box">
-              <div>Total Items: <strong>${totalQty}</strong></div>
-              <div class="total-row">Amount: ${formatCurrencyShort(sale.totalAmount)}</div>
-            </div>
-          </div>
-
-          ${paymentInfo}
-
-          ${sale.notes ? `<p><strong>Notes:</strong> ${sale.notes}</p>` : ""}
-
-          <div class="footer">
-            <p>Printed on ${format(new Date(), "MMM dd, yyyy HH:mm:ss")}</p>
-            <p style="margin-top: 10px;">Thank you for your purchase!</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
-  };
-
-  const handlePrintToPos = async (sale: Sale) => {
+  const handlePrintToPos = async (receiptData: any) => {
     try {
       if (!printService.isQzAvailable()) {
         toast({
@@ -187,23 +89,6 @@ export function SalesTable({
         return;
       }
 
-      const receiptData = {
-        saleNumber: sale.saleNumber,
-        date: sale.date,
-        customerName: sale.customerName,
-        items: sale.items.map((item) => ({
-          name: getProductName(item.productId),
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          total: item.total,
-        })),
-        totalAmount: sale.totalAmount,
-        paymentType: sale.paymentType,
-        txnId: sale.txnId,
-        notes: sale.notes,
-        cashier: sale.createdBy,
-      };
-
       await printService.printReceipt(receiptData);
 
       toast({
@@ -219,6 +104,11 @@ export function SalesTable({
         variant: "destructive",
       });
     }
+  };
+
+  const handleViewReceipt = (sale: Sale) => {
+    setSelectedSaleForReceipt(sale);
+    setIsReceiptDialogOpen(true);
   };
 
   const sorted = sales.sort(
@@ -400,11 +290,11 @@ export function SalesTable({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handlePrintToPos(sale)}
+                        onClick={() => handleViewReceipt(sale)}
                         className="text-green-600 hover:bg-green-50 gap-1"
                       >
-                        <Printer className="w-4 h-4" />
-                        Print to POS
+                        <Eye className="w-4 h-4" />
+                        View Receipt
                       </Button>
                       {onEdit &&
                         user &&
@@ -451,6 +341,14 @@ export function SalesTable({
           </div>
         )}
       </CardContent>
+
+      <ReceiptPreviewDialog
+        isOpen={isReceiptDialogOpen}
+        onOpenChange={setIsReceiptDialogOpen}
+        sale={selectedSaleForReceipt}
+        products={products}
+        onPrint={handlePrintToPos}
+      />
     </Card>
   );
 }

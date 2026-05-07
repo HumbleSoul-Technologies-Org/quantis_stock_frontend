@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useContext, useRef } from "react";
 import { Sale, SaleItem, Product } from "@/lib/types";
+import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -83,6 +84,22 @@ export function SalesForm({
       setErrors({});
     }
   }, [sale]);
+
+  useEffect(() => {
+    if (errors.general) {
+      const { general, ...rest } = errors;
+      setErrors(rest);
+    }
+  }, [
+    customerName,
+    paymentType,
+    txnId,
+    saleDate,
+    notes,
+    items,
+    selectedProductId,
+    quantity,
+  ]);
 
   const productOptions = products
     ?.filter((p) => {
@@ -251,9 +268,17 @@ export function SalesForm({
       setErrors({});
     } catch (error) {
       console.error("Failed to complete sale:", error);
-      setErrors({
-        general: `Failed to ${isEditing ? "update" : "complete"} sale. Please try again.`,
-      });
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseFormError(errorText);
+      if (Object.keys(parsedErrors).length > 0) {
+        setErrors(parsedErrors);
+      } else {
+        setErrors({
+          general:
+            errorText ||
+            `Failed to ${isEditing ? "update" : "complete"} sale. Please try again.`,
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

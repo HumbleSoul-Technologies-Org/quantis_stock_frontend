@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/context/SettingsContext";
+import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 
@@ -43,6 +44,7 @@ export function SalesReturnDialog({
   const [notes, setNotes] = useState("");
   const [refundAmount, setRefundAmount] = useState<number | undefined>();
   const [refundMethod, setRefundMethod] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Initialize return items when sale changes
   useEffect(() => {
@@ -60,6 +62,12 @@ export function SalesReturnDialog({
       setRefundMethod(sale.paymentType || "");
     }
   }, [sale, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && formError) {
+      setFormError(null);
+    }
+  }, [isOpen]);
 
   const getProductName = (productId?: string) => {
     return (
@@ -97,8 +105,11 @@ export function SalesReturnDialog({
   );
   const hasReturnItems = returnItems.some((item) => item.quantity > 0);
 
-  const handleSubmit = () => {
-    if (!sale || !user || !hasReturnItems) return;
+  const handleSubmit = async () => {
+    if (!sale || !user || !hasReturnItems) {
+      setFormError("Please select at least one item to return.");
+      return;
+    }
 
     const returnRecord: SaleReturn = {
       saleId: sale.id || sale._id || "",
@@ -118,15 +129,32 @@ export function SalesReturnDialog({
       refundMethod: refundMethod || undefined,
     };
 
-    onSubmit(returnRecord);
-    onClose();
+    try {
+      setFormError(null);
+      await onSubmit(returnRecord);
+      onClose();
+    } catch (error) {
+      console.error("Failed to process return:", error);
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseFormError(errorText);
+      setFormError(
+        parsedErrors.reason ||
+          parsedErrors.refundAmount ||
+          errorText ||
+          "Unable to process return. Please try again.",
+      );
+    }
   };
 
   if (!sale) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        disableOutsideClick
+        disableEscape
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Process Return for Sale {sale.saleNumber}</DialogTitle>
           <DialogDescription>
@@ -134,6 +162,12 @@ export function SalesReturnDialog({
             that were sold can be returned.
           </DialogDescription>
         </DialogHeader>
+
+        {formError && (
+          <div className="mx-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {formError}
+          </div>
+        )}
 
         <div className="space-y-6">
           {/* Sale Summary */}

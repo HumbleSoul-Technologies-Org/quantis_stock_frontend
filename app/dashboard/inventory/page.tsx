@@ -482,7 +482,11 @@ function InventoryPageContent() {
             setShowDialog(open);
           }}
         >
-          <DialogContent className="max-w-2xl dark:bg-slate-800">
+          <DialogContent
+            disableOutsideClick
+            disableEscape
+            className="max-w-2xl dark:bg-slate-800"
+          >
             <DialogHeader>
               <DialogTitle>
                 {selectedMovement ? "Edit Stock Movement" : "Stock In Product"}

@@ -7,6 +7,7 @@ import { StockMovement, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
+import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
 import Select from "react-select";
@@ -150,9 +151,18 @@ export function StockMovementForm({
       }
     } catch (error) {
       console.error("Error recording movement:", error);
-      setError("root", {
-        message: "An unexpected error occurred. Please try again.",
-      });
+      const errorText = getApiErrorText(error);
+      const parsedErrors = parseFormError(errorText);
+      if (parsedErrors.productId) {
+        setError("productId", { message: parsedErrors.productId });
+      } else if (parsedErrors.quantity) {
+        setError("quantity", { message: parsedErrors.quantity });
+      } else {
+        setError("root", {
+          message:
+            errorText || "An unexpected error occurred. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
