@@ -59,6 +59,9 @@ export function CategoryDistributionChart() {
           usePointStyle: true,
         },
       },
+      filler: {
+        propagate: false,
+      },
       tooltip: {
         ...commonOptions.plugins.tooltip,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
@@ -82,6 +85,14 @@ export function CategoryDistributionChart() {
             ];
           },
         },
+      },
+    },
+    scales: {
+      x: {
+        display: false,
+      },
+      y: {
+        display: false,
       },
     },
     cutout: "60%",

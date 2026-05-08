@@ -139,7 +139,7 @@ function KPICard({
       : value;
 
   return (
-    <Card className="flex h-full flex-col min-h-[18rem] relative overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/95 shadow-[0_20px_45px_-20px_rgba(15,23,42,0.18)] transition hover:shadow-[0_24px_70px_-24px_rgba(15,23,42,0.25)] dark:border-slate-700/70 dark:bg-slate-950/80">
+    <Card className="flex h-full flex-col min-h-72 relative overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/95 shadow-[0_20px_45px_-20px_rgba(15,23,42,0.18)] transition hover:shadow-[0_24px_70px_-24px_rgba(15,23,42,0.25)] dark:border-slate-700/70 dark:bg-slate-950/80">
       <div
         className={`absolute inset-y-0 left-0 w-1 bg-linear-to-b ${accentClasses}`}
       />
@@ -186,7 +186,7 @@ function KPICard({
             )}
           </div>
           {sparklineData && (
-            <div className="relative h-20 w-full sm:w-36 sm:max-w-[10rem]">
+            <div className="relative h-20 w-full sm:w-36 sm:max-w-40">
               <Line data={sparklineChartData} options={sparklineOptions} />
             </div>
           )}

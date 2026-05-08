@@ -7,40 +7,47 @@ const axiosClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// ✅ Throws error if response is not OK
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    let responseText = "";
-    let parsedBody: any = undefined;
-    try {
-      responseText = await res.text();
-      if (responseText) {
-        parsedBody = JSON.parse(responseText);
-      }
-    } catch (parseError) {
-      // Keep the raw text if JSON parsing fails
-      parsedBody = undefined;
-    }
-
-    const errorDetail =
-      parsedBody?.error || parsedBody?.message || responseText || res.statusText;
-    const error = new Error(`${res.status}: ${errorDetail}`) as any;
-    error.status = res.status;
-    error.response = res;
-    if (parsedBody) {
-      error.responseData = parsedBody;
-    }
-    throw error;
-  }
+// This wrapper returns a normalized response object and preserves parsed JSON/error payloads.
+interface ApiRequestResponse<T = unknown> {
+  ok: boolean;
+  status: number;
+  headers: Headers;
+  data: T;
+  originalResponse: Response;
+  json: () => Promise<T>;
+  text: () => Promise<string>;
 }
 
-// ✅ Handles GET / POST / PUT / PATCH / DELETE
-export async function apiRequest(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function createApiResponse<T = any>(res: Response): Promise<ApiRequestResponse<T>> {
+  const responseText = await res.text();
+  let parsedBody: unknown;
+
+  try {
+    parsedBody = responseText ? JSON.parse(responseText) : undefined;
+  } catch {
+    parsedBody = responseText;
+  }
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    headers: res.headers,
+    data: parsedBody as T,
+    originalResponse: res,
+    json: async () => parsedBody as T,
+    text: async () => responseText,
+  };
+}
+
+// Handles GET / POST / PUT / PATCH / DELETE
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function apiRequest<T = any>(
   method: string,
   url: string,
   data?: unknown,
   token?: string,
-): Promise<Response> {
+): Promise<ApiRequestResponse<T>> {
   // prepare headers/body properly; support FormData by letting the browser set multipart boundary
   const headers: Record<string, string> = {};
   let body: BodyInit | undefined;
@@ -54,7 +61,7 @@ export async function apiRequest(
   if (method.toUpperCase() === 'GET') {
     if (data && typeof data === 'object') {
       const params = new URLSearchParams();
-      Object.entries(data as Record<string, any>).forEach(([key, value]) => {
+      Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           params.append(key, String(value));
         }
@@ -82,8 +89,7 @@ export async function apiRequest(
     // credentials: "include",
   });
 
-  await throwIfResNotOk(res);
-  return res;
+  return await createApiResponse(res);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -115,16 +121,25 @@ export const getQueryFn: <T>(options: {
       });
 
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (axios.isCancel(error)) {
         throw new Error("Request cancelled");
       }
 
-      if (error.response?.status === 401 && on401 === "returnNull") {
+      const axiosError = error as {
+        response?: { status?: number; data?: unknown };
+        message?: string;
+      };
+
+      if (axiosError.response?.status === 401 && on401 === "returnNull") {
         return null;
       }
 
-      throw new Error(error.response?.data || error.message);
+      throw new Error(
+        typeof axiosError.response?.data === "string"
+          ? axiosError.response.data
+          : axiosError.message || "An error occurred",
+      );
     } finally {
       clearTimeout(timer);
     }

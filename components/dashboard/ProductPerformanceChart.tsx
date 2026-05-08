@@ -97,6 +97,14 @@ export function ProductPerformanceChart() {
         },
       },
     },
+    scales: {
+      x: {
+        display: false,
+      },
+      y: {
+        display: false,
+      },
+    },
   };
 
   const totalUnits = categoryData.reduce((sum, item) => sum + item.sales, 0);

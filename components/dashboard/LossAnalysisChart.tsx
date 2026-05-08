@@ -158,6 +158,14 @@ export function LossAnalysisChart() {
         },
       },
     },
+    scales: {
+      x: {
+        display: false,
+      },
+      y: {
+        display: false,
+      },
+    },
   };
 
   const totalLosses = lossesData.reduce((sum, item) => sum + item.value, 0);
