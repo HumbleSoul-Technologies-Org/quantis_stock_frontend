@@ -8,7 +8,14 @@ import {
   commonOptions,
   processCategoryPerformanceData,
 } from "@/lib/chartUtils";
-import { Trophy, TrendingUp, Package } from "lucide-react";
+import {
+  Trophy,
+  TrendingUp,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  Target,
+} from "lucide-react";
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -69,8 +76,15 @@ export function ProductPerformanceChart() {
       },
       tooltip: {
         ...commonOptions.plugins.tooltip,
-        titleColor: "var(--foreground)",
-        bodyColor: "var(--foreground)",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        borderColor: "#fff",
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: false,
+        titleFont: { size: 14, weight: "bold" as const },
+        bodyFont: { size: 12 },
         callbacks: {
           label: function (context: any) {
             const category = categoryData[context.dataIndex];
@@ -105,42 +119,51 @@ export function ProductPerformanceChart() {
               variant={metricType === "sales" ? "default" : "outline"}
               size="sm"
               onClick={() => setMetricType("sales")}
+              className="rounded-full"
             >
+              <ShoppingCart className="h-4 w-4 mr-1" />
               By Sales
             </Button>
             <Button
               variant={metricType === "revenue" ? "default" : "outline"}
               size="sm"
               onClick={() => setMetricType("revenue")}
+              className="rounded-full"
             >
+              <DollarSign className="h-4 w-4 mr-1" />
               By Revenue
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="text-center p-4 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
+            <ShoppingCart className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
               {totalUnits.toLocaleString()}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-blue-600 dark:text-blue-400">
               Units Sold ({timePeriod})
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
+          <div className="text-center p-4 bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg">
+            <DollarSign className="h-6 w-6 text-green-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-700 dark:text-green-300">
               {formatCurrency(totalRevenue)}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-green-600 dark:text-green-400">
               Revenue ({timePeriod})
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
+          <div className="text-center p-4 bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg">
+            <Target className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
               {topCategory ? topCategory.category : "No Sales Data"}
             </div>
-            <div className="text-sm text-muted-foreground">Top Category</div>
+            <div className="text-sm text-purple-600 dark:text-purple-400">
+              Top Category
+            </div>
           </div>
         </div>
 
@@ -148,45 +171,51 @@ export function ProductPerformanceChart() {
           <Pie data={chartData} options={chartOptions} />
         </div>
 
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center justify-between">
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="flex items-center space-x-1">
+              <Badge
+                variant="outline"
+                className="flex items-center space-x-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+              >
                 <TrendingUp className="h-3 w-3" />
                 <span>Category Performance</span>
               </Badge>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-slate-600 dark:text-slate-400">
                 Top 5 categories by{" "}
                 {metricType === "sales" ? "units sold" : "revenue generated"}{" "}
                 for {timePeriod}
               </span>
             </div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Last updated: {new Date().toLocaleDateString()}
+            </div>
           </div>
 
-          <div className="mt-3 space-y-2">
+          <div className="space-y-2">
             {categoryData.map((category, index) => (
               <div
                 key={category.category}
-                className="flex items-center justify-between p-2 bg-muted/50 rounded"
+                className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
               >
                 <div className="flex items-center space-x-3">
                   <Badge
                     variant="outline"
-                    className="w-6 h-6 p-0 flex items-center justify-center text-xs"
+                    className="w-6 h-6 p-0 flex items-center justify-center text-xs bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600"
                   >
                     {index + 1}
                   </Badge>
                   <div>
-                    <div className="font-medium text-sm">
+                    <div className="font-medium text-sm text-slate-900 dark:text-slate-100">
                       {category.category}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
                       {category.sales} units •{" "}
                       {formatCurrency(category.revenue)}
                     </div>
                   </div>
                 </div>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <Package className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               </div>
             ))}
           </div>

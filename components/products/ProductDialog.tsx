@@ -17,6 +17,7 @@ interface ProductDialogProps {
   categories?: string[];
   onSubmit: (product: Product) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
+  serverError?: string;
 }
 
 export function ProductDialog({
@@ -26,6 +27,7 @@ export function ProductDialog({
   categories,
   onSubmit,
   onOpenChange,
+  serverError = "",
 }: ProductDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -50,6 +52,7 @@ export function ProductDialog({
           categories={categories}
           onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
+          serverError={serverError}
         />
       </DialogContent>
     </Dialog>

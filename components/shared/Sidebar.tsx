@@ -38,7 +38,7 @@ export function Sidebar() {
       href: "/dashboard/products",
       label: "Products",
       icon: Package,
-      roles: ["admin", "manager", "accountant"],
+      roles: ["admin", "manager", "accountant", "sales"],
     },
     {
       href: "/dashboard/inventory",

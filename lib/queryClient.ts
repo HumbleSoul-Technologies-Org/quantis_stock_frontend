@@ -10,10 +10,26 @@ const axiosClient = axios.create({
 // ✅ Throws error if response is not OK
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    const error = new Error(`${res.status}: ${text}`) as any;
+    let responseText = "";
+    let parsedBody: any = undefined;
+    try {
+      responseText = await res.text();
+      if (responseText) {
+        parsedBody = JSON.parse(responseText);
+      }
+    } catch (parseError) {
+      // Keep the raw text if JSON parsing fails
+      parsedBody = undefined;
+    }
+
+    const errorDetail =
+      parsedBody?.error || parsedBody?.message || responseText || res.statusText;
+    const error = new Error(`${res.status}: ${errorDetail}`) as any;
     error.status = res.status;
     error.response = res;
+    if (parsedBody) {
+      error.responseData = parsedBody;
+    }
     throw error;
   }
 }

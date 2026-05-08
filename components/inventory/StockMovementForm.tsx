@@ -7,7 +7,11 @@ import { StockMovement, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
-import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
+import {
+  getApiErrorText,
+  parseFormError,
+  extractApiErrorFields,
+} from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
 import Select from "react-select";
@@ -24,6 +28,7 @@ interface StockMovementFormProps {
   currentUserId: string;
   preselectedProductId?: string;
   initialMovement?: StockMovement;
+  serverError?: string;
 }
 
 // Get and increment the reference counter for a type
@@ -73,6 +78,7 @@ export function StockMovementForm({
   currentUserId,
   preselectedProductId,
   initialMovement,
+  serverError = "",
 }: StockMovementFormProps) {
   const isEditMode = !!initialMovement;
 
@@ -82,6 +88,7 @@ export function StockMovementForm({
     control,
     formState: { errors },
     setError,
+    clearErrors,
     watch,
     setValue,
   } = useForm<StockMovementFormData>({
@@ -98,6 +105,14 @@ export function StockMovementForm({
   const watchedType = watch("type");
   const { user } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
+
+  useEffect(() => {
+    if (serverError) {
+      setError("root", { message: serverError });
+    } else {
+      clearErrors("root");
+    }
+  }, [serverError, setError, clearErrors]);
 
   const productOptions = products.map((p) => ({
     value: p._id || p.id,
@@ -152,7 +167,12 @@ export function StockMovementForm({
     } catch (error) {
       console.error("Error recording movement:", error);
       const errorText = getApiErrorText(error);
-      const parsedErrors = parseFormError(errorText);
+      const serverErrors = extractApiErrorFields(error);
+      const parsedErrors =
+        Object.keys(serverErrors).length > 0
+          ? serverErrors
+          : parseFormError(errorText);
+
       if (parsedErrors.productId) {
         setError("productId", { message: parsedErrors.productId });
       } else if (parsedErrors.quantity) {

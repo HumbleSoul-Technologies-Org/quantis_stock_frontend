@@ -11,6 +11,7 @@ import {
 import { SalesTrendChart } from "@/components/dashboard/SalesTrendChart";
 import { LossAnalysisChart } from "@/components/dashboard/LossAnalysisChart";
 import { ProductPerformanceChart } from "@/components/dashboard/ProductPerformanceChart";
+import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart";
 import {
   TimePeriodControls,
   useTimePeriod,
@@ -46,7 +47,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 px-2 sm:px-0">
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 px-2 sm:px-0">
         <RevenueKPICard />
         <SalesKPICard />
         <LossesKPICard />
@@ -59,7 +60,9 @@ export default function DashboardPage() {
           <SalesTrendChart />
           <LossAnalysisChart />
           <ProductPerformanceChart />
+
           <RecentActivity />
+          <CategoryDistributionChart />
         </div>
       )}
       <div className="px-2 sm:px-0"></div>

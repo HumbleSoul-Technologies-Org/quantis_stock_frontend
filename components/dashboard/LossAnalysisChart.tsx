@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bar, Pie } from "react-chartjs-2";
 import { commonOptions, processLossAnalysisData } from "@/lib/chartUtils";
-import { AlertTriangle, TrendingDown, PieChart } from "lucide-react";
+import {
+  AlertTriangle,
+  TrendingDown,
+  PieChart,
+  BarChart3,
+  DollarSign,
+  Target,
+} from "lucide-react";
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -66,6 +73,15 @@ export function LossAnalysisChart() {
       ...commonOptions.plugins,
       tooltip: {
         ...commonOptions.plugins.tooltip,
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        borderColor: "#fff",
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: false,
+        titleFont: { size: 14, weight: "bold" as const },
+        bodyFont: { size: 12 },
         callbacks: {
           label: function (context: any) {
             const value = context.parsed.y;
@@ -120,6 +136,15 @@ export function LossAnalysisChart() {
       },
       tooltip: {
         ...commonOptions.plugins.tooltip,
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        borderColor: "#fff",
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: false,
+        titleFont: { size: 14, weight: "bold" as const },
+        bodyFont: { size: 12 },
         callbacks: {
           label: function (context: any) {
             const value = context.parsed;
@@ -154,13 +179,16 @@ export function LossAnalysisChart() {
               variant={chartType === "bar" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("bar")}
+              className="rounded-full"
             >
+              <BarChart3 className="h-4 w-4 mr-1" />
               Bar Chart
             </Button>
             <Button
               variant={chartType === "pie" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("pie")}
+              className="rounded-full"
             >
               <PieChart className="h-4 w-4 mr-1" />
               Pie Chart
@@ -169,18 +197,22 @@ export function LossAnalysisChart() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="text-center p-4 bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-lg">
+            <DollarSign className="h-6 w-6 text-red-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-red-700 dark:text-red-300">
               {formatCurrency(totalLosses)}
             </div>
-            <div className="text-sm text-muted-foreground">Total Losses</div>
+            <div className="text-sm text-red-600 dark:text-red-400">
+              Total Losses
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">
+          <div className="text-center p-4 bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg">
+            <Target className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
               {highestLossReason.reason}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-orange-600 dark:text-orange-400">
               Highest Loss Category ({highestLossReason.percentage}%)
             </div>
           </div>
@@ -194,20 +226,26 @@ export function LossAnalysisChart() {
           )}
         </div>
 
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center justify-between">
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="flex items-center space-x-1">
+              <Badge
+                variant="outline"
+                className="flex items-center space-x-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+              >
                 <TrendingDown className="h-3 w-3" />
                 <span>Stock Damage Tracking</span>
               </Badge>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-slate-600 dark:text-slate-400">
                 Losses calculated from stock movements with damage reason
               </span>
             </div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Last updated: {new Date().toLocaleDateString()}
+            </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {lossesData.map((item, index) => (
               <div key={item.reason} className="flex items-center space-x-2">
                 <div

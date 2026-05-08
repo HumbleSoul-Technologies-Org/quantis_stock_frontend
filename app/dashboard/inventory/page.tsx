@@ -64,6 +64,8 @@ function InventoryPageContent() {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedMovement, setSelectedMovement] =
     useState<StockMovement | null>(null);
+  const [stockMovementFormError, setStockMovementFormError] =
+    useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
@@ -197,6 +199,7 @@ function InventoryPageContent() {
 
   const handleStockIn = (product: Product) => {
     openDialogForAction("create stock movement", () => {
+      setStockMovementFormError("");
       setSelectedMovement(null);
       setSelectedProductId(product._id || product.id || "");
       setShowDialog(true);
@@ -205,6 +208,7 @@ function InventoryPageContent() {
 
   const handleEditMovement = (movement: StockMovement) => {
     openDialogForAction("update stock movement", () => {
+      setStockMovementFormError("");
       setSelectedMovement(movement);
       setShowDialog(true);
     });
@@ -499,16 +503,17 @@ function InventoryPageContent() {
             </DialogHeader>
             <StockMovementForm
               products={products}
+              serverError={stockMovementFormError}
               onSubmit={async (movement) => {
                 try {
                   await handleAddMovement(movement);
+                  setStockMovementFormError("");
                   setShowDialog(false);
                   setSelectedMovement(null);
                   setSelectedProductId("");
                   clearProductIdFromUrl();
                 } catch (error: unknown) {
-                  notifyError(
-                    "Stock movement failed",
+                  setStockMovementFormError(
                     error instanceof Error
                       ? error.message
                       : "Unable to save the stock movement. Please try again.",
@@ -516,6 +521,7 @@ function InventoryPageContent() {
                 }
               }}
               onCancel={() => {
+                setStockMovementFormError("");
                 setShowDialog(false);
                 setSelectedMovement(null);
                 setSelectedProductId("");

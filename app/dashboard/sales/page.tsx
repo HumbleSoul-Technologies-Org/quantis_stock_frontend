@@ -5,6 +5,7 @@ import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
+import { getApiErrorText } from "@/lib/errorParsers";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { Activity, Product, Sale, SaleReturn, SaleItem } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
@@ -66,11 +67,13 @@ function SalesPageContent() {
   const [receiptData, setReceiptData] = useState<
     (Sale & { products: Product[] }) | null
   >(null);
+  const [saleFormError, setSaleFormError] = useState<string>("");
 
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [selectedSaleForReturn, setSelectedSaleForReturn] =
     useState<Sale | null>(null);
+  const [salesReturnFormError, setSalesReturnFormError] = useState<string>("");
 
   // Returns list state
   const [showReturnsList, setShowReturnsList] = useState(false);
@@ -87,79 +90,90 @@ function SalesPageContent() {
   };
 
   const handleAddSale = async (sale: Sale) => {
-    if (sale.id || sale._id) {
-      // Update existing sale
-      const saleId = (sale.id as string) || (sale._id as string);
+    // Clear any previous errors when attempting to save again
+    setSaleFormError("");
 
-      await updateSale(saleId, sale);
+    try {
+      if (sale.id || sale._id) {
+        // Update existing sale
+        const saleId = (sale.id as string) || (sale._id as string);
 
-      // Log activity: sale updated
-      try {
-        const activity: Omit<Activity, "id" | "createdAt"> = {
-          type: "sale",
-          action: "update",
-          status: "success",
-          title: `Sale Updated: ${sale.saleNumber}`,
-          description: `Sale "${sale.saleNumber}" was updated`,
-          referenceId: saleId,
-          entityType: "sale",
-          entityId: saleId,
-          metadata: {
-            saleNumber: sale.saleNumber,
-            totalAmount: sale.totalAmount,
-            itemCount: sale.items?.length || 0,
-          },
-          businessId: user?.businessId,
-          createdBy: user?.id || user?._id || "",
-        };
-        await logActivity(activity);
-      } catch (error) {
-        console.warn("Failed to log sale update activity:", error);
+        await updateSale(saleId, sale);
+
+        // Log activity: sale updated
+        try {
+          const activity: Omit<Activity, "id" | "createdAt"> = {
+            type: "sale",
+            action: "update",
+            status: "success",
+            title: `Sale Updated: ${sale.saleNumber}`,
+            description: `Sale "${sale.saleNumber}" was updated`,
+            referenceId: saleId,
+            entityType: "sale",
+            entityId: saleId,
+            metadata: {
+              saleNumber: sale.saleNumber,
+              totalAmount: sale.totalAmount,
+              itemCount: sale.items?.length || 0,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id || "",
+          };
+          await logActivity(activity);
+        } catch (error) {
+          console.warn("Failed to log sale update activity:", error);
+        }
+
+        notifyResourceUpdated("Sale", sale.saleNumber);
+      } else {
+        // Create new sale
+        await addSale(sale);
+
+        // Log activity: sale created
+        try {
+          const activity: Omit<Activity, "id" | "createdAt"> = {
+            type: "sale",
+            action: "create",
+            status: "success",
+            title: `Sale Created: ${sale.saleNumber}`,
+            description: `New sale "${sale.saleNumber}" was created`,
+            referenceId: sale.id || sale._id,
+            entityType: "sale",
+            entityId: sale.id || sale._id,
+            metadata: {
+              saleNumber: sale.saleNumber,
+              totalAmount: sale.totalAmount,
+              itemCount: sale.items?.length || 0,
+            },
+            businessId: user?.businessId,
+            createdBy: user?.id || user?._id || "",
+          };
+          await logActivity(activity);
+        } catch (error) {
+          console.warn("Failed to log sale create activity:", error);
+        }
+
+        notifyResourceCreated("Sale", sale.saleNumber);
       }
+      notifySuccess(
+        "Sale Completed",
+        `${sale.saleNumber} recorded for ${formatCurrency(sale.totalAmount)}`,
+      );
 
-      notifyResourceUpdated("Sale", sale.saleNumber);
-    } else {
-      // Create new sale
-      await addSale(sale);
+      // Capture receipt data with products for display
+      setReceiptData({
+        ...sale,
+        products: safeProducts,
+      });
 
-      // Log activity: sale created
-      try {
-        const activity: Omit<Activity, "id" | "createdAt"> = {
-          type: "sale",
-          action: "create",
-          status: "success",
-          title: `Sale Created: ${sale.saleNumber}`,
-          description: `New sale "${sale.saleNumber}" was created`,
-          referenceId: sale.id || sale._id,
-          entityType: "sale",
-          entityId: sale.id || sale._id,
-          metadata: {
-            saleNumber: sale.saleNumber,
-            totalAmount: sale.totalAmount,
-            itemCount: sale.items?.length || 0,
-          },
-          businessId: user?.businessId,
-          createdBy: user?.id || user?._id || "",
-        };
-        await logActivity(activity);
-      } catch (error) {
-        console.warn("Failed to log sale create activity:", error);
-      }
-
-      notifyResourceCreated("Sale", sale.saleNumber);
+      // Only clear editing sale on success
+      setEditingSale(undefined);
+    } catch (error) {
+      const errorMsg = getApiErrorText(error);
+      // Set error state in form instead of closing it
+      setSaleFormError(errorMsg);
+      console.error("Error saving sale:", error);
     }
-    notifySuccess(
-      "Sale Completed",
-      `${sale.saleNumber} recorded for ${formatCurrency(sale.totalAmount)}`,
-    );
-
-    // Capture receipt data with products for display
-    setReceiptData({
-      ...sale,
-      products: safeProducts,
-    });
-
-    setEditingSale(undefined);
   };
 
   const handleDeleteSale = (id: string) => {
@@ -216,43 +230,52 @@ function SalesPageContent() {
 
   const handleReturnSale = (sale: Sale) => {
     openDialogForAction("process sale return", () => {
+      setSalesReturnFormError("");
       setSelectedSaleForReturn(sale);
       setReturnDialogOpen(true);
     });
   };
 
   const handleProcessReturn = async (saleReturn: SaleReturn) => {
-    await processSaleReturn(saleReturn);
-
-    // Log activity: return created
     try {
-      const activity: Omit<Activity, "id" | "createdAt"> = {
-        type: "return",
-        action: "create",
-        status: "success",
-        title: `Return Processed: ${saleReturn.reference}`,
-        description: `Return "${saleReturn.reference}" was processed for ${formatCurrency(saleReturn.totalAmount)}`,
-        referenceId: saleReturn.id || saleReturn._id,
-        entityType: "return",
-        entityId: saleReturn.id || saleReturn._id,
-        metadata: {
-          reference: saleReturn.reference,
-          totalAmount: saleReturn.totalAmount,
-          itemCount: saleReturn.items?.length || 0,
-          originalSaleId: saleReturn.saleId,
-        },
-        businessId: user?.businessId,
-        createdBy: user?.id || user?._id || "",
-      };
-      await logActivity(activity);
-    } catch (error) {
-      console.warn("Failed to log return activity:", error);
-    }
+      setSalesReturnFormError("");
+      await processSaleReturn(saleReturn);
 
-    notifySuccess(
-      "Return Processed",
-      `Return ${saleReturn.reference} recorded for ${formatCurrency(saleReturn.totalAmount)}`,
-    );
+      // Log activity: return created
+      try {
+        const activity: Omit<Activity, "id" | "createdAt"> = {
+          type: "return",
+          action: "create",
+          status: "success",
+          title: `Return Processed: ${saleReturn.reference}`,
+          description: `Return "${saleReturn.reference}" was processed for ${formatCurrency(saleReturn.totalAmount)}`,
+          referenceId: saleReturn.id || saleReturn._id,
+          entityType: "return",
+          entityId: saleReturn.id || saleReturn._id,
+          metadata: {
+            reference: saleReturn.reference,
+            totalAmount: saleReturn.totalAmount,
+            itemCount: saleReturn.items?.length || 0,
+            originalSaleId: saleReturn.saleId,
+          },
+          businessId: user?.businessId,
+          createdBy: user?.id || user?._id || "",
+        };
+        await logActivity(activity);
+      } catch (error) {
+        console.warn("Failed to log return activity:", error);
+      }
+
+      notifySuccess(
+        "Return Processed",
+        `Return ${saleReturn.reference} recorded for ${formatCurrency(saleReturn.totalAmount)}`,
+      );
+    } catch (error: unknown) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to process return";
+      setSalesReturnFormError(errorMsg);
+      console.error("Error processing return:", error);
+    }
   };
 
   const userSales =
@@ -458,10 +481,14 @@ function SalesPageContent() {
               <SalesForm
                 products={products}
                 onSubmit={handleAddSale}
-                onCancel={() => {}}
+                onCancel={() => {
+                  setEditingSale(undefined);
+                  setSaleFormError("");
+                }}
                 currentUserId={user.id || user._id || ""}
                 currentUsername={user.username}
                 sale={editingSale}
+                serverError={saleFormError}
               />
             )}
           </CardContent>
@@ -695,10 +722,12 @@ function SalesPageContent() {
         onClose={() => {
           setReturnDialogOpen(false);
           setSelectedSaleForReturn(null);
+          setSalesReturnFormError("");
         }}
         onSubmit={handleProcessReturn}
         sale={selectedSaleForReturn}
         products={safeProducts}
+        serverError={salesReturnFormError}
       />
 
       {/* Today's Returns List Section */}

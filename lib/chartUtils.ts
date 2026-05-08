@@ -690,6 +690,40 @@ export const processKPIData = (sales: Sale[], products: Product[], stockMovement
   };
 };
 
+export const processCategoryDistributionData = (
+  products: Product[],
+  metric: 'count' | 'stock_value' = 'count',
+) => {
+  const categoryData: Record<string, { count: number; stockValue: number; products: Product[] }> = {};
+
+  products.forEach((product) => {
+    const category = getProductCategory(product);
+    
+    if (!categoryData[category]) {
+      categoryData[category] = { count: 0, stockValue: 0, products: [] };
+    }
+
+    categoryData[category].count += 1;
+    categoryData[category].stockValue += product.currentStock * product.unitPrice;
+    categoryData[category].products.push(product);
+  });
+
+  const totalValue = Object.values(categoryData).reduce(
+    (sum, data) => sum + (metric === 'count' ? data.count : data.stockValue),
+    0
+  );
+
+  return Object.entries(categoryData)
+    .map(([category, data]) => ({
+      category,
+      value: metric === 'count' ? data.count : data.stockValue,
+      percentage: totalValue > 0 ? ((metric === 'count' ? data.count : data.stockValue) / totalValue) * 100 : 0,
+      productCount: data.count,
+      stockValue: data.stockValue,
+    }))
+    .sort((a, b) => b.value - a.value);
+};
+
 // Generate mock data for development
 export const generateMockData = {
   salesTrend: () => {

@@ -268,7 +268,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 "Unable to sync with server. Please refresh and try again.",
           5000,
         );
-        return undefined;
+        throw error;
       }
     },
     [toastError, user?.token],
@@ -421,13 +421,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(() => {
     const state = storage.getState();
 
-    setProducts(state.products);
-    setSuppliers(state.suppliers);
-    setSales(state.sales);
-    setSaleReturns(state.saleReturns);
-    setStockMovements(state.stockMovements);
-    setActivities(state.activities);
-    setSecurityAudits(state.securityAudits);
+    setProducts(Array.isArray(state.products) ? state.products : []);
+    setSuppliers(Array.isArray(state.suppliers) ? state.suppliers : []);
+    setSales(Array.isArray(state.sales) ? state.sales : []);
+    setSaleReturns(Array.isArray(state.saleReturns) ? state.saleReturns : []);
+    setStockMovements(
+      Array.isArray(state.stockMovements) ? state.stockMovements : [],
+    );
+    setActivities(Array.isArray(state.activities) ? state.activities : []);
+    setSecurityAudits(
+      Array.isArray(state.securityAudits) ? state.securityAudits : [],
+    );
   }, []);
 
   // Initialize encrypted storage on mount
@@ -540,18 +544,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (inventoryData !== undefined && inventoryData !== null) {
-      setStockMovements(inventoryData);
+      const validData = Array.isArray(inventoryData) ? inventoryData : [];
+      setStockMovements(validData);
       const state = storage.getState();
-      state.stockMovements = inventoryData;
+      state.stockMovements = validData;
       storage.saveState(state);
     }
   }, [inventoryData]);
 
   useEffect(() => {
     if (salesData !== undefined && salesData !== null) {
-      setSales(salesData);
+      const validData = Array.isArray(salesData) ? salesData : [];
+      setSales(validData);
       const state = storage.getState();
-      state.sales = salesData;
+      state.sales = validData;
       storage.saveState(state);
     }
   }, [salesData]);
@@ -649,7 +655,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getSaleReturns = useCallback(() => saleReturns, [saleReturns]);
   const getSaleReturnById = useCallback(
     (id: string) => {
-      return saleReturns.find((r) => r.id === id || (r as any)._id === id);
+      return (Array.isArray(saleReturns) ? saleReturns : []).find(
+        (r) => r.id === id || (r as any)._id === id,
+      );
     },
     [saleReturns],
   );
@@ -685,6 +693,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await refetchProducts();
       } else {
         persistProducts(previousProducts);
+        throw new Error("Failed to save product. Please try again.");
       }
     },
     [
@@ -723,6 +732,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await refetchProducts();
       } else {
         persistProducts(previousProducts);
+        throw new Error("Failed to update product. Please try again.");
       }
     },
     [
@@ -913,21 +923,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       persistStockMovements([...stockMovements, ...newMovements]);
       persistSales(optimisticSales);
 
-      const response = await sendApiRequest(
-        "POST",
-        "/sales/create",
-        saleWithBusinessId,
-      );
-      if (response?.ok) {
-        await Promise.all([
-          refetchSales(),
-          refetchProducts(),
-          refetchInventory(),
-        ]);
-      } else {
+      try {
+        const response = await sendApiRequest(
+          "POST",
+          "/sales/create",
+          saleWithBusinessId,
+        );
+
+        if (response?.ok) {
+          await Promise.all([
+            refetchSales(),
+            refetchProducts(),
+            refetchInventory(),
+          ]);
+        } else {
+          throw new Error("Failed to create sale. Please try again.");
+        }
+      } catch (error) {
         persistSales(previousSales);
         persistProducts(previousProducts);
         persistStockMovements(previousStockMovements);
+        throw error;
       }
     },
     [
@@ -1039,6 +1055,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }) || originalSale.items,
       };
 
+      // Capture state before optimistic update
+      const previousProducts = products;
+      const previousSales = sales;
+      const previousStockMovements = stockMovements;
+
       const localAction = () => {
         const movementDeltas = calculateStockMovementsDelta(
           originalSale.items,
@@ -1128,17 +1149,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
       };
 
       localAction();
-      await sendApiRequest("PUT", `/sales/${id}/update`, saleWithBusinessId);
+      try {
+        const response = await sendApiRequest(
+          "PUT",
+          `/sales/${id}/update`,
+          saleWithBusinessId,
+        );
+
+        if (!response?.ok) {
+          throw new Error("Failed to update sale. Please try again.");
+        }
+      } catch (error) {
+        persistSales(previousSales);
+        persistProducts(previousProducts);
+        persistStockMovements(previousStockMovements);
+        throw error;
+      }
     },
     [
       sales,
       stockMovements,
       products,
+      persistProducts,
+      persistSales,
+      persistStockMovements,
       user?.token,
       user?.businessId,
       user?.id,
       user?._id,
       sendApiRequest,
+      resolveReferenceId,
+      calculateStockMovementsDelta,
     ],
   );
 
@@ -1272,8 +1313,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       };
 
+      const previousSales = sales;
+      const previousProducts = products;
+      const previousStockMovements = stockMovements;
+
       localAction();
-      await sendApiRequest("POST", "/sales/return", returnWithBusinessId);
+      try {
+        const response = await sendApiRequest(
+          "POST",
+          "/sales/return",
+          returnWithBusinessId,
+        );
+
+        if (!response?.ok) {
+          throw new Error("Failed to process sale return. Please try again.");
+        }
+      } catch (error) {
+        persistSales(previousSales);
+        persistProducts(previousProducts);
+        persistStockMovements(previousStockMovements);
+        throw error;
+      }
 
       await Promise.all([
         queryClient.invalidateQueries({

@@ -7,19 +7,25 @@ import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { AlertCircle } from "lucide-react";
 import { uploadFile } from "@/lib/cloudinary";
-import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
+import {
+  getApiErrorText,
+  parseFormError,
+  extractApiErrorFields,
+} from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
 
 interface SupplierFormProps {
   supplier?: Supplier;
   onSubmit: (supplier: Supplier) => Promise<void> | void;
   onCancel: () => void;
+  serverError?: string;
 }
 
 export function SupplierForm({
   supplier,
   onSubmit,
   onCancel,
+  serverError = "",
 }: SupplierFormProps) {
   const getInitialFormState = (supplier?: Supplier): Partial<Supplier> =>
     supplier
@@ -125,8 +131,19 @@ export function SupplierForm({
     setErrors({});
   }, [supplier]);
 
+  // Update general error when serverError prop changes
   useEffect(() => {
-    if (errors.general) {
+    if (serverError) {
+      setErrors((prev) => ({
+        ...prev,
+        general: serverError,
+      }));
+    }
+  }, [serverError]);
+
+  // Clear general error when form data changes (allow user to retry)
+  useEffect(() => {
+    if (errors.general && !serverError) {
       const { general, ...rest } = errors;
       setErrors(rest);
     }
@@ -269,7 +286,12 @@ export function SupplierForm({
     } catch (error) {
       console.error("Failed to save supplier:", error);
       const errorText = getApiErrorText(error);
-      const parsedErrors = parseFormError(errorText);
+      const serverErrors = extractApiErrorFields(error);
+      const parsedErrors =
+        Object.keys(serverErrors).length > 0
+          ? serverErrors
+          : parseFormError(errorText);
+
       if (Object.keys(parsedErrors).length > 0) {
         setErrors(parsedErrors);
       } else {

@@ -32,6 +32,8 @@ interface KPICardProps {
   trend?: "up" | "down" | "neutral";
   sparklineData?: number[];
   formatCurrency: (value: number) => string;
+  accentColor?: string;
+  theme?: "blue" | "teal" | "red" | "purple";
 }
 
 function KPICard({
@@ -43,7 +45,45 @@ function KPICard({
   trend = "neutral",
   sparklineData,
   formatCurrency,
+  accentColor = "from-slate-400 to-slate-500",
+  theme = "blue",
 }: KPICardProps) {
+  const themeMap: Record<
+    string,
+    { accent: string; line: string; fill: string }
+  > = {
+    blue: {
+      accent: "from-blue-400 to-sky-500",
+      line: "rgba(59, 130, 246, 0.95)",
+      fill: "rgba(59, 130, 246, 0.18)",
+    },
+    teal: {
+      accent: "from-emerald-400 to-teal-500",
+      line: "rgba(16, 185, 129, 0.95)",
+      fill: "rgba(16, 185, 129, 0.18)",
+    },
+    red: {
+      accent: "from-rose-400 to-red-500",
+      line: "rgba(244, 63, 94, 0.95)",
+      fill: "rgba(244, 63, 94, 0.18)",
+    },
+    purple: {
+      accent: "from-violet-500 to-fuchsia-500",
+      line: "rgba(168, 85, 247, 0.95)",
+      fill: "rgba(168, 85, 247, 0.18)",
+    },
+  };
+
+  const themeConfig = themeMap[theme] ?? {
+    accent: accentColor,
+    line: "rgba(56, 189, 248, 0.95)",
+    fill: "rgba(56, 189, 248, 0.16)",
+  };
+
+  const accentClasses = themeConfig.accent;
+  const sparklineColor = themeConfig.line;
+  const sparklineFill = themeConfig.fill;
+
   const sparklineOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -54,6 +94,9 @@ function KPICard({
       tooltip: {
         enabled: false,
       },
+    },
+    layout: {
+      padding: 0,
     },
     scales: {
       x: {
@@ -68,13 +111,8 @@ function KPICard({
         radius: 0,
       },
       line: {
-        borderWidth: 2,
-        borderColor:
-          trend === "up"
-            ? "var(--chart-1)"
-            : trend === "down"
-              ? "var(--chart-3)"
-              : "var(--chart-2)",
+        borderWidth: 3,
+        borderColor: sparklineColor,
       },
     },
   };
@@ -84,49 +122,63 @@ function KPICard({
     datasets: [
       {
         data: sparklineData || [],
-        fill: false,
-        tension: 0.4,
+        fill: true,
+        tension: 0.35,
+        backgroundColor: sparklineFill,
+        borderColor: sparklineColor,
       },
     ],
   };
 
+  const trendBadgeVariant =
+    trend === "up" ? "default" : trend === "down" ? "destructive" : "secondary";
+
+  const displayValue =
+    typeof value === "number" && title !== "Total Sales"
+      ? formatCurrency(value)
+      : value;
+
   return (
-    <Card className="relative dark:bg-slate-800 dark:border-0 overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className="text-muted-foreground">{icon}</div>
+    <Card className="flex h-full flex-col min-h-[18rem] relative overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/95 shadow-[0_20px_45px_-20px_rgba(15,23,42,0.18)] transition hover:shadow-[0_24px_70px_-24px_rgba(15,23,42,0.25)] dark:border-slate-700/70 dark:bg-slate-950/80">
+      <div
+        className={`absolute inset-y-0 left-0 w-1 bg-linear-to-b ${accentClasses}`}
+      />
+      <CardHeader className="flex flex-col justify-between gap-4 px-6 pt-5 pb-3 sm:flex-row sm:items-start">
+        <div className="space-y-1">
+          <CardTitle className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+            {title}
+          </CardTitle>
+          {changeLabel && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {changeLabel}
+            </p>
+          )}
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-200">
+          {icon}
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="text-2xl font-bold">
-              {typeof value === "number" && title !== "Total Sales"
-                ? formatCurrency(value)
-                : value}
+      <CardContent className="px-6 pb-6 pt-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-4">
+            <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">
+              {displayValue}
             </div>
             {change !== undefined && (
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge
-                  variant={
-                    trend === "up"
-                      ? "default"
-                      : trend === "down"
-                        ? "destructive"
-                        : "secondary"
-                  }
-                  className="flex items-center space-x-1"
+                  variant={trendBadgeVariant}
+                  className="rounded-full px-3 py-1.5 text-xs font-semibold"
                 >
                   {trend === "up" ? (
                     <TrendingUp className="h-3 w-3" />
                   ) : trend === "down" ? (
                     <TrendingDown className="h-3 w-3" />
                   ) : null}
-                  <span className="text-xs">{formatPercentage(change)}</span>
+                  {formatPercentage(change)}
                 </Badge>
                 {changeLabel && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     {changeLabel}
                   </span>
                 )}
@@ -134,7 +186,7 @@ function KPICard({
             )}
           </div>
           {sparklineData && (
-            <div className="h-12 w-24">
+            <div className="relative h-20 w-full sm:w-36 sm:max-w-[10rem]">
               <Line data={sparklineChartData} options={sparklineOptions} />
             </div>
           )}
@@ -160,6 +212,7 @@ export function RevenueKPICard() {
       changeLabel="vs last month"
       icon={<DollarSign className="h-4 w-4" />}
       trend={kpiData.revenue.change >= 0 ? "up" : "down"}
+      theme="blue"
       sparklineData={recentSales.length > 0 ? recentSales : undefined}
       formatCurrency={formatCurrency}
     />
@@ -182,6 +235,7 @@ export function SalesKPICard() {
       changeLabel="vs last month"
       icon={<ShoppingCart className="h-4 w-4" />}
       trend={kpiData.sales.change >= 0 ? "up" : "down"}
+      theme="teal"
       sparklineData={sparklineData}
       formatCurrency={formatCurrency}
     />
@@ -209,6 +263,7 @@ export function LossesKPICard() {
       changeLabel="this month"
       icon={<AlertTriangle className="h-4 w-4" />}
       trend={kpiData.losses.change >= 0 ? "down" : "up"}
+      theme="red"
       sparklineData={sparklineData}
       formatCurrency={formatCurrency}
     />
@@ -240,6 +295,7 @@ export function InventoryValueKPICard() {
       changeLabel={`${lowStockCount} low stock items`}
       icon={<Package className="h-4 w-4" />}
       trend={kpiData.inventory.change >= 0 ? "up" : "down"}
+      theme="purple"
       sparklineData={sparklineData}
       formatCurrency={formatCurrency}
     />

@@ -15,6 +15,7 @@ interface SupplierDialogProps {
   supplier?: Supplier;
   onSubmit: (supplier: Supplier) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
+  serverError?: string;
 }
 
 export function SupplierDialog({
@@ -22,6 +23,7 @@ export function SupplierDialog({
   supplier,
   onSubmit,
   onOpenChange,
+  serverError = "",
 }: SupplierDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -44,6 +46,7 @@ export function SupplierDialog({
           supplier={supplier}
           onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
+          serverError={serverError}
         />
       </DialogContent>
     </Dialog>

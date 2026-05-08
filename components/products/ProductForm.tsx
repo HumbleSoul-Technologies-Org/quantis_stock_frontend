@@ -12,7 +12,11 @@ import {
   getFieldSchemaForCategory,
   FieldDefinition,
 } from "@/lib/business-config";
-import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
+import {
+  getApiErrorText,
+  parseFormError,
+  extractApiErrorFields,
+} from "@/lib/errorParsers";
 
 import { useAuth } from "@/context/AuthContext";
 
@@ -22,6 +26,7 @@ interface ProductFormProps {
   categories?: string[];
   onSubmit: (product: Product) => Promise<void> | void;
   onCancel: () => void;
+  serverError?: string;
 }
 
 export function ProductForm({
@@ -30,6 +35,7 @@ export function ProductForm({
   categories = [],
   onSubmit,
   onCancel,
+  serverError = "",
 }: ProductFormProps) {
   const { config: businessConfig, retailSubType } = useBusinessConfig();
   const { user } = useAuth();
@@ -161,7 +167,23 @@ export function ProductForm({
     }
   }, [formData.category]);
 
-  // Initialize custom category and attributes when editing existing product
+  // Update general error when serverError prop changes
+  useEffect(() => {
+    if (serverError) {
+      setErrors((prev) => ({
+        ...prev,
+        general: serverError,
+      }));
+    }
+  }, [serverError]);
+
+  // Clear general error when form data changes (allow user to retry)
+  useEffect(() => {
+    if (errors.general && !serverError) {
+      const { general, ...rest } = errors;
+      setErrors(rest);
+    }
+  }, [formData, customCategory, customAttributesList]);
   useEffect(() => {
     if (product && product.customCategory) {
       setFormData((prev) => ({ ...prev, category: "Other" }));
@@ -194,13 +216,6 @@ export function ProductForm({
       }));
     }
   }, [product?.id]);
-
-  useEffect(() => {
-    if (errors.general) {
-      const { general, ...rest } = errors;
-      setErrors(rest);
-    }
-  }, [formData, customCategory, customAttributesList]);
 
   // Generic field renderer for any field type
   const renderField = (fieldDef: FieldDefinition) => {
@@ -499,7 +514,12 @@ export function ProductForm({
     } catch (error) {
       console.error("Failed to save product:", error);
       const errorText = getApiErrorText(error);
-      const parsedErrors = parseFormError(errorText);
+      const serverErrors = extractApiErrorFields(error);
+      const parsedErrors =
+        Object.keys(serverErrors).length > 0
+          ? serverErrors
+          : parseFormError(errorText);
+
       if (Object.keys(parsedErrors).length > 0) {
         setErrors(parsedErrors);
       } else {

@@ -40,6 +40,7 @@ function ProductsPageContent() {
   const [viewingProduct, setViewingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [productDialogError, setProductDialogError] = useState<string>("");
 
   const { user } = useAuth();
 
@@ -52,6 +53,9 @@ function ProductsPageContent() {
   ).filter(Boolean);
 
   const handleAddProduct = async (product: Product) => {
+    // Clear any previous errors when attempting to save again
+    setProductDialogError("");
+
     try {
       if ((product && product.id) || product._id) {
         // Update existing product
@@ -87,6 +91,9 @@ function ProductsPageContent() {
           title: "Product Updated",
           description: `"${product.name}" has been updated successfully.`,
         });
+        // Only close dialog on successful update
+        setShowDialog(false);
+        setEditingProduct(undefined);
       } else {
         // Create new product
         await addProduct(product);
@@ -121,17 +128,15 @@ function ProductsPageContent() {
           title: "Product Created",
           description: `"${product.name}" has been created successfully.`,
         });
+        // Only close dialog on successful create
+        setShowDialog(false);
+        setEditingProduct(undefined);
       }
-      setShowDialog(false);
-      setEditingProduct(undefined);
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "Failed to save product";
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMsg,
-      });
+      // Set error state in dialog instead of closing it
+      setProductDialogError(errorMsg);
       console.error("Error saving product:", error);
     }
   };
@@ -234,8 +239,10 @@ function ProductsPageContent() {
           setShowDialog(open);
           if (!open) {
             setEditingProduct(undefined);
+            setProductDialogError("");
           }
         }}
+        serverError={productDialogError}
       />
 
       <ProductDetailsDialog

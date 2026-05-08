@@ -17,7 +17,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/context/SettingsContext";
-import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
+import {
+  getApiErrorText,
+  parseFormError,
+  extractApiErrorFields,
+} from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
 import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 
@@ -27,6 +31,7 @@ interface SalesReturnDialogProps {
   onSubmit: (saleReturn: SaleReturn) => void;
   sale: Sale | null;
   products: Product[];
+  serverError?: string;
 }
 
 export function SalesReturnDialog({
@@ -35,6 +40,7 @@ export function SalesReturnDialog({
   onSubmit,
   sale,
   products,
+  serverError,
 }: SalesReturnDialogProps) {
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
@@ -68,6 +74,12 @@ export function SalesReturnDialog({
       setFormError(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (serverError) {
+      setFormError(serverError);
+    }
+  }, [serverError]);
 
   const getProductName = (productId?: string) => {
     return (
@@ -136,7 +148,11 @@ export function SalesReturnDialog({
     } catch (error) {
       console.error("Failed to process return:", error);
       const errorText = getApiErrorText(error);
-      const parsedErrors = parseFormError(errorText);
+      const serverErrors = extractApiErrorFields(error);
+      const parsedErrors =
+        Object.keys(serverErrors).length > 0
+          ? serverErrors
+          : parseFormError(errorText);
       setFormError(
         parsedErrors.reason ||
           parsedErrors.refundAmount ||

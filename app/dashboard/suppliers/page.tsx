@@ -39,6 +39,7 @@ function SuppliersPageContent() {
     Supplier | undefined
   >();
   const [searchTerm, setSearchTerm] = useState("");
+  const [supplierFormError, setSupplierFormError] = useState<string>("");
 
   const { user } = useAuth();
 
@@ -54,6 +55,9 @@ function SuppliersPageContent() {
   );
 
   const handleSaveSupplier = async (supplier: Supplier) => {
+    // Clear any previous errors when attempting to save again
+    setSupplierFormError("");
+
     try {
       const supplierId = supplier.id ?? supplier._id;
       if (supplierId) {
@@ -89,6 +93,9 @@ function SuppliersPageContent() {
           title: "Supplier Updated",
           description: `"${supplier.name}" has been updated successfully.`,
         });
+        // Only close dialog on successful update
+        setShowDialog(false);
+        setEditingSupplier(undefined);
       } else {
         // Create new supplier
         await addSupplier(supplier);
@@ -121,19 +128,16 @@ function SuppliersPageContent() {
           title: "Supplier Created",
           description: `"${supplier.name}" has been created successfully.`,
         });
+        // Only close dialog on successful create
+        setShowDialog(false);
+        setEditingSupplier(undefined);
       }
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "Failed to save supplier";
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMsg,
-      });
+      // Set error state in form instead of closing it
+      setSupplierFormError(errorMsg);
       console.error("Failed to save supplier:", error);
-    } finally {
-      setShowDialog(false);
-      setEditingSupplier(undefined);
     }
   };
 
@@ -195,6 +199,7 @@ function SuppliersPageContent() {
     setShowDialog(open);
     if (!open) {
       setEditingSupplier(undefined);
+      setSupplierFormError("");
     }
   };
 
@@ -254,6 +259,7 @@ function SuppliersPageContent() {
         onOpenChange={handleDialogOpenChange}
         onSubmit={handleSaveSupplier}
         supplier={editingSupplier}
+        serverError={supplierFormError}
       />
     </div>
   );

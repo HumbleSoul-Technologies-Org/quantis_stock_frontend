@@ -18,7 +18,7 @@ export function InventoryStats({ products, movements }: InventoryStatsProps) {
   ).length;
 
   // Calculate restocks needed
-  const restocksNeeded = products.filter(
+  const restocksNeeded = (Array.isArray(products) ? products : []).filter(
     (p) => p.currentStock <= p.reorderLevel,
   ).length;
 
@@ -28,7 +28,10 @@ export function InventoryStats({ products, movements }: InventoryStatsProps) {
     .reduce((sum, m) => sum + m.quantity, 0);
 
   // Calculate total storage capacity
-  const totalCapacity = products.reduce((sum, p) => sum + p.currentStock, 0);
+  const totalCapacity = (Array.isArray(products) ? products : []).reduce(
+    (sum, p) => sum + p.currentStock,
+    0,
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

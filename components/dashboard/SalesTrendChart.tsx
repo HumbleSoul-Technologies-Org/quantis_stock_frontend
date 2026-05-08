@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Line } from "react-chartjs-2";
 import { commonOptions, processSalesTrendData } from "@/lib/chartUtils";
-import { CalendarDays, TrendingUp } from "lucide-react";
+import {
+  CalendarDays,
+  TrendingUp,
+  ShoppingCart,
+  DollarSign,
+  BarChart3,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -45,7 +53,20 @@ export function SalesTrendChart() {
         label: "Sales Count",
         data: salesData.map((item) => item.sales),
         borderColor: "#14b8a6",
-        backgroundColor: "rgba(20, 184, 166, 0.15)",
+        backgroundColor: (context: any) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return "rgba(20, 184, 166, 0.15)";
+          const gradient = ctx.createLinearGradient(
+            0,
+            chartArea.top,
+            0,
+            chartArea.bottom,
+          );
+          gradient.addColorStop(0, "rgba(20, 184, 166, 0.3)");
+          gradient.addColorStop(1, "rgba(20, 184, 166, 0.05)");
+          return gradient;
+        },
         fill: true,
         tension: 0.4,
         pointBackgroundColor: "#14b8a6",
@@ -53,12 +74,28 @@ export function SalesTrendChart() {
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
+        borderWidth: 3,
+        shadowColor: "rgba(20, 184, 166, 0.5)",
+        shadowBlur: 10,
       },
       {
         label: "Revenue",
         data: salesData.map((item) => item.revenue),
         borderColor: "#3b82f6",
-        backgroundColor: "rgba(59, 130, 246, 0.15)",
+        backgroundColor: (context: any) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return "rgba(59, 130, 246, 0.15)";
+          const gradient = ctx.createLinearGradient(
+            0,
+            chartArea.top,
+            0,
+            chartArea.bottom,
+          );
+          gradient.addColorStop(0, "rgba(59, 130, 246, 0.3)");
+          gradient.addColorStop(1, "rgba(59, 130, 246, 0.05)");
+          return gradient;
+        },
         fill: true,
         tension: 0.4,
         pointBackgroundColor: "#3b82f6",
@@ -66,6 +103,9 @@ export function SalesTrendChart() {
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
+        borderWidth: 3,
+        shadowColor: "rgba(59, 130, 246, 0.5)",
+        shadowBlur: 10,
         yAxisID: "y1",
       },
     ],
@@ -73,6 +113,10 @@ export function SalesTrendChart() {
 
   const chartOptions = {
     ...commonOptions,
+    animation: {
+      duration: 1200,
+      easing: "easeOutQuart" as const,
+    },
     interaction: {
       mode: "index" as const,
       intersect: false,
@@ -81,10 +125,20 @@ export function SalesTrendChart() {
       ...commonOptions.plugins,
       tooltip: {
         ...commonOptions.plugins.tooltip,
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        borderColor: "rgba(255, 255, 255, 0.2)",
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
         callbacks: {
+          title: function (context: any) {
+            return context[0].label;
+          },
           label: function (context: any) {
             if (context.datasetIndex === 0) {
-              return `Sales: ${context.parsed.y.toLocaleString()}`;
+              return `Sales Count: ${context.parsed.y.toLocaleString()}`;
             } else {
               return `Revenue: ${formatCurrency(context.parsed.y)}`;
             }
@@ -168,45 +222,58 @@ export function SalesTrendChart() {
               variant={timePeriod === "monthly" ? "default" : "outline"}
               size="sm"
               onClick={() => setTimePeriod("monthly")}
+              className="rounded-full"
             >
+              <BarChart3 className="h-4 w-4 mr-1" />
               Monthly
             </Button>
             <Button
               variant={timePeriod === "weekly" ? "default" : "outline"}
               size="sm"
               onClick={() => setTimePeriod("weekly")}
+              className="rounded-full"
             >
+              <Calendar className="h-4 w-4 mr-1" />
               Weekly
             </Button>
             <Button
               variant={timePeriod === "daily" ? "default" : "outline"}
               size="sm"
               onClick={() => setTimePeriod("daily")}
+              className="rounded-full"
             >
+              <Clock className="h-4 w-4 mr-1" />
               Daily
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="text-center p-4 bg-linear-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-lg">
+            <ShoppingCart className="h-6 w-6 text-teal-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-teal-700 dark:text-teal-300">
               {totalSales.toLocaleString()}
             </div>
-            <div className="text-sm text-muted-foreground">Total Sales</div>
+            <div className="text-sm text-teal-600 dark:text-teal-400">
+              Total Sales
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
+          <div className="text-center p-4 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
+            <DollarSign className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
               {formatCurrency(totalRevenue)}
             </div>
-            <div className="text-sm text-muted-foreground">Total Revenue</div>
+            <div className="text-sm text-blue-600 dark:text-blue-400">
+              Total Revenue
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
+          <div className="text-center p-4 bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg">
+            <TrendingUp className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
               {formatCurrency(avgPeriodRevenue)}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-purple-600 dark:text-purple-400">
               Avg{" "}
               {timePeriod === "monthly"
                 ? "Monthly"
@@ -218,21 +285,24 @@ export function SalesTrendChart() {
           </div>
         </div>
 
-        <div className="h-80">
+        <div className="h-64 md:h-80 lg:h-96">
           <Line data={chartData} options={chartOptions} />
         </div>
 
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
           <div className="flex items-center space-x-4">
-            <Badge variant="outline" className="flex items-center space-x-1">
+            <Badge
+              variant="outline"
+              className="flex items-center space-x-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+            >
               <CalendarDays className="h-3 w-3" />
               <span>2026 YTD</span>
             </Badge>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-slate-600 dark:text-slate-400">
               Showing sales performance across all months
             </span>
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
             Last updated: {new Date().toLocaleDateString()}
           </div>
         </div>

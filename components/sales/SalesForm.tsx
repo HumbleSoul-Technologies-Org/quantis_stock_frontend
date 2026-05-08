@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useContext, useRef } from "react";
 import { Sale, SaleItem, Product } from "@/lib/types";
-import { getApiErrorText, parseFormError } from "@/lib/errorParsers";
+import {
+  getApiErrorText,
+  parseFormError,
+  extractApiErrorFields,
+} from "@/lib/errorParsers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,6 +39,7 @@ interface SalesFormProps {
   currentUsername: string;
   sale?: Sale; // Optional: if provided, form is in edit mode
   RecieptPreview?: (sale: Sale) => Promise<void> | void; // Optional: list of items already sold (for editing)
+  serverError?: string;
 }
 
 export function SalesForm({
@@ -45,6 +50,7 @@ export function SalesForm({
   currentUsername,
   sale,
   RecieptPreview,
+  serverError = "",
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
   const formatCurrencyShort = useFormatCurrencyShort();
@@ -85,8 +91,19 @@ export function SalesForm({
     }
   }, [sale]);
 
+  // Update general error when serverError prop changes
   useEffect(() => {
-    if (errors.general) {
+    if (serverError) {
+      setErrors((prev) => ({
+        ...prev,
+        general: serverError,
+      }));
+    }
+  }, [serverError]);
+
+  // Clear general error when form data changes (allow user to retry)
+  useEffect(() => {
+    if (errors.general && !serverError) {
       const { general, ...rest } = errors;
       setErrors(rest);
     }
@@ -269,7 +286,12 @@ export function SalesForm({
     } catch (error) {
       console.error("Failed to complete sale:", error);
       const errorText = getApiErrorText(error);
-      const parsedErrors = parseFormError(errorText);
+      const serverErrors = extractApiErrorFields(error);
+      const parsedErrors =
+        Object.keys(serverErrors).length > 0
+          ? serverErrors
+          : parseFormError(errorText);
+
       if (Object.keys(parsedErrors).length > 0) {
         setErrors(parsedErrors);
       } else {
