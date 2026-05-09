@@ -3,7 +3,7 @@
 import { SaleReturn } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
+import { useSettings } from "@/context/SettingsContext";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
@@ -16,7 +16,7 @@ export function SalesReturnsList({
   returns,
   onViewDetails,
 }: SalesReturnsListProps) {
-  const formatCurrencyShort = useFormatCurrencyShort();
+  const { formatCurrency } = useSettings();
   const [expandedReturn, setExpandedReturn] = useState<string | null>(null);
 
   if (returns.length === 0) {
@@ -93,7 +93,7 @@ export function SalesReturnsList({
                       Refund Amount
                     </p>
                     <p className="text-sm font-bold text-amber-700 dark:text-amber-300">
-                      {formatCurrencyShort(
+                      {formatCurrency(
                         saleReturn.refundAmount || saleReturn.totalAmount || 0,
                       )}
                     </p>
@@ -171,7 +171,7 @@ export function SalesReturnsList({
                           Qty: {item.quantity}
                         </span>
                         <span className="font-semibold text-gray-900 dark:text-slate-100">
-                          {formatCurrencyShort(item.total || 0)}
+                          {formatCurrency(item.total || 0)}
                         </span>
                       </div>
                     ))}

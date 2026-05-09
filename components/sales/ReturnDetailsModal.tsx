@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
+import { useSettings } from "@/context/SettingsContext";
 import {
   RotateCcw,
   DollarSign,
@@ -29,7 +29,7 @@ export function ReturnDetailsModal({
   saleReturn,
   onOpenChange,
 }: ReturnDetailsModalProps) {
-  const formatCurrencyShort = useFormatCurrencyShort();
+  const { formatCurrency } = useSettings();
 
   if (!saleReturn) return null;
 
@@ -126,7 +126,7 @@ export function ReturnDetailsModal({
               </CardHeader>
               <CardContent className="pt-6">
                 <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">
-                  {formatCurrencyShort(saleReturn.totalAmount || 0)}
+                  {formatCurrency(saleReturn.totalAmount || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -140,7 +140,7 @@ export function ReturnDetailsModal({
               </CardHeader>
               <CardContent className="pt-6">
                 <p className="text-3xl font-bold text-green-700 dark:text-green-300">
-                  {formatCurrencyShort(
+                  {formatCurrency(
                     saleReturn.refundAmount || saleReturn.totalAmount || 0,
                   )}
                 </p>
@@ -177,7 +177,7 @@ export function ReturnDetailsModal({
                           Unit Price
                         </p>
                         <p className="font-semibold text-gray-900 dark:text-slate-100">
-                          {formatCurrencyShort(item.unitPrice || 0)}
+                          {formatCurrency(item.unitPrice || 0)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -185,7 +185,7 @@ export function ReturnDetailsModal({
                           Total
                         </p>
                         <p className="font-bold text-amber-700 dark:text-amber-300">
-                          {formatCurrencyShort(item.total || 0)}
+                          {formatCurrency(item.total || 0)}
                         </p>
                       </div>
                     </div>

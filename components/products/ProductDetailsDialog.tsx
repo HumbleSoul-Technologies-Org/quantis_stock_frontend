@@ -10,7 +10,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/context/SettingsContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import {
   Package,
   DollarSign,
@@ -37,7 +36,6 @@ export function ProductDetailsDialog({
   onOpenChange,
 }: ProductDetailsDialogProps) {
   const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
 
   if (!product) return null;
 

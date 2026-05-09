@@ -16,7 +16,6 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { printService } from "@/lib/printService";
 import { useToast } from "@/components/ui/use-toast";
 import { ReceiptPreviewDialog } from "./ReceiptPreviewDialog";
@@ -39,7 +38,6 @@ export function SalesTable({
 }: SalesTableProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const formatCurrencyShort = useFormatCurrencyShort();
   const { formatCurrency } = useSettings();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
   const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
@@ -171,7 +169,7 @@ export function SalesTable({
                   </div>
                   <div className="text-right">
                     <p className="font-bold dark:text-white">
-                      {formatCurrencyShort(sale.totalAmount)}
+                      {formatCurrency(sale.totalAmount)}
                     </p>
                     <p className="text-xs dark:text-white">
                       {format(new Date(sale.createdAt!), "MMM d, yyyy")}
@@ -251,10 +249,10 @@ export function SalesTable({
                                   {item.quantity}
                                 </td>
                                 <td className="p-2 text-right">
-                                  {formatCurrencyShort(item.unitPrice)}
+                                  {formatCurrency(item.unitPrice)}
                                 </td>
                                 <td className="p-2 text-right font-medium">
-                                  {formatCurrencyShort(item.total)}
+                                  {formatCurrency(item.total)}
                                 </td>
                               </tr>
                             ))}
@@ -270,7 +268,7 @@ export function SalesTable({
                           Total Items: <strong>{getTotalQuantity(sale)}</strong>
                         </p>
                         <p className="text-lg font-bold dark:text-teal-200">
-                          {formatCurrencyShort(sale.totalAmount)}
+                          {formatCurrency(sale.totalAmount)}
                         </p>
                       </div>
                     </div>

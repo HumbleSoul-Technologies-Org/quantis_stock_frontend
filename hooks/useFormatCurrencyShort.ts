@@ -31,12 +31,12 @@ export function useFormatCurrencyShort() {
     // Values 1,000,000 and above - use M
     if (absValue >= 1000000) {
       const millions = absValue / 1000000;
-      return `${isNegative ? "-" : " "}${symbol }  ${millions.toLocaleString()}M`;
+      return `${isNegative ? "-" : " "}${symbol }  ${millions.toLocaleString()}`;
     }
 
     // Values 1,000 to 999,999 - use K
     const thousands = absValue / 1000;
-    return `${isNegative ? "-" : " "}${symbol }  ${thousands.toLocaleString()}K`;
+    return `${isNegative ? "-" : " "}${symbol }  ${thousands.toLocaleString()}`;
   };
 
   return formatCurrencyShort;

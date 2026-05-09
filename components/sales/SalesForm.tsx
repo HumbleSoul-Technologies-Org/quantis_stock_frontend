@@ -22,7 +22,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { X, Plus, Trash2, Printer } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
 import { set } from "date-fns";
@@ -53,7 +52,6 @@ export function SalesForm({
   serverError = "",
 }: SalesFormProps) {
   const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
   const { user, business } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
 
@@ -563,8 +561,8 @@ export function SalesForm({
                       {product?.name}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-slate-400">
-                      {item.quantity} × {formatCurrencyShort(item.unitPrice)} ={" "}
-                      {formatCurrencyShort(item.total)}
+                      {item.quantity} × {formatCurrency(item.unitPrice)} ={" "}
+                      {formatCurrency(item.total)}
                     </p>
                   </div>
                   <Button
@@ -581,7 +579,7 @@ export function SalesForm({
             })}
             <div className="border-t border-gray-200 dark:border-teal-700 pt-2 mt-2">
               <p className="text-sm font-bold text-gray-900 dark:text-teal-100">
-                Total: {formatCurrencyShort(totalAmount)}
+                Total: {formatCurrency(totalAmount)}
               </p>
             </div>
           </CardContent>
@@ -650,18 +648,6 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
   const { formatCurrency } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  // Format number with k/M/B suffix and no decimals
-  const formatShortNumber = (num: number): string => {
-    if (num >= 1000000000) {
-      return (num / 1000000000).toFixed(0) + "B";
-    } else if (num >= 1000000) {
-      return (num / 1000000).toFixed(0) + "M";
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(0) + "k";
-    }
-    return Math.round(num).toString();
-  };
 
   // Calculate totals
   const items = payLoad?.items || [];
@@ -824,10 +810,10 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
                       {item.quantity}
                     </td>
                     <td className="price text-right text-xs py-1">
-                      {formatShortNumber(item.unitPrice)}
+                      {formatCurrency(item.unitPrice)}
                     </td>
                     <td className="total text-right text-xs py-1 font-semibold">
-                      {formatShortNumber(item.total)}
+                      {formatCurrency(item.total)}
                     </td>
                   </tr>
                 );
@@ -849,15 +835,15 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
         <div className="totals-section border-t-2 border-b-2 border-dashed border-black py-2 my-3">
           {/* <div className="total-row">
             <span>Subtotal:</span>
-            <span className="font-semibold">{formatShortNumber(subtotal)}</span>
+            <span className="font-semibold">{formatCurrency(subtotal)}</span>
           </div>
           <div className="total-row">
             <span>Tax (10%):</span>
-            <span className="font-semibold">{formatShortNumber(tax)}</span>
+            <span className="font-semibold">{formatCurrency(tax)}</span>
           </div> */}
           <div className="total-row grand-total border-t border-black pt-2 mt-2">
             <span>TOTAL:</span>
-            <span>{formatShortNumber(grandTotal)}</span>
+            <span>{formatCurrency(grandTotal)}</span>
           </div>
         </div>
 

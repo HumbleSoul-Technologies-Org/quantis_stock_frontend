@@ -4,7 +4,6 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { getApiErrorText } from "@/lib/errorParsers";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { Activity, Product, Sale, SaleReturn, SaleItem } from "@/lib/types";
@@ -45,7 +44,6 @@ function SalesPageContent() {
   } = useData();
   const { user } = useAuth();
   const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
   const {
     notifyResourceCreated,
     notifyResourceDeleted,
@@ -553,7 +551,7 @@ function SalesPageContent() {
                   Total Amount
                 </p>
                 <p className="text-4xl font-bold text-blue-700 dark:text-blue-300">
-                  {formatCurrencyShort(totalSalesToday)}
+                  {formatCurrency(totalSalesToday)}
                 </p>
               </div>
               <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-blue-200 dark:border-blue-700 pt-3">
@@ -590,7 +588,7 @@ function SalesPageContent() {
                   Total Refund Amount
                 </p>
                 <p className="text-4xl font-bold text-amber-700 dark:text-amber-300">
-                  {formatCurrencyShort(totalRefundAmountToday)}
+                  {formatCurrency(totalRefundAmountToday)}
                 </p>
               </div>
               <p className="text-sm text-gray-600 dark:text-slate-400 border-t border-amber-200 dark:border-amber-700 pt-3">

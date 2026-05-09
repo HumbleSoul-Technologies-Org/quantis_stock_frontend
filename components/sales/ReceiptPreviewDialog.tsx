@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Sale, Product } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 
 interface ReceiptPreviewDialogProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export function ReceiptPreviewDialog({
   onPrint,
 }: ReceiptPreviewDialogProps) {
   const { user, business } = useAuth();
+  const { formatCurrency } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,18 +47,6 @@ export function ReceiptPreviewDialog({
   }, [isOpen, sale, onOpenChange]);
 
   if (!isOpen || !sale) return null;
-
-  // Format number with k/M/B suffix and no decimals
-  const formatShortNumber = (num: number): string => {
-    if (num >= 1000000000) {
-      return (num / 1000000000).toFixed(0) + "B";
-    } else if (num >= 1000000) {
-      return (num / 1000000).toFixed(0) + "M";
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(0) + "k";
-    }
-    return Math.round(num).toString();
-  };
 
   // Calculate totals
   const items = sale.items || [];
@@ -151,10 +141,10 @@ export function ReceiptPreviewDialog({
                       {item.quantity}
                     </td>
                     <td className="text-right py-1 text-[11px]">
-                      {formatShortNumber(item.unitPrice)}
+                      {formatCurrency(item.unitPrice)}
                     </td>
                     <td className="text-right py-1 font-semibold text-[11px]">
-                      {formatShortNumber(item.total)}
+                      {formatCurrency(item.total)}
                     </td>
                   </tr>
                 );
@@ -176,7 +166,7 @@ export function ReceiptPreviewDialog({
         <div className="totals-section border-y border-dashed border-slate-700 py-2 my-3 text-[11px]">
           <div className="total-row grand-total border-t border-slate-700 pt-2 mt-2 flex justify-between font-semibold">
             <span>TOTAL</span>
-            <span>{formatShortNumber(grandTotal)}</span>
+            <span>{formatCurrency(grandTotal)}</span>
           </div>
         </div>
 

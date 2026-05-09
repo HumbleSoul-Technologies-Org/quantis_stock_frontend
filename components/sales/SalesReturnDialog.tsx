@@ -23,7 +23,6 @@ import {
   extractApiErrorFields,
 } from "@/lib/errorParsers";
 import { useAuth } from "@/context/AuthContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 
 interface SalesReturnDialogProps {
   isOpen: boolean;
@@ -43,7 +42,6 @@ export function SalesReturnDialog({
   serverError,
 }: SalesReturnDialogProps) {
   const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
   const { user } = useAuth();
   const [returnItems, setReturnItems] = useState<SaleReturnItem[]>([]);
   const [reason, setReason] = useState("");
@@ -204,8 +202,7 @@ export function SalesReturnDialog({
                   <strong>Payment:</strong> {sale.paymentType || "N/A"}
                 </div>
                 <div>
-                  <strong>Total:</strong>{" "}
-                  {formatCurrencyShort(sale.totalAmount)}
+                  <strong>Total:</strong> {formatCurrency(sale.totalAmount)}
                 </div>
               </div>
             </CardContent>
@@ -231,7 +228,7 @@ export function SalesReturnDialog({
                         </div>
                         <div className="text-sm text-gray-600">
                           Sold: {soldQuantity} | Unit Price:{" "}
-                          {formatCurrencyShort(item.unitPrice)}
+                          {formatCurrency(item.unitPrice)}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -260,7 +257,7 @@ export function SalesReturnDialog({
                         <div className="text-right min-w-25">
                           <div className="text-sm text-gray-600">Total</div>
                           <div className="font-medium">
-                            {formatCurrencyShort(item.total)}
+                            {formatCurrency(item.total)}
                           </div>
                         </div>
                       </div>
@@ -302,7 +299,7 @@ export function SalesReturnDialog({
                           : Number(e.target.value),
                       )
                     }
-                    placeholder={`Suggested: ${formatCurrencyShort(totalReturnAmount)}`}
+                    placeholder={`Suggested: ${formatCurrency(totalReturnAmount)}`}
                   />
                 </div>
               </div>
@@ -343,12 +340,12 @@ export function SalesReturnDialog({
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatCurrencyShort(refundAmount ?? totalReturnAmount)}
+                    {formatCurrency(refundAmount ?? totalReturnAmount)}
                   </div>
                   {/* {refundAmount !== undefined &&
                     refundAmount !== totalReturnAmount && (
                       <div className="text-sm text-gray-600">
-                        Calculated: {formatCurrencyShort(totalReturnAmount)}
+                        Calculated: {formatCurrency(totalReturnAmount)}
                       </div>
                     )} */}
                 </div>

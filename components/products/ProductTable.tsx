@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 
 interface ProductTableProps {
   products: Product[];
@@ -37,7 +36,6 @@ export function ProductTable({
   categoryFilter = "",
 }: ProductTableProps) {
   const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
 
   let filtered = products;
 
@@ -154,7 +152,7 @@ export function ProductTable({
                             Price:
                           </span>
                           <span className="text-white font-semibold">
-                            {formatCurrencyShort(product.unitPrice)}
+                            {formatCurrency(product.unitPrice)}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">

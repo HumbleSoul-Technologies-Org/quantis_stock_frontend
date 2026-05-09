@@ -2,7 +2,6 @@
 
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
-import { useFormatCurrencyShort } from "@/hooks/useFormatCurrencyShort";
 import { ClientOnly } from "@/components/client-only";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ import { AuditReport } from "@/components/reports/AuditReport";
 function ReportsPageContent() {
   const { products, sales, stockMovements } = useData();
   const { formatCurrency } = useSettings();
-  const formatCurrencyShort = useFormatCurrencyShort();
   const [selectedReport, setSelectedReport] = useState("inventory");
   const [salesPeriod, setSalesPeriod] = useState("monthly");
   const [dateRange, setDateRange] = useState({
@@ -429,7 +427,7 @@ function ReportsPageContent() {
         >
           Audit Log
         </Button>
-       
+
         {user &&
           (user.role === "admin" ||
             user.role === "manager" ||
@@ -565,7 +563,7 @@ function ReportsPageContent() {
                   Total Revenue
                 </p>
                 <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                  {formatCurrencyShort(totalRevenue)}
+                  {formatCurrency(totalRevenue)}
                 </p>
               </div>
               <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700">
@@ -573,7 +571,7 @@ function ReportsPageContent() {
                   Average Order Value
                 </p>
                 <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
-                  {formatCurrencyShort(avgOrderValue)}
+                  {formatCurrency(avgOrderValue)}
                 </p>
               </div>
             </div>
@@ -728,9 +726,7 @@ function ReportsPageContent() {
                   <YAxis
                     stroke="currentColor"
                     tickFormatter={(value) =>
-                      typeof value === "number"
-                        ? formatCurrencyShort(value)
-                        : value
+                      typeof value === "number" ? formatCurrency(value) : value
                     }
                   />
                   <Tooltip
@@ -748,7 +744,7 @@ function ReportsPageContent() {
                       return String(value);
                     }}
                     formatter={(value) => [
-                      formatCurrencyShort(value as number),
+                      formatCurrency(value as number),
                       "Revenue",
                     ]}
                   />
@@ -806,9 +802,7 @@ function ReportsPageContent() {
                   <YAxis
                     stroke="currentColor"
                     tickFormatter={(value) =>
-                      typeof value === "number"
-                        ? formatCurrencyShort(value)
-                        : value
+                      typeof value === "number" ? formatCurrency(value) : value
                     }
                   />
                   <Tooltip
@@ -826,7 +820,7 @@ function ReportsPageContent() {
                       return String(value);
                     }}
                     formatter={(value) => [
-                      formatCurrencyShort(value as number),
+                      formatCurrency(value as number),
                       "AOV",
                     ]}
                   />
