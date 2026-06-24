@@ -11,25 +11,26 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        // Check redirect logic based on user role and business status
+        // Check redirect logic based on user role, business status, and active trial
         if (user.role === "admin") {
+          const hasCompletedOnboarding =
+            !!business?.businessName &&
+            !!business?.setupCompletedAt &&
+            !!business?.businessEmail?.email &&
+            !!business?.businessPhone?.contact &&
+            !!business?.settings?.currency?.code;
+
+          const trialActive =
+            !!user.trial_expires && new Date(user.trial_expires) > new Date();
+
           if (!business) {
             router.push("/onboarding");
-          } else if (business.activated) {
+          } else if (business.activated || trialActive) {
             router.push("/dashboard");
+          } else if (hasCompletedOnboarding) {
+            router.push("/product-key");
           } else {
-            const hasCompletedOnboarding =
-              !!business.businessName &&
-              !!business.setupCompletedAt &&
-              !!business.businessEmail?.email &&
-              !!business.businessPhone?.contact &&
-              !!business.settings?.currency?.code;
-
-            if (hasCompletedOnboarding) {
-              router.push("/product-key");
-            } else {
-              router.push("/onboarding");
-            }
+            router.push("/onboarding");
           }
         } else {
           router.push("/dashboard");

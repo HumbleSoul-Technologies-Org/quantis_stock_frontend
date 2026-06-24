@@ -1,4 +1,4 @@
- import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios from "axios";
 import { API_BASE_URL } from "@/lib/config";
 
@@ -19,7 +19,9 @@ interface ApiRequestResponse<T = unknown> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function createApiResponse<T = any>(res: Response): Promise<ApiRequestResponse<T>> {
+async function createApiResponse<T = any>(
+  res: Response,
+): Promise<ApiRequestResponse<T>> {
   const responseText = await res.text();
   let parsedBody: unknown;
 
@@ -40,6 +42,33 @@ async function createApiResponse<T = any>(res: Response): Promise<ApiRequestResp
   };
 }
 
+export function extractApiErrorMessage<T = any>(
+  response: ApiRequestResponse<T>,
+): string {
+  const responseData = response.data;
+  if (typeof responseData === "string" && responseData.trim()) {
+    return responseData;
+  }
+
+  if (responseData && typeof responseData === "object") {
+    const dataAny = responseData as Record<string, unknown>;
+    if (typeof dataAny.message === "string" && dataAny.message.trim()) {
+      return dataAny.message;
+    }
+    if (typeof dataAny.error === "string" && dataAny.error.trim()) {
+      return dataAny.error;
+    }
+    if (typeof dataAny.details === "string" && dataAny.details.trim()) {
+      return dataAny.details;
+    }
+    if (dataAny.details && typeof dataAny.details === "object") {
+      return JSON.stringify(dataAny.details);
+    }
+  }
+
+  return response.originalResponse.statusText || "An unexpected error occurred";
+}
+
 // Handles GET / POST / PUT / PATCH / DELETE
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function apiRequest<T = any>(
@@ -58,17 +87,19 @@ export async function apiRequest<T = any>(
   }
 
   // For GET requests, convert data to query parameters and don't send body
-  if (method.toUpperCase() === 'GET') {
-    if (data && typeof data === 'object') {
+  if (method.toUpperCase() === "GET") {
+    if (data && typeof data === "object") {
       const params = new URLSearchParams();
-      Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
-        }
-      });
+      Object.entries(data as Record<string, unknown>).forEach(
+        ([key, value]) => {
+          if (value !== undefined && value !== null) {
+            params.append(key, String(value));
+          }
+        },
+      );
       const queryString = params.toString();
       if (queryString) {
-        finalUrl = `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
+        finalUrl = `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
       }
     }
     // GET requests never have a body
@@ -145,13 +176,12 @@ export const getQueryFn: <T>(options: {
     }
   };
 
-
 // ✅ React Query Global Config
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: 5000,  
+      refetchInterval: 5000,
       refetchOnWindowFocus: false,
       staleTime: 30000, // 30 seconds - reduces lag while preventing excessive polling
       retry: 2,

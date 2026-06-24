@@ -15,7 +15,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
 import {
@@ -63,15 +63,36 @@ export function RegisterForm() {
       const res = await apiRequest("POST", "/users/register", payload);
 
       if (!res.ok) {
-        const text = await res.text();
-        const errorMsg = text || "Please try again";
-        setError("root", {
-          message: `Failed to create account: ${errorMsg}`,
-        });
+        const errorMessage = extractApiErrorMessage(res);
+        const normalizedError = errorMessage.toLowerCase();
+
+        if (res.status === 409) {
+          if (normalizedError.includes("email")) {
+            setError("email", { message: errorMessage });
+          } else if (normalizedError.includes("username")) {
+            setError("username", { message: errorMessage });
+          } else {
+            setError("root", { message: errorMessage });
+          }
+        } else if (res.status >= 500) {
+          const genericError =
+            "Unable to create account. Please try again later.";
+          setError("root", { message: genericError });
+          toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: genericError,
+          });
+          setIsLoading(false);
+          return;
+        } else {
+          setError("root", { message: errorMessage });
+        }
+
         toast({
           variant: "destructive",
           title: "Registration Failed",
-          description: errorMsg,
+          description: errorMessage,
         });
         setIsLoading(false);
         return;

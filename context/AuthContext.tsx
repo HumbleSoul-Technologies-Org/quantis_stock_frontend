@@ -29,6 +29,10 @@ interface AuthContextType {
   ) => boolean;
   updateBusinessSetup: (businessSetup: BusinessSetup) => boolean;
   updateBusiness: (business: Business | null) => void; // New: set business data
+  updateTrialStatus: (
+    trialExpires: string | null,
+    productKeyVerified: boolean,
+  ) => void; // New: update trial status
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -133,6 +137,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateTrialStatus = (
+    trialExpires: string | null,
+    productKeyVerified: boolean,
+  ): void => {
+    if (!user) return;
+    const updatedUser = {
+      ...user,
+      trial_expires: trialExpires || undefined,
+      product_key_verified: productKeyVerified,
+    };
+    setUser(updatedUser);
+    saveUserSession(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -144,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateCredentials,
         updateBusinessSetup,
         updateBusiness, // New: include updateBusiness in context
+        updateTrialStatus, // New: include updateTrialStatus in context
       }}
     >
       {children}

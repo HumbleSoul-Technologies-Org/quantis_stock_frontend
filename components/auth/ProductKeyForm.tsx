@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { clearUserSession } from "@/lib/authStorage";
 import { AlertCircle, CheckCircle, Key, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
+import { TRIAL_DAYS } from "@/lib/config";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 import {
   productKeySchema,
@@ -50,15 +51,19 @@ export function ProductKeyForm() {
       );
 
       if (!res.ok) {
-        const text = await res.text();
-        const errorMsg = text || "Please check your key and try again";
+        const errorMessage = extractApiErrorMessage(res);
+        const displayMessage =
+          res.status >= 500
+            ? "Unable to validate the product key. Please try again later."
+            : errorMessage;
+
         setError("root", {
-          message: `Invalid product key: ${errorMsg}`,
+          message: displayMessage,
         });
         toast({
           variant: "destructive",
           title: "Invalid Product Key",
-          description: errorMsg,
+          description: displayMessage,
         });
         setIsLoading(false);
         return;
@@ -192,6 +197,22 @@ export function ProductKeyForm() {
             <Key className="w-5 h-5 mr-2" />
             Validate Product Key
           </AuthButton>
+
+          <div className="space-y-3">
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              No product key right now? Continue with your {TRIAL_DAYS}-day
+              trial and access the dashboard immediately. Your trial will still
+              expire after the configured period.
+            </p>
+            <AuthButton
+              type="button"
+              variant="blue"
+              onClick={() => router.push("/dashboard")}
+              disabled={isLoading}
+            >
+              Continue with {TRIAL_DAYS}-day trial
+            </AuthButton>
+          </div>
 
           <p className="text-sm text-gray-500 dark:text-slate-500 text-center">
             Ran into a problem? OR don't have a product key?{" "}

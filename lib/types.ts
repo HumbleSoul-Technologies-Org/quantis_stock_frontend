@@ -1,7 +1,13 @@
 // Auth Types
-export type UserRole = 'admin' | 'manager' | 'sales' | 'accountant';
-export type BusinessType = 'retail' | 'other';
-export type RetailSubType = 'electronics' | 'clothing' | 'food_beverage' | 'beauty' | 'home_hardware' | 'general';
+export type UserRole = "admin" | "manager" | "sales" | "accountant";
+export type BusinessType = "retail" | "other";
+export type RetailSubType =
+  | "electronics"
+  | "clothing"
+  | "food_beverage"
+  | "beauty"
+  | "home_hardware"
+  | "general";
 
 export interface BusinessSettings {
   businessId: string;
@@ -120,6 +126,8 @@ export interface User {
   business?: Business | BusinessSetup; // Updated: can be either Business (with settings) or BusinessSetup
   createdAt?: string;
   token?: string; // For session management
+  trial_expires?: string; // ISO date string when trial expires
+  product_key_verified?: boolean; // Whether product key has been verified
 }
 
 // Product Types - Extended ERP Support
@@ -143,7 +151,7 @@ export interface TrackingConfig {
 }
 
 export interface ReorderStrategy {
-  type?: 'fixed' | 'seasonal' | 'automated'; // Default: 'fixed'
+  type?: "fixed" | "seasonal" | "automated"; // Default: 'fixed'
   safetyStock?: number; // Buffer stock
   leadTimeDays?: number; // Supplier lead time
   economicOrderQuantity?: number; // Optimal order size
@@ -169,39 +177,39 @@ export interface Product {
 
   // Enhanced Fields (Optional - new)
   description?: string;
-  status?: 'active' | 'discontinued'; // Default: 'active'
+  status?: "active" | "discontinued"; // Default: 'active'
   retailSubType?: RetailSubType; // For category-specific fields
-  
+
   // Multiple Units of Measure Support
   baseUoM?: string; // Base unit identifier
   alternateUoMs?: UnitOfMeasure[]; // Conversion rates
-  
+
   // Tracking Configuration
   tracking?: TrackingConfig;
-  
+
   // Multiple Suppliers Support
   suppliers?: SupplierInfo[]; // Additional supplier options
-  
+
   // Advanced Reorder Strategy
   reorderStrategy?: ReorderStrategy;
-  
+
   // Multi-Warehouse Support
   warehouseLocations?: string[]; // Warehouse IDs where product exists
-  
+
   // Custom Attributes & Category-Specific Fields
   customAttributes?: Record<string, any>;
-  
+
   // Discontinuation Info
   discontinuedDate?: string;
   discontinuationReason?: string;
-  
+
   // Cloudinary image data
   imageUrl?: string;
-  imagePublicId?: string
+  imagePublicId?: string;
   image?: {
     url: string;
     public_id: string;
-  }
+  };
 }
 
 // Inventory Types
@@ -209,7 +217,7 @@ export interface StockMovement {
   id: string;
   _id?: string; // For backward compatibility with older movement objects
   productId: string;
-  type: 'in' | 'out' | 'adjustment';
+  type: "in" | "out" | "adjustment";
   quantity: number;
   reason: string;
   reference: string; // Purchase order, Sales order, etc
@@ -235,7 +243,7 @@ export interface Sale {
   date: string;
   items: SaleItem[];
   totalAmount: number;
-  status:  'completed' | 'returned';
+  status: "completed" | "returned";
   notes: string;
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
@@ -243,7 +251,7 @@ export interface Sale {
   customerName?: string;
   paymentType?: string;
   txnId?: string;
-  returnStatus?: 'none' | 'partial' | 'returned'; // Track return status
+  returnStatus?: "none" | "partial" | "returned"; // Track return status
   saleReturnId?: string; // Reference to associated sale return (if any)
 }
 
@@ -263,7 +271,7 @@ export interface SaleReturn {
   totalAmount: number;
   reason?: string; // Reason for return (e.g., "Defective", "Wrong item", "Customer change of mind")
   notes?: string;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: "pending" | "completed" | "cancelled";
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
   createdAt?: string;
@@ -280,16 +288,16 @@ export interface SaleReturnItem {
 }
 
 export type ActivityType =
-  | 'sale'
-  | 'stock'
-  | 'product'
-  | 'supplier'
-  | 'return'
-  | 'system'
-  | 'other';
+  | "sale"
+  | "stock"
+  | "product"
+  | "supplier"
+  | "return"
+  | "system"
+  | "other";
 
-export type ActivityAction = 'create' | 'update' | 'delete' | 'system_event';
-export type ActivityStatus = 'success' | 'failed';
+export type ActivityAction = "create" | "update" | "delete" | "system_event";
+export type ActivityStatus = "success" | "failed";
 
 export interface ChangeLog {
   before?: Record<string, any>;
@@ -306,7 +314,13 @@ export interface Activity {
   title: string;
   description: string;
   referenceId?: string; // Link to sale number, supplier id, product id, etc.
-  entityType?: 'product' | 'supplier' | 'sale' | 'stockMovement' | 'return' | 'other';
+  entityType?:
+    | "product"
+    | "supplier"
+    | "sale"
+    | "stockMovement"
+    | "return"
+    | "other";
   entityId?: string;
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string | User;
@@ -319,22 +333,22 @@ export interface Activity {
 }
 
 export type SecurityEventType =
-  | 'login_success'
-  | 'login_failed'
-  | 'logout'
-  | 'session_expired'
-  | 'password_changed'
-  | 'password_reset_requested'
-  | 'password_reset_completed'
-  | 'profile_updated'
-  | 'profile_created'
-  | 'profile_deleted'
-  | 'role_changed'
-  | 'permissions_modified'
-  | 'mfa_enabled'
-  | 'mfa_disabled'
-  | 'session_started'
-  | 'account_locked';
+  | "login_success"
+  | "login_failed"
+  | "logout"
+  | "session_expired"
+  | "password_changed"
+  | "password_reset_requested"
+  | "password_reset_completed"
+  | "profile_updated"
+  | "profile_created"
+  | "profile_deleted"
+  | "role_changed"
+  | "permissions_modified"
+  | "mfa_enabled"
+  | "mfa_disabled"
+  | "session_started"
+  | "account_locked";
 
 export interface SecurityAudit {
   id?: string;
@@ -346,7 +360,7 @@ export interface SecurityAudit {
   details?: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
-  status: 'success' | 'failed';
+  status: "success" | "failed";
   reason?: string;
   resultingAction?: string;
   relatedActivityId?: string;
@@ -387,7 +401,7 @@ export interface Supplier {
   products?: string[];
   // Offline product IDs (for products created offline, tracks offline_id references)
   offline_products?: string[];
-  status?: 'active' | 'inactive' | 'blocked';
+  status?: "active" | "inactive" | "blocked";
   rating?: number; // 1-5
   notes?: string;
   documentUrl?: string;
@@ -412,7 +426,7 @@ export interface CategorySpecificFields {
     sizes?: string; // e.g., "S, M, L, XL"
     material?: string; // e.g., "Cotton, Polyester"
     careInstructions?: string; // e.g., "Machine wash cold"
-    gender?: 'mens' | 'womens' | 'unisex' | 'kids';
+    gender?: "mens" | "womens" | "unisex" | "kids";
     fit?: string; // e.g., "Regular, Slim, Oversized"
   };
   food_beverage?: {
@@ -445,8 +459,8 @@ export interface TeamUser {
   _id?: string; // For backward compatibility with older user objects
   name: string;
   email: string;
-   username?: string; // Added for credentials display
-  role: 'sales' | 'accountant' | 'manager';
+  username?: string; // Added for credentials display
+  role: "sales" | "accountant" | "manager";
   createdAt: string;
   lastLogin: string | null;
   token?: string;
@@ -486,7 +500,7 @@ export interface AppSettings {
   general: {
     companyName: string;
     contactEmail: string;
-    theme: 'light' | 'dark';
+    theme: "light" | "dark";
   };
   credentials: {
     teamUsers: TeamUser[];
@@ -505,8 +519,26 @@ export interface AppSettings {
 }
 
 // Notification Types
-export type NotificationType = 'low_stock' | 'stock_out' | 'new_sale' | 'new_product' | 'data_sync' | 'no_internet' | 'credentials_change' | 'admin_credentials_updated' | 'resource_created' | 'resource_updated' | 'resource_deleted' | 'user_profile_created' | 'user_profile_updated' | 'user_profile_deleted' | 'info' | 'success' | 'error' | 'warning';
-export type NotificationPriority = 'high' | 'medium' | 'low';
+export type NotificationType =
+  | "low_stock"
+  | "stock_out"
+  | "new_sale"
+  | "new_product"
+  | "data_sync"
+  | "no_internet"
+  | "credentials_change"
+  | "admin_credentials_updated"
+  | "resource_created"
+  | "resource_updated"
+  | "resource_deleted"
+  | "user_profile_created"
+  | "user_profile_updated"
+  | "user_profile_deleted"
+  | "info"
+  | "success"
+  | "error"
+  | "warning";
+export type NotificationPriority = "high" | "medium" | "low";
 
 export interface Notification {
   id?: string;
