@@ -139,29 +139,27 @@ function KPICard({
       : value;
 
   return (
-    <Card className="flex h-full flex-col min-h-72 relative overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/95 shadow-[0_20px_45px_-20px_rgba(15,23,42,0.18)] transition hover:shadow-[0_24px_70px_-24px_rgba(15,23,42,0.25)] dark:border-slate-700/70 dark:bg-slate-950/80">
+    <Card className="relative flex h-full min-h-[18rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-700/80 bg-slate-950/90 shadow-xl shadow-slate-950/30 transition hover:shadow-[0_30px_90px_-30px_rgba(15,23,42,0.35)]">
       <div
         className={`absolute inset-y-0 left-0 w-1 bg-linear-to-b ${accentClasses}`}
       />
-      <CardHeader className="flex flex-col justify-between gap-4 px-6 pt-5 pb-3 sm:flex-row sm:items-start">
+      <CardHeader className="flex flex-col justify-between gap-4 px-6 pt-6 pb-3 sm:flex-row sm:items-start">
         <div className="space-y-1">
-          <CardTitle className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+          <CardTitle className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
             {title}
           </CardTitle>
           {changeLabel && (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {changeLabel}
-            </p>
+            <p className="text-sm text-slate-500">{changeLabel}</p>
           )}
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-200">
+        <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-900 text-slate-200 shadow-sm">
           {icon}
         </div>
       </CardHeader>
-      <CardContent className="px-6 pb-6 pt-2">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-4">
-            <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">
+      <CardContent className="px-6 pb-6 pt-3">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-3">
+            <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">
               {displayValue}
             </div>
             {change !== undefined && (
@@ -178,15 +176,13 @@ function KPICard({
                   {formatPercentage(change)}
                 </Badge>
                 {changeLabel && (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {changeLabel}
-                  </span>
+                  <span className="text-sm text-slate-400">{changeLabel}</span>
                 )}
               </div>
             )}
           </div>
           {sparklineData && (
-            <div className="relative h-20 w-full sm:w-36 sm:max-w-40">
+            <div className="relative h-20 w-full sm:w-36 rounded-3xl bg-slate-900/70 p-2">
               <Line data={sparklineChartData} options={sparklineOptions} />
             </div>
           )}

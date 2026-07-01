@@ -73,12 +73,10 @@ export function LossAnalysisChart() {
       ...commonOptions.plugins,
       tooltip: {
         ...commonOptions.plugins.tooltip,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        borderColor: "#fff",
-        borderWidth: 1,
-        cornerRadius: 8,
+        backgroundColor: "var(--card)",
+        titleColor: "var(--foreground)",
+        bodyColor: "var(--foreground)",
+        borderColor: "var(--border)",
         displayColors: false,
         titleFont: { size: 14, weight: "bold" as const },
         bodyFont: { size: 12 },
@@ -175,9 +173,9 @@ export function LossAnalysisChart() {
       : { reason: "N/A", value: 0, percentage: 0 };
 
   return (
-    <Card className=" dark:bg-slate-800 ">
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm overflow-hidden min-h-[30rem]">
+      <CardHeader className="p-5 sm:p-6 pb-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
             <CardTitle className="text-lg">Loss Analysis</CardTitle>
@@ -204,7 +202,7 @@ export function LossAnalysisChart() {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5 sm:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div className="text-center p-4 bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-lg">
             <DollarSign className="h-6 w-6 text-red-600 mx-auto mb-2" />

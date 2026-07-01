@@ -23,31 +23,31 @@ export default function DashboardPage() {
   const { timePeriod, setTimePeriod } = useTimePeriod("monthly");
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6">
-      <div className="px-2 sm:px-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-teal-100">
-          Dashboard
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
-          Welcome to your stock management system
-        </p>
+    <div className="w-full space-y-6 px-4 sm:px-6 lg:px-8">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] items-end">
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Dashboard
+          </h1>
+          <p className="max-w-2xl text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-1 sm:mt-2">
+            Welcome to your stock management system
+          </p>
+        </div>
+        <div className="flex items-center justify-end">
+          <TimePeriodControls
+            selectedPeriod={timePeriod}
+            onPeriodChange={setTimePeriod}
+            className="justify-end"
+          />
+        </div>
       </div>
 
       {(user?.role === "sales" ||
         user?.role === "admin" ||
         user?.role === "manager") && <QuickNav />}
 
-      {/* Global Time Period Controls */}
-      <div className="px-2 sm:px-0">
-        <TimePeriodControls
-          selectedPeriod={timePeriod}
-          onPeriodChange={setTimePeriod}
-          className="justify-start"
-        />
-      </div>
-
       {/* KPI Cards Grid */}
-      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 px-2 sm:px-0">
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <RevenueKPICard />
         <SalesKPICard />
         <LossesKPICard />
@@ -56,16 +56,20 @@ export default function DashboardPage() {
 
       {/* Charts Grid */}
       {["admin", "manager", "accountant"].includes(user?.role || "") && (
-        <div className="hidden lg:grid gap-4 lg:grid-cols-3 px-2 sm:px-0">
-          <SalesTrendChart />
-          <LossAnalysisChart />
-          <ProductPerformanceChart />
-
-          <RecentActivity />
-          <CategoryDistributionChart />
-        </div>
+        <>
+          <div className="grid gap-4">
+            <SalesTrendChart />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <LossAnalysisChart />
+              <ProductPerformanceChart />
+            </div>
+            <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+              <CategoryDistributionChart />
+              <RecentActivity />
+            </div>
+          </div>
+        </>
       )}
-      <div className="px-2 sm:px-0"></div>
     </div>
   );
 }

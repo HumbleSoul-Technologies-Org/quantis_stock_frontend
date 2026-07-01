@@ -76,10 +76,10 @@ export function ProductPerformanceChart() {
       },
       tooltip: {
         ...commonOptions.plugins.tooltip,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        borderColor: "#fff",
+        backgroundColor: "var(--card)",
+        titleColor: "var(--foreground)",
+        bodyColor: "var(--foreground)",
+        borderColor: "var(--border)",
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
@@ -115,8 +115,8 @@ export function ProductPerformanceChart() {
   const topCategory = categoryData.length > 0 ? categoryData[0] : null;
 
   return (
-    <Card className="dark:bg-slate-800 max-h-175 overflow-y-auto">
-      <CardHeader>
+    <Card className="dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm overflow-hidden min-h-[30rem]">
+      <CardHeader className="p-5 sm:p-6 pb-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2">
             <Trophy className="h-5 w-5 text-yellow-600" />
@@ -144,7 +144,7 @@ export function ProductPerformanceChart() {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5 sm:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="text-center p-4 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
             <ShoppingCart className="h-6 w-6 text-blue-600 mx-auto mb-2" />

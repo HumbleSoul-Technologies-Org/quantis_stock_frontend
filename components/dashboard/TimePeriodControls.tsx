@@ -40,24 +40,33 @@ export function TimePeriodControls({
   ];
 
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
-      <span className="text-sm font-medium text-muted-foreground">View:</span>
-      {periods.map((period) => {
-        const Icon = period.icon;
-        return (
-          <Button
-            key={period.key}
-            variant={selectedPeriod === period.key ? "default" : "outline"}
-            size="sm"
-            onClick={() => onPeriodChange(period.key)}
-            className="flex items-center space-x-2"
-          >
-            <Icon className="h-4 w-4" />
-            <span>{period.label}</span>
-          </Button>
-        );
-      })}
-      <Badge variant="outline" className="text-xs">
+    <div
+      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end ${className}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+          View:
+        </span>
+        {periods.map((period) => {
+          const Icon = period.icon;
+          return (
+            <Button
+              key={period.key}
+              variant={selectedPeriod === period.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => onPeriodChange(period.key)}
+              className="rounded-full px-4 py-2"
+            >
+              <Icon className="h-4 w-4" />
+              <span>{period.label}</span>
+            </Button>
+          );
+        })}
+      </div>
+      <Badge
+        variant="outline"
+        className="text-xs text-slate-500 dark:text-slate-400"
+      >
         {periods.find((p) => p.key === selectedPeriod)?.description}
       </Badge>
     </div>

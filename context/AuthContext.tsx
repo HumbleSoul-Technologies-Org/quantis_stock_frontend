@@ -43,6 +43,18 @@ const normalizeBusiness = (businessData: any): Business | null => {
   return { ...businessData, settings } as Business;
 };
 
+const getBusinessIdFromUser = (
+  userData: Partial<User> & { business?: any },
+) => {
+  return (
+    userData.businessId ||
+    userData.business?._id ||
+    userData.business?.id ||
+    userData.business?.businessId ||
+    undefined
+  );
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
@@ -81,6 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sanitizedUserData = { ...userData } as User;
     delete (sanitizedUserData as Partial<User>).password;
 
+    const businessId = getBusinessIdFromUser(sanitizedUserData as any);
+    if (businessId) {
+      sanitizedUserData.businessId = businessId;
+    }
+
     setUser(sanitizedUserData);
     setBusiness(normalizeBusiness(sanitizedUserData.business));
 
@@ -93,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async (): Promise<void> => {
     setUser(null);
     setBusiness(null);
+    localStorage.clear();
 
     // Clear encrypted session
     await clearUserSession().catch((error) => {

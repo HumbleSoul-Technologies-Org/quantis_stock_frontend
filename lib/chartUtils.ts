@@ -10,8 +10,8 @@ import {
   Legend,
   ArcElement,
   Filler,
-} from 'chart.js';
-import { Sale, StockMovement, Product, SaleReturn } from './types';
+} from "chart.js";
+import { Sale, StockMovement, Product, SaleReturn } from "./types";
 
 // Register Chart.js components
 ChartJS.register(
@@ -24,62 +24,63 @@ ChartJS.register(
   Tooltip,
   Legend,
   ArcElement,
-  Filler
+  Filler,
 );
 
 // Chart theme configuration matching existing CSS variables
 export const chartTheme = {
   light: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    color: '#374151',
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderColor: "rgba(0, 0, 0, 0.1)",
+    color: "#374151",
     grid: {
-      color: 'rgba(0, 0, 0, 0.1)',
+      color: "rgba(0, 0, 0, 0.1)",
     },
     tick: {
-      color: '#6b7280',
+      color: "#6b7280",
     },
   },
   dark: {
-    backgroundColor: 'rgba(31, 41, 55, 0.8)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    color: '#f3f4f6',
+    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    color: "#f3f4f6",
     grid: {
-      color: 'rgba(255, 255, 255, 0.1)',
+      color: "rgba(255, 255, 255, 0.1)",
     },
     tick: {
-      color: '#9ca3af',
+      color: "#9ca3af",
     },
   },
 };
 
 // Chart colors using CSS custom properties
 export const chartColors = [
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 // Common chart options
 export const commonOptions = {
   responsive: true,
   maintainAspectRatio: false,
+  color: "var(--foreground)",
   plugins: {
     legend: {
-      position: 'top' as const,
+      position: "top" as const,
       labels: {
         usePointStyle: true,
         padding: 20,
-        color: 'var(--foreground)',
+        color: "var(--foreground)",
       },
     },
     tooltip: {
-      backgroundColor: 'var(--card)',
-      titleColor: 'var(--foreground)',
-      bodyColor: 'var(--foreground)',
-      borderColor: 'var(--border)',
+      backgroundColor: "var(--card)",
+      titleColor: "var(--foreground)",
+      bodyColor: "var(--foreground)",
+      borderColor: "var(--border)",
       borderWidth: 1,
       cornerRadius: 8,
       padding: 12,
@@ -91,15 +92,15 @@ export const commonOptions = {
         display: false,
       },
       ticks: {
-        color: 'var(--foreground)',
+        color: "var(--foreground)",
       },
     },
     y: {
       grid: {
-        color: 'var(--border)',
+        color: "var(--border)",
       },
       ticks: {
-        color: 'var(--foreground)',
+        color: "var(--foreground)",
       },
     },
   },
@@ -107,27 +108,27 @@ export const commonOptions = {
 
 // Utility functions for data transformation
 export const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
 };
 
 export const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
 };
 
 export const formatPercentage = (value: number): string => {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+  return `${value >= 0 ? "+" : ""}${Math.round(value)}%`;
 };
 
 export const parseDateValue = (date: string | Date): Date => {
-  if (typeof date === 'string') {
+  if (typeof date === "string") {
     const dateOnlyMatch = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(date);
     if (dateOnlyMatch) {
       const year = Number(dateOnlyMatch[1]);
@@ -143,15 +144,15 @@ export const parseDateValue = (date: string | Date): Date => {
 export const getDateKey = (date: string | Date): string => {
   const dateObj = parseDateValue(date);
   const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const day = String(dateObj.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 export const getLocalDateKey = (date: Date): string => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -162,7 +163,27 @@ export const getSaleDate = (sale: Sale): Date => {
   return parseDateValue(sale.date);
 };
 
-export const getRecentDateKeys = (days: number, endDate = new Date()): string[] => {
+const getLatestDateValue = <T>(
+  items: T[],
+  getDate: (item: T) => string | Date | undefined,
+): Date | undefined => {
+  return items.reduce<Date | undefined>((latest, item) => {
+    const value = getDate(item);
+    if (!value) return latest;
+
+    const parsedDate = parseDateValue(value);
+    if (!latest || parsedDate > latest) {
+      return parsedDate;
+    }
+
+    return latest;
+  }, undefined);
+};
+
+export const getRecentDateKeys = (
+  days: number,
+  endDate = new Date(),
+): string[] => {
   const keys: string[] = [];
   const current = new Date(endDate);
   current.setHours(0, 0, 0, 0);
@@ -176,28 +197,141 @@ export const getRecentDateKeys = (days: number, endDate = new Date()): string[] 
   return keys;
 };
 
-export const calculatePercentChange = (current: number, previous: number): number => {
-  if (previous <= 0) {
+export const calculatePercentChange = (
+  current: number,
+  previous: number,
+): number => {
+  // If both are zero or negligible, no change
+  if (Math.abs(current) < 0.01 && Math.abs(previous) < 0.01) {
     return 0;
   }
+  // If previous is zero but current isn't, we can't calculate a meaningful percentage
+  // Return 0 to avoid division by zero (keep UI stable)
+  if (previous === 0) {
+    return 0;
+  }
+  // Normal percentage change calculation
   return ((current - previous) / previous) * 100;
 };
 
-export const getDailyRevenueTrend = (sales: Sale[], days = 7): number[] => {
-  const dateKeys = getRecentDateKeys(days);
+// Helper function to get the month with data (current or previous) for a collection
+const getActiveMonthForData = <T>(
+  items: T[],
+  getDate: (item: T) => string | Date | undefined,
+): { month: number; year: number } => {
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  // Check if current month has any data
+  const currentMonthHasData = items.some((item) => {
+    const itemDate = getDate(item);
+    if (!itemDate) return false;
+    const parsedDate = parseDateValue(itemDate);
+    return (
+      parsedDate.getMonth() === currentMonth &&
+      parsedDate.getFullYear() === currentYear
+    );
+  });
+
+  if (currentMonthHasData) {
+    return { month: currentMonth, year: currentYear };
+  }
+
+  // Fall back to previous month
+  return { month: prevMonth, year: prevYear };
+};
+
+// Helper to get last day of a specific month
+const getLastDayOfMonth = (month: number, year: number): Date => {
+  const nextMonth = month === 11 ? 0 : month + 1;
+  const nextYear = month === 11 ? year + 1 : year;
+  const lastDay = new Date(nextYear, nextMonth, 0);
+  lastDay.setHours(23, 59, 59, 999);
+  return lastDay;
+};
+
+export const getDailyRevenueTrend = (
+  sales: Sale[],
+  days = 7,
+  endDate = new Date(),
+): number[] => {
+  // Use the month that actually has data
+  const activeMonth = getActiveMonthForData(
+    sales,
+    (sale) => sale.date || sale.createdAt,
+  );
+
+  // Use the last day of the active month as the end date for the trend
+  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
+  const latestDate =
+    Math.min(monthEndDate.getTime(), new Date().getTime()) >
+    monthEndDate.getTime()
+      ? monthEndDate
+      : new Date();
+
+  // Filter sales to only the active month
+  const monthSales = sales.filter((sale) => {
+    const dateValue = sale.date || sale.createdAt;
+    if (!dateValue) return false;
+    const saleDate = parseDateValue(dateValue);
+    return (
+      saleDate.getMonth() === activeMonth.month &&
+      saleDate.getFullYear() === activeMonth.year
+    );
+  });
+
+  const dateKeys = getRecentDateKeys(days, latestDate);
 
   return dateKeys.map((key) =>
-    sales
-      .filter((sale) => getDateKey(sale.date) === key)
+    monthSales
+      .filter((sale) => {
+        const dateValue = sale.date || sale.createdAt;
+        return dateValue && getDateKey(dateValue) === key;
+      })
       .reduce((sum, sale) => sum + sale.totalAmount, 0),
   );
 };
 
-export const getDailySalesCountTrend = (sales: Sale[], days = 7): number[] => {
-  const dateKeys = getRecentDateKeys(days);
+export const getDailySalesCountTrend = (
+  sales: Sale[],
+  days = 7,
+  endDate = new Date(),
+): number[] => {
+  // Use the month that actually has data
+  const activeMonth = getActiveMonthForData(
+    sales,
+    (sale) => sale.date || sale.createdAt,
+  );
 
-  return dateKeys.map((key) =>
-    sales.filter((sale) => getDateKey(sale.date) === key).length,
+  // Use the last day of the active month as the end date for the trend
+  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
+  const latestDate =
+    Math.min(monthEndDate.getTime(), new Date().getTime()) >
+    monthEndDate.getTime()
+      ? monthEndDate
+      : new Date();
+
+  // Filter sales to only the active month
+  const monthSales = sales.filter((sale) => {
+    const dateValue = sale.date || sale.createdAt;
+    if (!dateValue) return false;
+    const saleDate = parseDateValue(dateValue);
+    return (
+      saleDate.getMonth() === activeMonth.month &&
+      saleDate.getFullYear() === activeMonth.year
+    );
+  });
+
+  const dateKeys = getRecentDateKeys(days, latestDate);
+
+  return dateKeys.map(
+    (key) =>
+      monthSales.filter((sale) => {
+        const dateValue = sale.date || sale.createdAt;
+        return dateValue && getDateKey(dateValue) === key;
+      }).length,
   );
 };
 
@@ -206,26 +340,82 @@ export const getDailyLossTrend = (
   saleReturns: SaleReturn[],
   products: Product[],
   days = 7,
+  endDate = new Date(),
 ): number[] => {
-  const dateKeys = getRecentDateKeys(days);
+  // Use the month that actually has data (check both movements and returns)
+  const movementActiveMonth = getActiveMonthForData(
+    stockMovements,
+    (movement) => movement.createdAt,
+  );
+  const returnActiveMonth = getActiveMonthForData(
+    saleReturns,
+    (returnItem) => returnItem.createdAt,
+  );
+
+  // Prefer the most recent month
+  let activeMonth = movementActiveMonth;
+  const movementMonthTime = new Date(
+    movementActiveMonth.year,
+    movementActiveMonth.month,
+  ).getTime();
+  const returnMonthTime = new Date(
+    returnActiveMonth.year,
+    returnActiveMonth.month,
+  ).getTime();
+
+  if (returnMonthTime > movementMonthTime) {
+    activeMonth = returnActiveMonth;
+  }
+
+  // Use the last day of the active month as the end date
+  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
+  const latestDate =
+    Math.min(monthEndDate.getTime(), new Date().getTime()) >
+    monthEndDate.getTime()
+      ? monthEndDate
+      : new Date();
+
+  const dateKeys = getRecentDateKeys(days, latestDate);
+
+  // Filter to only the active month
+  const monthMovements = stockMovements.filter((movement) => {
+    if (!movement.createdAt) return false;
+    const movementDate = parseDateValue(movement.createdAt);
+    return (
+      movementDate.getMonth() === activeMonth.month &&
+      movementDate.getFullYear() === activeMonth.year
+    );
+  });
+
+  const monthReturns = saleReturns.filter((returnItem) => {
+    if (!returnItem.createdAt) return false;
+    const returnDate = parseDateValue(returnItem.createdAt);
+    return (
+      returnDate.getMonth() === activeMonth.month &&
+      returnDate.getFullYear() === activeMonth.year
+    );
+  });
 
   return dateKeys.map((key) => {
-    const movementLoss = stockMovements
+    const movementLoss = monthMovements
       .filter(
         (movement) =>
           movement.createdAt &&
           getDateKey(movement.createdAt) === key &&
-          movement.type === 'out' &&
-          ['damage', 'expiry', 'theft'].some((reason) =>
+          movement.type === "out" &&
+          ["damage", "expiry", "theft"].some((reason) =>
             movement.reason?.toLowerCase().includes(reason),
           ),
       )
-      .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
+      .reduce(
+        (sum, movement) => sum + getStockMovementLossValue(movement, products),
+        0,
+      );
 
-    const returnLoss = saleReturns
+    const returnLoss = monthReturns
       .filter(
         (returnItem) =>
-          returnItem.status === 'completed' &&
+          returnItem.status === "completed" &&
           returnItem.createdAt &&
           getDateKey(returnItem.createdAt) === key,
       )
@@ -239,16 +429,42 @@ export const getDailyInventoryValueTrend = (
   products: Product[],
   stockMovements: StockMovement[],
   days = 7,
+  endDate = new Date(),
 ): number[] => {
-  const dateKeys = getRecentDateKeys(days);
+  // Use the month that actually has data
+  const activeMonth = getActiveMonthForData(
+    stockMovements,
+    (movement) => movement.createdAt,
+  );
+
+  // Use the last day of the active month as the end date
+  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
+  const latestDate =
+    Math.min(monthEndDate.getTime(), new Date().getTime()) >
+    monthEndDate.getTime()
+      ? monthEndDate
+      : new Date();
+
+  const dateKeys = getRecentDateKeys(days, latestDate);
   const currentInventoryValue = products.reduce(
     (sum, product) => sum + product.currentStock * product.unitPrice,
     0,
   );
 
-  const movementsByDate: Record<string, { inbound: number; outbound: number }> = {};
+  // Filter to only the active month
+  const monthMovements = stockMovements.filter((movement) => {
+    if (!movement.createdAt) return false;
+    const movementDate = parseDateValue(movement.createdAt);
+    return (
+      movementDate.getMonth() === activeMonth.month &&
+      movementDate.getFullYear() === activeMonth.year
+    );
+  });
 
-  stockMovements.forEach((movement) => {
+  const movementsByDate: Record<string, { inbound: number; outbound: number }> =
+    {};
+
+  monthMovements.forEach((movement) => {
     if (!movement.createdAt) return;
     const key = getDateKey(movement.createdAt);
     if (!dateKeys.includes(key)) return;
@@ -260,9 +476,9 @@ export const getDailyInventoryValueTrend = (
 
     movementsByDate[key] = movementsByDate[key] || { inbound: 0, outbound: 0 };
 
-    if (movement.type === 'in') {
+    if (movement.type === "in") {
       movementsByDate[key].inbound += value;
-    } else if (movement.type === 'out') {
+    } else if (movement.type === "out") {
       movementsByDate[key].outbound += value;
     }
   });
@@ -285,27 +501,27 @@ export const aggregateByPeriod = (
   data: any[],
   dateField: string,
   valueField: string,
-  period: 'daily' | 'weekly' | 'monthly' = 'monthly'
+  period: "daily" | "weekly" | "monthly" = "monthly",
 ) => {
   const grouped: { [key: string]: number } = {};
 
-  data.forEach(item => {
+  data.forEach((item) => {
     const date = parseDateValue(item[dateField]);
     let key: string;
 
     switch (period) {
-      case 'daily':
+      case "daily":
         key = getDateKey(date);
         break;
-      case 'weekly':
+      case "weekly":
         const dayOfWeek = date.getDay();
         const weekStart = new Date(date);
         weekStart.setDate(date.getDate() - ((dayOfWeek + 6) % 7));
         weekStart.setHours(0, 0, 0, 0);
         key = getDateKey(weekStart);
         break;
-      case 'monthly':
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      case "monthly":
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         break;
     }
 
@@ -323,12 +539,12 @@ export const aggregateByPeriod = (
 export const aggregateByCategory = (
   data: any[],
   categoryField: string,
-  valueField: string
+  valueField: string,
 ) => {
   const grouped: { [key: string]: number } = {};
 
-  data.forEach(item => {
-    const category = item[categoryField] || 'Unknown';
+  data.forEach((item) => {
+    const category = item[categoryField] || "Unknown";
     grouped[category] = (grouped[category] || 0) + (item[valueField] || 0);
   });
 
@@ -342,21 +558,40 @@ export const aggregateByCategory = (
 
 // Real data processing functions
 const getHourLabel = (hour: number) => {
-  if (hour === 0) return '12:00 AM';
-  if (hour === 12) return '12:00 PM';
-  if (hour < 12) return `${String(hour).padStart(2, '0')}:00 AM`;
-  return `${String(hour - 12).padStart(2, '0')}:00 PM`;
+  if (hour === 0) return "12:00 AM";
+  if (hour === 12) return "12:00 PM";
+  if (hour < 12) return `${String(hour).padStart(2, "0")}:00 AM`;
+  return `${String(hour - 12).padStart(2, "0")}:00 PM`;
 };
 
-export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' | 'monthly' = 'monthly') => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const processSalesTrendData = (
+  sales: Sale[],
+  period: "daily" | "weekly" | "monthly" = "monthly",
+) => {
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
-  if (period === 'monthly') {
+  if (period === "monthly") {
     const currentYear = new Date().getFullYear();
     const monthlyData = months.map((month, index) => {
-      const monthSales = sales.filter(sale => {
+      const monthSales = sales.filter((sale) => {
         const saleDate = getSaleDate(sale);
-        return saleDate.getUTCMonth() === index && saleDate.getUTCFullYear() === currentYear;
+        return (
+          saleDate.getUTCMonth() === index &&
+          saleDate.getUTCFullYear() === currentYear
+        );
       });
 
       return {
@@ -369,7 +604,7 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
     return monthlyData;
   }
 
-  if (period === 'daily') {
+  if (period === "daily") {
     const today = new Date();
     const currentDateKey = getLocalDateKey(today);
     const hours = Array.from({ length: 24 }, (_, index) => index); // 00:00 through 23:00
@@ -392,8 +627,8 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
     });
   }
 
-  if (period === 'weekly') {
-    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  if (period === "weekly") {
+    const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const now = new Date();
     const currentDay = now.getDay();
     const monday = new Date(now);
@@ -418,15 +653,15 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
   }
 
   // For weekly, aggregate by period using UTC-safe date keys
-  const aggregated = aggregateByPeriod(sales, 'date', 'totalAmount', period);
-  return aggregated.map(item => ({
+  const aggregated = aggregateByPeriod(sales, "date", "totalAmount", period);
+  return aggregated.map((item) => ({
     period: item.period,
-    sales: sales.filter(sale => {
+    sales: sales.filter((sale) => {
       const saleDate = getSaleDate(sale);
       let key: string;
 
       switch (period) {
-        case 'weekly':
+        case "weekly":
           const dayOfWeek = saleDate.getUTCDay();
           const weekStart = new Date(saleDate);
           weekStart.setUTCDate(saleDate.getUTCDate() - ((dayOfWeek + 6) % 7));
@@ -443,22 +678,20 @@ export const processSalesTrendData = (sales: Sale[], period: 'daily' | 'weekly' 
 };
 
 const getProductCategory = (product: Product) =>
-  product.customCategory?.trim() || product.category?.trim() || 'Other';
+  product.customCategory?.trim() || product.category?.trim() || "Other";
 
-const getPeriodRange = (
-  period: 'daily' | 'weekly' | 'monthly',
-) => {
+const getPeriodRange = (period: "daily" | "weekly" | "monthly") => {
   const now = new Date();
   const start = new Date(now);
 
   switch (period) {
-    case 'daily':
+    case "daily":
       return { start: new Date(now.setHours(0, 0, 0, 0)), end: new Date() };
-    case 'weekly':
+    case "weekly":
       start.setDate(start.getDate() - 6);
       start.setHours(0, 0, 0, 0);
       return { start, end: new Date() };
-    case 'monthly':
+    case "monthly":
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
       return { start, end: new Date() };
@@ -473,18 +706,25 @@ const isWithinRange = (dateString: string, start: Date, end: Date) => {
 export const processCategoryPerformanceData = (
   sales: Sale[],
   products: Product[],
-  metric: 'sales' | 'revenue',
-  period: 'daily' | 'weekly' | 'monthly' = 'monthly',
+  metric: "sales" | "revenue",
+  period: "daily" | "weekly" | "monthly" = "monthly",
 ) => {
   const range = getPeriodRange(period);
-  const categoryPerformance: Record<string, { sales: number; revenue: number }> = {};
+  const categoryPerformance: Record<
+    string,
+    { sales: number; revenue: number }
+  > = {};
 
   sales.forEach((sale) => {
     if (!isWithinRange(sale.date, range.start, range.end)) return;
 
     sale.items.forEach((item) => {
-      const product = products.find((p) => p.id === item.productId || p._id === item.productId);
-      const category = getProductCategory(product ?? ({ category: 'Other' } as Product));
+      const product = products.find(
+        (p) => p.id === item.productId || p._id === item.productId,
+      );
+      const category = getProductCategory(
+        product ?? ({ category: "Other" } as Product),
+      );
 
       if (!categoryPerformance[category]) {
         categoryPerformance[category] = { sales: 0, revenue: 0 };
@@ -525,57 +765,70 @@ export const processLossAnalysisData = (
   const damageLosses = stockMovements
     .filter(
       (movement) =>
-        movement.type === 'out' &&
-        movement.reason?.toLowerCase().includes('damage'),
+        movement.type === "out" &&
+        movement.reason?.toLowerCase().includes("damage"),
     )
-    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
+    .reduce(
+      (sum, movement) => sum + getStockMovementLossValue(movement, products),
+      0,
+    );
 
   const expiryLosses = stockMovements
     .filter(
       (movement) =>
-        movement.type === 'out' &&
-        movement.reason?.toLowerCase().includes('expir'),
+        movement.type === "out" &&
+        movement.reason?.toLowerCase().includes("expir"),
     )
-    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
+    .reduce(
+      (sum, movement) => sum + getStockMovementLossValue(movement, products),
+      0,
+    );
 
   const theftLosses = stockMovements
     .filter(
       (movement) =>
-        movement.type === 'out' &&
-        movement.reason?.toLowerCase().includes('theft'),
+        movement.type === "out" &&
+        movement.reason?.toLowerCase().includes("theft"),
     )
-    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
+    .reduce(
+      (sum, movement) => sum + getStockMovementLossValue(movement, products),
+      0,
+    );
 
   // Calculate losses from returns
   const returnLosses = saleReturns
-    .filter((returnItem) => returnItem.status === 'completed')
+    .filter((returnItem) => returnItem.status === "completed")
     .reduce((sum, returnItem) => sum + returnItem.totalAmount, 0);
 
   const totalLosses = damageLosses + expiryLosses + theftLosses + returnLosses;
   const otherLosses = Math.max(0, totalLosses * 0.1); // Assume 10% other losses
 
   const losses = [
-    { reason: 'Damage', value: damageLosses },
-    { reason: 'Expiry', value: expiryLosses },
-    { reason: 'Theft', value: theftLosses },
-    { reason: 'Returns', value: returnLosses },
-    { reason: 'Other', value: otherLosses },
-  ].filter(loss => loss.value > 0);
+    { reason: "Damage", value: damageLosses },
+    { reason: "Expiry", value: expiryLosses },
+    { reason: "Theft", value: theftLosses },
+    { reason: "Returns", value: returnLosses },
+    { reason: "Other", value: otherLosses },
+  ].filter((loss) => loss.value > 0);
 
   const total = losses.reduce((sum, loss) => sum + loss.value, 0);
 
-  return losses.map(loss => ({
+  return losses.map((loss) => ({
     ...loss,
     percentage: total > 0 ? Math.round((loss.value / total) * 100) : 0,
   }));
 };
 
-export const processProductPerformanceData = (sales: Sale[], products: Product[]) => {
-  const productSales: { [key: string]: { sales: number; revenue: number } } = {};
+export const processProductPerformanceData = (
+  sales: Sale[],
+  products: Product[],
+) => {
+  const productSales: { [key: string]: { sales: number; revenue: number } } =
+    {};
 
-  sales.forEach(sale => {
-    sale.items.forEach(item => {
-      const product = products.find(p => p.id === item.productId);
+  sales.forEach((sale) => {
+    sale.items.forEach((item) => {
+      const product = products.find((p) => p.id === item.productId);
       if (product) {
         const productName = product.name;
         if (!productSales[productName]) {
@@ -597,43 +850,85 @@ export const processProductPerformanceData = (sales: Sale[], products: Product[]
     }));
 };
 
-export const processKPIData = (sales: Sale[], products: Product[], stockMovements: StockMovement[]) => {
+export const processKPIData = (
+  sales: Sale[],
+  products: Product[],
+  stockMovements: StockMovement[],
+) => {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  const currentMonthSales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
-  });
+  // Get previous month
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-  const previousMonthSales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    return saleDate.getMonth() === prevMonth && saleDate.getFullYear() === prevYear;
-  });
+  const getMonthItems = <T>(
+    items: T[],
+    getDate: (item: T) => Date | string | undefined,
+    month: number,
+    year: number,
+  ) => {
+    return items.filter((item) => {
+      const itemDate = getDate(item);
+      if (!itemDate) return false;
+      const parsedDate = parseDateValue(itemDate);
+      return (
+        parsedDate.getMonth() === month && parsedDate.getFullYear() === year
+      );
+    });
+  };
 
-  const currentRevenue = currentMonthSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
-  const previousRevenue = previousMonthSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  // Strict current month and previous month filtering (no fallback to older periods)
+  const currentMonthSales = getMonthItems(
+    sales,
+    (sale) => sale.date || sale.createdAt,
+    currentMonth,
+    currentYear,
+  );
+  const previousMonthSales = getMonthItems(
+    sales,
+    (sale) => sale.date || sale.createdAt,
+    prevMonth,
+    prevYear,
+  );
+
+  const currentRevenue = currentMonthSales.reduce(
+    (sum, sale) => sum + sale.totalAmount,
+    0,
+  );
+  const previousRevenue = previousMonthSales.reduce(
+    (sum, sale) => sum + sale.totalAmount,
+    0,
+  );
   const revenueChange = calculatePercentChange(currentRevenue, previousRevenue);
 
   const currentSalesCount = currentMonthSales.length;
   const previousSalesCount = previousMonthSales.length;
-  const salesChange = calculatePercentChange(currentSalesCount, previousSalesCount);
+  const salesChange = calculatePercentChange(
+    currentSalesCount,
+    previousSalesCount,
+  );
 
   const currentInventoryValue = products.reduce(
     (sum, product) => sum + product.currentStock * product.unitPrice,
     0,
   );
 
-  const currentMonthMovements = stockMovements.filter((movement) => {
-    if (!movement.createdAt) return false;
-    const movementDate = new Date(movement.createdAt);
-    return movementDate.getMonth() === currentMonth && movementDate.getFullYear() === currentYear;
-  });
+  const currentMonthMovements = getMonthItems(
+    stockMovements,
+    (movement) => movement.createdAt,
+    currentMonth,
+    currentYear,
+  );
+  const previousMonthMovements = getMonthItems(
+    stockMovements,
+    (movement) => movement.createdAt,
+    prevMonth,
+    prevYear,
+  );
 
   const inboundCurrentMonthValue = currentMonthMovements
-    .filter((movement) => movement.type === 'in')
+    .filter((movement) => movement.type === "in")
     .reduce((sum, movement) => {
       const product = products.find(
         (p) => p.id === movement.productId || p._id === movement.productId,
@@ -642,7 +937,7 @@ export const processKPIData = (sales: Sale[], products: Product[], stockMovement
     }, 0);
 
   const outboundCurrentMonthValue = currentMonthMovements
-    .filter((movement) => movement.type === 'out')
+    .filter((movement) => movement.type === "out")
     .reduce((sum, movement) => {
       const product = products.find(
         (p) => p.id === movement.productId || p._id === movement.productId,
@@ -650,74 +945,93 @@ export const processKPIData = (sales: Sale[], products: Product[], stockMovement
       return sum + (product?.unitPrice ?? 0) * movement.quantity;
     }, 0);
 
-  const inventoryValueAtMonthStart = currentInventoryValue - inboundCurrentMonthValue + outboundCurrentMonthValue;
-  const inventoryChange = calculatePercentChange(currentInventoryValue, inventoryValueAtMonthStart);
+  const inventoryValueAtMonthStart =
+    currentInventoryValue -
+    inboundCurrentMonthValue +
+    outboundCurrentMonthValue;
+  const inventoryChange = calculatePercentChange(
+    currentInventoryValue,
+    inventoryValueAtMonthStart,
+  );
 
-  const currentLosses = stockMovements
+  const currentLosses = currentMonthMovements
     .filter(
       (movement) =>
-        movement.type === 'out' &&
-        movement.createdAt &&
-        new Date(movement.createdAt).getMonth() === currentMonth &&
-        new Date(movement.createdAt).getFullYear() === currentYear &&
-        ['damage', 'expiry', 'theft'].some((reason) =>
+        movement.type === "out" &&
+        ["damage", "expiry", "theft"].some((reason) =>
           movement.reason?.toLowerCase().includes(reason),
         ),
     )
-    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
+    .reduce(
+      (sum, movement) => sum + getStockMovementLossValue(movement, products),
+      0,
+    );
 
-  const previousLosses = stockMovements
+  const previousLosses = previousMonthMovements
     .filter(
       (movement) =>
-        movement.type === 'out' &&
-        movement.createdAt &&
-        new Date(movement.createdAt).getMonth() === (currentMonth === 0 ? 11 : currentMonth - 1) &&
-        new Date(movement.createdAt).getFullYear() ===
-          (currentMonth === 0 ? currentYear - 1 : currentYear) &&
-        ['damage', 'expiry', 'theft'].some((reason) =>
+        movement.type === "out" &&
+        ["damage", "expiry", "theft"].some((reason) =>
           movement.reason?.toLowerCase().includes(reason),
         ),
     )
-    .reduce((sum, movement) => sum + getStockMovementLossValue(movement, products), 0);
+    .reduce(
+      (sum, movement) => sum + getStockMovementLossValue(movement, products),
+      0,
+    );
 
   const lossesChange = calculatePercentChange(currentLosses, previousLosses);
 
   return {
     revenue: { value: currentRevenue, change: revenueChange },
     sales: { value: currentSalesCount, change: salesChange },
-    inventory: { value: currentInventoryValue, lowStock: products.filter(product => product.currentStock <= product.reorderLevel).length, change: inventoryChange },
+    inventory: {
+      value: currentInventoryValue,
+      lowStock: products.filter(
+        (product) => product.currentStock <= product.reorderLevel,
+      ).length,
+      change: inventoryChange,
+    },
     losses: { value: currentLosses, change: lossesChange },
   };
 };
 
 export const processCategoryDistributionData = (
   products: Product[],
-  metric: 'count' | 'stock_value' = 'count',
+  metric: "count" | "stock_value" = "count",
 ) => {
-  const categoryData: Record<string, { count: number; stockValue: number; products: Product[] }> = {};
+  const categoryData: Record<
+    string,
+    { count: number; stockValue: number; products: Product[] }
+  > = {};
 
   products.forEach((product) => {
     const category = getProductCategory(product);
-    
+
     if (!categoryData[category]) {
       categoryData[category] = { count: 0, stockValue: 0, products: [] };
     }
 
     categoryData[category].count += 1;
-    categoryData[category].stockValue += product.currentStock * product.unitPrice;
+    categoryData[category].stockValue +=
+      product.currentStock * product.unitPrice;
     categoryData[category].products.push(product);
   });
 
   const totalValue = Object.values(categoryData).reduce(
-    (sum, data) => sum + (metric === 'count' ? data.count : data.stockValue),
-    0
+    (sum, data) => sum + (metric === "count" ? data.count : data.stockValue),
+    0,
   );
 
   return Object.entries(categoryData)
     .map(([category, data]) => ({
       category,
-      value: metric === 'count' ? data.count : data.stockValue,
-      percentage: totalValue > 0 ? ((metric === 'count' ? data.count : data.stockValue) / totalValue) * 100 : 0,
+      value: metric === "count" ? data.count : data.stockValue,
+      percentage:
+        totalValue > 0
+          ? ((metric === "count" ? data.count : data.stockValue) / totalValue) *
+            100
+          : 0,
       productCount: data.count,
       stockValue: data.stockValue,
     }))
@@ -727,7 +1041,20 @@ export const processCategoryDistributionData = (
 // Generate mock data for development
 export const generateMockData = {
   salesTrend: () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return months.map((month, index) => ({
       month,
       sales: Math.floor(Math.random() * 50000) + 20000,
@@ -736,17 +1063,17 @@ export const generateMockData = {
   },
 
   topProducts: () => [
-    { name: 'Wireless Headphones', sales: 1250, revenue: 187500 },
-    { name: 'Bluetooth Speaker', sales: 980, revenue: 117600 },
-    { name: 'Smart Watch', sales: 750, revenue: 225000 },
-    { name: 'Laptop Stand', sales: 620, revenue: 31000 },
-    { name: 'USB Cable', sales: 540, revenue: 5400 },
+    { name: "Wireless Headphones", sales: 1250, revenue: 187500 },
+    { name: "Bluetooth Speaker", sales: 980, revenue: 117600 },
+    { name: "Smart Watch", sales: 750, revenue: 225000 },
+    { name: "Laptop Stand", sales: 620, revenue: 31000 },
+    { name: "USB Cable", sales: 540, revenue: 5400 },
   ],
 
   lossesByReason: () => [
-    { reason: 'Damage', value: 12500, percentage: 45 },
-    { reason: 'Expiry', value: 8750, percentage: 32 },
-    { reason: 'Theft', value: 4375, percentage: 16 },
-    { reason: 'Other', value: 2188, percentage: 7 },
+    { reason: "Damage", value: 12500, percentage: 45 },
+    { reason: "Expiry", value: 8750, percentage: 32 },
+    { reason: "Theft", value: 4375, percentage: 16 },
+    { reason: "Other", value: 2188, percentage: 7 },
   ],
 };

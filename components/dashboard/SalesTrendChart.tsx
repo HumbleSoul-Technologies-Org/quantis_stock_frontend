@@ -125,10 +125,10 @@ export function SalesTrendChart() {
       ...commonOptions.plugins,
       tooltip: {
         ...commonOptions.plugins.tooltip,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        borderColor: "rgba(255, 255, 255, 0.2)",
+        backgroundColor: "var(--card)",
+        titleColor: "var(--foreground)",
+        bodyColor: "var(--foreground)",
+        borderColor: "var(--border)",
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: true,
@@ -210,9 +210,9 @@ export function SalesTrendChart() {
     salesData.length > 0 ? Math.round(totalRevenue / salesData.length) : 0;
 
   return (
-    <Card className="col-span-full dark:bg-slate-800 lg:col-span-2">
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm overflow-hidden min-h-[30rem]">
+      <CardHeader className="p-5 sm:p-6 pb-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5 text-blue-600" />
             <CardTitle className="text-lg">Sales Trend (Jan-Dec)</CardTitle>
@@ -248,7 +248,7 @@ export function SalesTrendChart() {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5 sm:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="text-center p-4 bg-linear-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-lg">
             <ShoppingCart className="h-6 w-6 text-teal-600 mx-auto mb-2" />

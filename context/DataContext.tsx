@@ -28,6 +28,37 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/hooks/useToast";
 
+const normalizeCollectionPayload = (payload: unknown, fallbackKey?: string) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const data = payload as Record<string, unknown>;
+
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.products)) return data.products;
+  if (Array.isArray(data.sales)) return data.sales;
+  if (Array.isArray(data.movements)) return data.movements;
+  if (Array.isArray(data.returns)) return data.returns;
+  if (Array.isArray(data.activities)) return data.activities;
+  if (Array.isArray(data.audits)) return data.audits;
+
+  if (
+    fallbackKey &&
+    Array.isArray((data as Record<string, unknown>)[fallbackKey])
+  ) {
+    return (data as Record<string, unknown>)[fallbackKey] as unknown[];
+  }
+
+  return [];
+};
+
 // API functions for polling
 const apiSuppliers = async (token?: string, businessId?: string) => {
   try {
@@ -40,8 +71,7 @@ const apiSuppliers = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-
-      return data || [];
+      return normalizeCollectionPayload(data);
     }
   } catch (error) {
     console.warn("Failed to fetch suppliers from API:", error);
@@ -64,8 +94,7 @@ const apiProducts = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-
-      return data || [];
+      return normalizeCollectionPayload(data, "products");
     }
   } catch (error) {
     console.warn("Failed to fetch products from API:", error);
@@ -88,7 +117,7 @@ const apiInventory = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-      return (data && data.movements) || data || [];
+      return normalizeCollectionPayload(data, "movements");
     }
   } catch (error) {
     console.warn("Failed to fetch inventory movements from API:", error);
@@ -111,7 +140,7 @@ const apiSales = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-      return data || [];
+      return normalizeCollectionPayload(data, "sales");
     }
   } catch (error) {
     console.warn("Failed to fetch sales from API:", error);
@@ -134,7 +163,7 @@ const apiSaleReturns = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-      return data || [];
+      return normalizeCollectionPayload(data, "returns");
     }
   } catch (error) {
     console.warn("Failed to fetch sale returns from API:", error);
@@ -225,6 +254,12 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { error: toastError } = useToast();
+  const activeBusinessId =
+    user?.businessId ||
+    (user as any)?.business?._id ||
+    (user as any)?.business?.id ||
+    (user as any)?.business?.businessId ||
+    undefined;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -281,11 +316,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.suppliers = updatedSuppliers;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["suppliers", user?.businessId],
+        ["suppliers", activeBusinessId],
         updatedSuppliers,
       );
     },
-    [user?.businessId],
+    [activeBusinessId],
   );
 
   const persistProducts = useCallback(
@@ -294,9 +329,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const state = storage.getState();
       state.products = updatedProducts;
       storage.saveState(state);
-      queryClient.setQueryData(["products", user?.businessId], updatedProducts);
+      queryClient.setQueryData(["products", activeBusinessId], updatedProducts);
     },
-    [user?.businessId],
+    [activeBusinessId],
   );
 
   const persistSales = useCallback(
@@ -305,9 +340,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const state = storage.getState();
       state.sales = updatedSales;
       storage.saveState(state);
-      queryClient.setQueryData(["sales", user?.businessId], updatedSales);
+      queryClient.setQueryData(["sales", activeBusinessId], updatedSales);
     },
-    [user?.businessId],
+    [activeBusinessId],
   );
 
   const persistSaleReturns = useCallback(
@@ -317,11 +352,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.saleReturns = updatedSaleReturns;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["sales", "returns", user?.businessId],
+        ["sales", "returns", activeBusinessId],
         updatedSaleReturns,
       );
     },
-    [user?.businessId],
+    [activeBusinessId],
   );
 
   const persistStockMovements = useCallback(
@@ -331,11 +366,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.stockMovements = updatedStockMovements;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["inventory", "movements", user?.businessId],
+        ["inventory", "movements", activeBusinessId],
         updatedStockMovements,
       );
     },
-    [user?.businessId],
+    [activeBusinessId],
   );
 
   const persistActivities = useCallback(
@@ -345,11 +380,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.activities = updatedActivities;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["activities", user?.businessId],
+        ["activities", activeBusinessId],
         updatedActivities,
       );
     },
-    [user?.businessId],
+    [activeBusinessId],
   );
 
   const persistSecurityAudits = useCallback(
@@ -467,49 +502,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Poll suppliers from API every 30 seconds (moderate volatility - supplier edits)
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
-    queryKey: ["suppliers", user?.businessId],
-    queryFn: () => apiSuppliers(user?.token, user?.businessId),
-    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    queryKey: ["suppliers", activeBusinessId],
+    queryFn: () => apiSuppliers(user?.token, activeBusinessId),
+    enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll products from API every 30 seconds (moderate volatility - pricing/stock)
   const { data: productsData, refetch: refetchProducts } = useQuery({
-    queryKey: ["products", user?.businessId],
-    queryFn: () => apiProducts(user?.token, user?.businessId),
-    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    queryKey: ["products", activeBusinessId],
+    queryFn: () => apiProducts(user?.token, activeBusinessId),
+    enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll inventory movements from API every 20 seconds (critical for stock accuracy)
   const { data: inventoryData, refetch: refetchInventory } = useQuery({
-    queryKey: ["inventory", "movements", user?.businessId],
-    queryFn: () => apiInventory(user?.token, user?.businessId),
-    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    queryKey: ["inventory", "movements", activeBusinessId],
+    queryFn: () => apiInventory(user?.token, activeBusinessId),
+    enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll sales from API every 15 seconds (business-critical, revenue tracking)
   const { data: salesData, refetch: refetchSales } = useQuery({
-    queryKey: ["sales", user?.businessId],
-    queryFn: () => apiSales(user?.token, user?.businessId),
-    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    queryKey: ["sales", activeBusinessId],
+    queryFn: () => apiSales(user?.token, activeBusinessId),
+    enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll sale returns from API every 30 seconds (moderate priority - historical data)
   const { data: saleReturnsData, refetch: refetchSaleReturns } = useQuery({
-    queryKey: ["sales", "returns", user?.businessId],
-    queryFn: () => apiSaleReturns(user?.token, user?.businessId),
-    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    queryKey: ["sales", "returns", activeBusinessId],
+    queryFn: () => apiSaleReturns(user?.token, activeBusinessId),
+    enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll activities from API every 30 seconds (audit log - low volatility)
   const { data: activitiesData, refetch: refetchActivities } = useQuery({
-    queryKey: ["activities", user?.businessId],
-    queryFn: () => apiActivities(user?.token, user?.businessId),
-    enabled: !!user?.token && !!user?.businessId && isInitialized,
+    queryKey: ["activities", activeBusinessId],
+    queryFn: () => apiActivities(user?.token, activeBusinessId),
+    enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 

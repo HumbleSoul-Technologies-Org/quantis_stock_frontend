@@ -64,10 +64,10 @@ export function CategoryDistributionChart() {
       },
       tooltip: {
         ...commonOptions.plugins.tooltip,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        borderColor: "#fff",
+        backgroundColor: "var(--card)",
+        titleColor: "var(--foreground)",
+        bodyColor: "var(--foreground)",
+        borderColor: "var(--border)",
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
@@ -102,9 +102,9 @@ export function CategoryDistributionChart() {
   const totalValue = categoryData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <Card className="dark:bg-slate-800">
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm overflow-hidden min-h-[30rem]">
+      <CardHeader className="p-5 sm:p-6 pb-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2">
             <PieChart className="h-5 w-5 text-blue-600" />
             <CardTitle className="text-lg">Category Distribution</CardTitle>
@@ -131,7 +131,7 @@ export function CategoryDistributionChart() {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5 sm:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="text-center p-4 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
             <PieChart className="h-6 w-6 text-blue-600 mx-auto mb-2" />

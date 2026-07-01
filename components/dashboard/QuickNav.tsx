@@ -70,24 +70,24 @@ function QuickNavContent() {
   );
 
   return (
-    <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-green-50 dark:from-teal-900 to-emerald-50 dark:to-slate-800 border-green-200 dark:border-teal-700">
-      <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
-        <CardTitle className="text-green-800 dark:text-teal-300 text-lg sm:text-xl">
+    <Card className="mb-4 sm:mb-6 border border-slate-700/80 bg-slate-950/90 shadow-lg shadow-slate-950/20">
+      <CardHeader className="p-5 sm:p-6 pb-3">
+        <CardTitle className="text-slate-100 text-lg sm:text-xl">
           Quick Navigation
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3 sm:p-6 pt-2 sm:pt-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+      <CardContent className="p-4 sm:p-6 pt-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {visibleItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg bg-white dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-teal-800 border border-green-200 dark:border-teal-600 transition-colors"
+                className="flex flex-col items-center justify-center gap-2 rounded-[1.75rem] border border-slate-700/70 bg-slate-900/80 p-3 text-center transition hover:border-slate-500 hover:bg-slate-900/95"
               >
-                <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-green-700 dark:text-teal-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-teal-100 text-center">
+                <Icon className="w-5 h-5 text-slate-200" />
+                <span className="text-xs sm:text-sm font-medium text-slate-100">
                   {item.label}
                 </span>
               </Link>
