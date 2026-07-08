@@ -11,10 +11,11 @@ export const businessEmailSchema = z.object({
 
 // Business Phone Schema
 export const businessPhoneSchema = z.object({
-  contact: z.string({
-    required_error: "Business phone is required",
-    invalid_type_error: "Business phone must be a number",
-  })
+  contact: z
+    .string({
+      required_error: "Business phone is required",
+      invalid_type_error: "Business phone must be a number",
+    })
     .regex(/^[0-9]+$/, "Phone number must contain only digits")
     .min(9, "Phone number must be at least 9 digits")
     .max(15, "Phone number is too long"),
@@ -34,7 +35,7 @@ export const businessSetupSchema = z.object({
     .string()
     .max(500, "Address must be less than 500 characters")
     .optional(),
-  businessType: z.enum(["retail", "other"]),
+  businessType: z.enum(["retail", "other", "wholesaler"]),
   currency: z.string().min(1, "Currency is required"),
   lowStockThreshold: z
     .number()
@@ -42,13 +43,21 @@ export const businessSetupSchema = z.object({
     .max(100, "Threshold must be at most 100"),
   notifications: z
     .object({
-      resourceChanges: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
+      resourceChanges: z
+        .object({ email: z.boolean(), sms: z.boolean() })
+        .optional(),
       salesAlert: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
-      loginFailAttempts: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
-      systemUpdate: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
+      loginFailAttempts: z
+        .object({ email: z.boolean(), sms: z.boolean() })
+        .optional(),
+      systemUpdate: z
+        .object({ email: z.boolean(), sms: z.boolean() })
+        .optional(),
       returns: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
       lowStock: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
-      userProfileChanges: z.object({ email: z.boolean(), sms: z.boolean() }).optional(),
+      userProfileChanges: z
+        .object({ email: z.boolean(), sms: z.boolean() })
+        .optional(),
     })
     .optional(),
   setupCompletedAt: z.string(),
@@ -61,7 +70,7 @@ export const profileUpdateSchema = z.object({
     .min(1, "Business name is required")
     .min(2, "Business name must be at least 2 characters")
     .max(100, "Business name must be less than 100 characters"),
-  businessType: z.enum(["retail", "other"]),
+  businessType: z.enum(["retail", "other", "wholesaler"]),
   businessEmail: businessEmailSchema,
   businessPhone: businessPhoneSchema,
   businessAddress: z

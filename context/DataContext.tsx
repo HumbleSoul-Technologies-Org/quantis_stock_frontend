@@ -1796,3 +1796,5 @@ export function useData() {
   }
   return context;
 }
+
+export const useDataContext = useData;

@@ -139,7 +139,7 @@ function KPICard({
       : value;
 
   return (
-    <Card className="relative flex h-full min-h-[18rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-700/80 bg-slate-950/90 shadow-xl shadow-slate-950/30 transition hover:shadow-[0_30px_90px_-30px_rgba(15,23,42,0.35)]">
+    <Card className="relative flex h-full min-h-[18rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm dark:border-slate-700/80 dark:bg-slate-950/90 transition hover:shadow-xl">
       <div
         className={`absolute inset-y-0 left-0 w-1 bg-linear-to-b ${accentClasses}`}
       />
@@ -152,14 +152,14 @@ function KPICard({
             <p className="text-sm text-slate-500">{changeLabel}</p>
           )}
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-900 text-slate-200 shadow-sm">
+        <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-100 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-200">
           {icon}
         </div>
       </CardHeader>
       <CardContent className="px-6 pb-6 pt-3">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-3">
-            <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">
+            <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
               {displayValue}
             </div>
             {change !== undefined && (
@@ -182,7 +182,7 @@ function KPICard({
             )}
           </div>
           {sparklineData && (
-            <div className="relative h-20 w-full sm:w-36 rounded-3xl bg-slate-900/70 p-2">
+            <div className="relative h-20 w-full sm:w-36 rounded-3xl bg-slate-50 p-2 dark:bg-slate-900/70">
               <Line data={sparklineChartData} options={sparklineOptions} />
             </div>
           )}

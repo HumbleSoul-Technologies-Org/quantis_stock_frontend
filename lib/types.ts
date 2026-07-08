@@ -1,6 +1,6 @@
 // Auth Types
 export type UserRole = "admin" | "manager" | "sales" | "accountant";
-export type BusinessType = "retail" | "other";
+export type BusinessType = "retail" | "other" | "wholesaler";
 export type RetailSubType =
   | "electronics"
   | "clothing"
@@ -249,9 +249,14 @@ export interface Sale {
   businessId?: string; // Business isolation (optional during transition)
   createdBy: string;
   createdAt?: string;
+  customerId?: string;
   customerName?: string;
+  isCreditSale?: boolean;
   paymentType?: string;
+  paymentStatus?: "pending" | "paid" | "partial" | "overdue";
+  paidAmount?: number;
   txnId?: string;
+  dueDate?: string;
   returnStatus?: "none" | "partial" | "returned"; // Track return status
   saleReturnId?: string; // Reference to associated sale return (if any)
 }

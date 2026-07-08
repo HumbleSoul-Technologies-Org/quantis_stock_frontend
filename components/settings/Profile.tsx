@@ -231,12 +231,16 @@ export function Profile() {
                       onChange={(e) =>
                         setEditForm({
                           ...editForm,
-                          businessType: e.target.value as "retail" | "other",
+                          businessType: e.target.value as
+                            | "retail"
+                            | "other"
+                            | "wholesaler",
                         })
                       }
                       className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
                     >
                       <option value="retail">Retail</option>
+                      <option value="wholesaler">Wholesaler</option>
                       <option value="other">Other</option>
                     </select>
                   </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BusinessSetup } from "@/lib/types";
+import { BusinessSetup, BusinessType } from "@/lib/types";
 import { CURRENCIES, RETAIL_CONFIG } from "@/lib/business-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,6 +130,7 @@ export function BusinessSetupForm({
     verified: false,
   });
   const [businessAddress, setBusinessAddress] = useState("");
+  const [businessType, setBusinessType] = useState<BusinessType>("retail");
   const [currency, setCurrency] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState(20);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -166,6 +167,9 @@ export function BusinessSetupForm({
       if (!businessAddress?.trim()) {
         newErrors.businessAddress = "Business address is required";
       }
+      if (!businessType) {
+        newErrors.businessType = "Business type is required";
+      }
     } else if (step === 2) {
       if (!currency?.trim()) {
         newErrors.currency = "Currency is required";
@@ -194,7 +198,7 @@ export function BusinessSetupForm({
       businessEmail,
       businessPhone,
       businessAddress,
-      businessType: "retail",
+      businessType,
       currency,
       lowStockThreshold,
       setupCompletedAt: new Date().toISOString(),
@@ -218,6 +222,9 @@ export function BusinessSetupForm({
     }
     if (!businessAddress?.trim()) {
       newErrors.businessAddress = "Business address is required";
+    }
+    if (!businessType) {
+      newErrors.businessType = "Business type is required";
     }
     if (!currency?.trim()) {
       newErrors.currency = "Currency is required";
@@ -373,17 +380,38 @@ export function BusinessSetupForm({
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
-                    Business Type
+                    Business Type <span className="text-red-500">*</span>
                   </label>
-                  <div className="px-4 py-3 bg-teal-50 dark:bg-slate-800 border-2 border-teal-200 dark:border-teal-700 rounded-lg text-sm font-medium text-gray-700 dark:text-slate-200">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      Retail
+                  <select
+                    value={businessType}
+                    onChange={(e) =>
+                      setBusinessType(e.target.value as BusinessType)
+                    }
+                    className={`w-full px-4 py-3 border-2 rounded-lg bg-white dark:bg-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                      errors.businessType
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-teal-200 dark:border-teal-700"
+                    }`}
+                  >
+                    <option value="retail">Retail</option>
+                    <option value="wholesaler">Wholesaler</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.businessType && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                      <p className="text-red-500 text-sm">
+                        {errors.businessType}
+                      </p>
                     </div>
-                  </div>
+                  )}
                   <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">
-                    Optimized for retail stores with inventory tracking and
-                    sales management
+                    {businessType === "retail" &&
+                      "Optimized for retail stores with inventory tracking and sales management."}
+                    {businessType === "wholesaler" &&
+                      "Wholesaler businesses can manage customer credit, approvals, and payment tracking."}
+                    {businessType === "other" &&
+                      "Other business types can use core inventory and sales features."}
                   </p>
                 </div>
               </CardContent>

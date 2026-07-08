@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   BarChart3,
   Users,
+  UserPlus,
   Settings,
   HelpCircle,
   LogOut,
@@ -51,6 +52,12 @@ export function Sidebar() {
       label: "Sales",
       icon: ShoppingCart,
       roles: ["admin", "manager", "sales", "accountant"],
+    },
+    {
+      href: "/dashboard/customers",
+      label: "Customers",
+      icon: UserPlus,
+      roles: ["admin", "manager", "accountant", "sales"],
     },
     {
       href: "/dashboard/suppliers",

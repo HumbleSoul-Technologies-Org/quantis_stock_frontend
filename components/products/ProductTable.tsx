@@ -88,7 +88,7 @@ export function ProductTable({
               return (
                 <div
                   key={product.id || product._id} // Handle both id and _id for backward compatibility
-                  className="group relative h-96 overflow-hidden rounded-2xl border border-green-200 dark:border-teal-700 shadow-lg bg-slate-50 dark:bg-slate-800 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-green-500/10 dark:hover:shadow-teal-500/10 cursor-pointer"
+                  className="group relative h-96 overflow-hidden rounded-2xl border border-green-200 dark:border-teal-700 shadow-lg bg-white dark:bg-slate-800 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-green-500/10 dark:hover:shadow-teal-500/10 cursor-pointer"
                   style={{
                     backgroundImage,
                     backgroundSize: "cover",
@@ -100,12 +100,12 @@ export function ProductTable({
                         : "#1f2937",
                   }}
                 >
-                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/70 group-hover:via-black/10 transition-all duration-300" />
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/40 dark:backdrop-blur-sm group-hover:bg-black/50 transition-all duration-300" />
                   {!product.image?.url ||
                     (product.imageUrl === "" && (
-                      <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white/80">
+                      <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-slate-900/70 dark:text-white/80">
                         <div className="text-center">
-                          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white/10 flex items-center justify-center">
+                          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-slate-100/60 dark:bg-white/10 flex items-center justify-center">
                             <AlertCircle className="w-6 h-6" />
                           </div>
                           No image available
@@ -114,7 +114,7 @@ export function ProductTable({
                     ))}
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
                     <div className="flex justify-between items-start gap-2">
-                      <div className="rounded-full bg-black/70 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white border border-white/20">
+                      <div className="rounded-full bg-white/80 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-900 border border-slate-200/50 dark:bg-black/70 dark:text-white dark:border-white/20">
                         {product.category === "Other" && product.customCategory
                           ? product.customCategory
                           : product.category || "Uncategorized"}
@@ -130,17 +130,17 @@ export function ProductTable({
                       </div>
                     </div>
 
-                    <div className="bg-black/60 backdrop-blur-md rounded-xl p-4 text-white border border-white/10 group-hover:bg-black/50 transition-all duration-300">
+                    <div className="bg-black/50 backdrop-blur-md rounded-xl p-4 text-white border border-slate-800/20 dark:bg-black/60 dark:text-white dark:border-white/10 group-hover:bg-black/60 transition-all duration-300">
                       <h3 className="font-bold text-lg text-white line-clamp-2 mb-2 leading-tight">
                         {product.name || "Untitled Product"}
                       </h3>
-                      <p className="text-xs text-slate-300 line-clamp-1 mb-3 font-medium">
+                      <p className="text-xs text-slate-200 line-clamp-1 mb-3 font-medium">
                         SKU: {product.sku}
                       </p>
 
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="font-medium text-slate-300">
+                          <span className="font-medium text-slate-200">
                             Supplier:
                           </span>
                           <span className="text-white line-clamp-1 text-right">
@@ -148,7 +148,7 @@ export function ProductTable({
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="font-medium text-slate-300">
+                          <span className="font-medium text-slate-200">
                             Price:
                           </span>
                           <span className="text-white font-semibold">
@@ -161,7 +161,7 @@ export function ProductTable({
                           </span>
                           <span
                             className={`font-semibold ${
-                              lowStock ? "text-red-300" : "text-emerald-300"
+                              lowStock ? "text-red-600" : "text-emerald-600"
                             }`}
                           >
                             {product.currentStock} {product.unit}

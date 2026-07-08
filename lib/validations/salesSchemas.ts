@@ -28,6 +28,7 @@ export const saleItemSchema = z.object({
 
 // Sales Schema
 export const salesSchema = z.object({
+  customerId: z.string().optional(),
   customerName: z
     .string()
     .max(100, "Customer name must be less than 100 characters")
@@ -45,10 +46,13 @@ export const salesSchema = z.object({
     .array(saleItemSchema)
     .min(1, "At least one item is required")
     .max(100, "Cannot have more than 100 items"),
-  paymentMethod: z.enum(["cash", "card", "bank_transfer", "check", "other"], {
-    required_error: "Payment method is required",
-    invalid_type_error: "Invalid payment method",
-  }),
+  paymentMethod: z.enum(
+    ["cash", "card", "transfer", "cheque", "credit", "other"],
+    {
+      required_error: "Payment method is required",
+      invalid_type_error: "Invalid payment method",
+    },
+  ),
   notes: z
     .string()
     .max(500, "Notes must be less than 500 characters")

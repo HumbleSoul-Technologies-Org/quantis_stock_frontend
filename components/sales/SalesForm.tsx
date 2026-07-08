@@ -7,6 +7,7 @@ import {
   parseFormError,
   extractApiErrorFields,
 } from "@/lib/errorParsers";
+import { useCredit } from "@/hooks/useCredit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,7 +55,10 @@ export function SalesForm({
   const { formatCurrency } = useSettings();
   const { user, business } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
+  const { customers, fetchCustomers } = useCredit();
 
+  const isWholesaler = business?.businessType === "wholesaler";
+  const allowCreditSales = isWholesaler || Boolean(sale?.isCreditSale);
   const isEditing = !!sale; // Determine if we're in edit mode
 
   const [items, setItems] = useState<SaleItem[]>(
@@ -65,22 +69,47 @@ export function SalesForm({
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [customerName, setCustomerName] = useState(sale?.customerName || "");
+  const [customerId, setCustomerId] = useState(sale?.customerId || "");
+  const [isCreditSale, setIsCreditSale] = useState(sale?.isCreditSale || false);
   const [paymentType, setPaymentType] = useState(sale?.paymentType || "cash");
   const [txnId, setTxnId] = useState(sale?.txnId || "");
+  const [dueDate, setDueDate] = useState(sale?.dueDate || "");
   const [saleDate, setSaleDate] = useState(
     sale?.date || new Date().toISOString().split("T")[0],
   );
   const [notes, setNotes] = useState(sale?.notes || "");
+
+  const isCreditSaleActive =
+    allowCreditSales && (isCreditSale || paymentType === "credit");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load credit customers for wholesaler business use
+  useEffect(() => {
+    if (isWholesaler) {
+      void fetchCustomers();
+    }
+  }, [isWholesaler, fetchCustomers]);
+
+  useEffect(() => {
+    if (!allowCreditSales && isCreditSale) {
+      setIsCreditSale(false);
+    }
+    if (!allowCreditSales && paymentType === "credit") {
+      setPaymentType("cash");
+    }
+  }, [allowCreditSales, isCreditSale, paymentType]);
 
   // Update form state when sale prop changes
   useEffect(() => {
     if (sale) {
       setItems(sale.items || []);
       setCustomerName(sale.customerName || "");
+      setCustomerId(sale.customerId || "");
+      setIsCreditSale(Boolean(sale.isCreditSale));
       setPaymentType(sale.paymentType || "cash");
       setTxnId(sale.txnId || "");
+      setDueDate(sale.dueDate || "");
       setSaleDate(sale.date || new Date().toISOString().split("T")[0]);
       setNotes(sale.notes || "");
       setSelectedProductId("");
@@ -225,10 +254,14 @@ export function SalesForm({
     const newErrors: Record<string, string> = {};
     if (items.length === 0)
       newErrors.items = "Add at least one item to the sale";
+    if (isCreditSale && !customerId)
+      newErrors.customerId = "Please select a customer for credit sales";
     if (!customerName.trim())
       newErrors.customerName = "Customer name is required";
     if (paymentType !== "cash" && !txnId.trim())
       newErrors.txnId = "Transaction ID is required";
+    if (isCreditSale && !dueDate)
+      newErrors.dueDate = "Due date is required for credit sales";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -254,9 +287,14 @@ export function SalesForm({
         status: "completed",
         notes,
         createdBy: currentUserId,
+        customerId: customerId || undefined,
         customerName,
+        isCreditSale: isCreditSaleActive,
         paymentType,
+        paymentStatus: isCreditSaleActive ? "pending" : "paid",
+        paidAmount: isCreditSaleActive ? 0 : totalAmount,
         txnId: newTxnId,
+        dueDate: isCreditSaleActive ? dueDate : undefined,
         createdAt: isEditing ? sale.createdAt : new Date().toISOString(),
         ...(isEditing && { _id: sale._id }),
       };
@@ -360,6 +398,114 @@ export function SalesForm({
           />
         </div>
 
+        <div className="md:col-span-2">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="creditSale"
+                  type="checkbox"
+                  checked={isCreditSale}
+                  disabled={!allowCreditSales || user?.role === "accountant"}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsCreditSale(checked);
+                    if (checked) {
+                      setPaymentType("credit");
+                    } else if (paymentType === "credit") {
+                      setPaymentType("cash");
+                    }
+                  }}
+                  className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                />
+                <label
+                  htmlFor="creditSale"
+                  className="text-sm font-medium text-gray-700 dark:text-slate-200"
+                >
+                  Record as credit sale
+                </label>
+              </div>
+              {!isWholesaler && !sale?.isCreditSale && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Credit sales are available for wholesaler businesses only.
+                </p>
+              )}
+            </div>
+
+            {isCreditSaleActive && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
+                    Credit Customer *
+                  </label>
+                  <select
+                    disabled={user?.role === "accountant"}
+                    value={customerId}
+                    onChange={(e) => {
+                      setCustomerId(e.target.value);
+                      const selected = customers.find(
+                        (customer) =>
+                          customer.id === e.target.value ||
+                          customer._id === e.target.value,
+                      );
+                      if (selected) {
+                        setCustomerName(selected.name);
+                      }
+                    }}
+                    className={`w-full px-4 py-2 border-2 rounded-lg bg-white dark:bg-slate-900 dark:text-slate-100 ${
+                      errors.customerId
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-teal-200 dark:border-teal-700"
+                    }`}
+                  >
+                    <option value="">Select a customer...</option>
+                    {customers.map((customer) => (
+                      <option
+                        key={customer._id || customer.id}
+                        value={customer._id || customer.id}
+                      >
+                        {customer.name}{" "}
+                        {customer.email ? `(${customer.email})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.customerId && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-red-500">
+                        {errors.customerId}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
+                    Due Date *
+                  </label>
+                  <Input
+                    disabled={user?.role === "accountant"}
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className={`border-2 dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      errors.dueDate
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-teal-200 dark:border-teal-700"
+                    }`}
+                  />
+                  {errors.dueDate && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-red-500">
+                        {errors.dueDate}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
             Payment Type *
@@ -367,13 +513,22 @@ export function SalesForm({
           <select
             disabled={user?.role === "accountant"}
             value={paymentType}
-            onChange={(e) => setPaymentType(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setPaymentType(value);
+              if (value === "credit") {
+                setIsCreditSale(true);
+              } else if (isCreditSale) {
+                setIsCreditSale(false);
+              }
+            }}
             className="w-full px-4 py-2 border-2  border-teal-200 dark:border-teal-700 rounded-lg tex9-sm bg-white dark:bg-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="cash">Cash</option>
             <option value="card">Card</option>
             <option value="transfer">Bank Transfer</option>
             <option value="cheque">Cheque</option>
+            {allowCreditSales && <option value="credit">Credit</option>}
             <option value="other">Other</option>
           </select>
         </div>

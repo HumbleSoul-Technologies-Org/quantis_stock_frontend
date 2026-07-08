@@ -70,9 +70,9 @@ function QuickNavContent() {
   );
 
   return (
-    <Card className="mb-4 sm:mb-6 border border-slate-700/80 bg-slate-950/90 shadow-lg shadow-slate-950/20">
+    <Card className="mb-4 sm:mb-6 border border-slate-200/80 bg-white shadow-sm dark:border-slate-700/80 dark:bg-slate-950/90 dark:shadow-lg dark:shadow-slate-950/20">
       <CardHeader className="p-5 sm:p-6 pb-3">
-        <CardTitle className="text-slate-100 text-lg sm:text-xl">
+        <CardTitle className="text-slate-900 dark:text-slate-100 text-lg sm:text-xl">
           Quick Navigation
         </CardTitle>
       </CardHeader>
@@ -84,10 +84,10 @@ function QuickNavContent() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center justify-center gap-2 rounded-[1.75rem] border border-slate-700/70 bg-slate-900/80 p-3 text-center transition hover:border-slate-500 hover:bg-slate-900/95"
+                className="flex flex-col items-center justify-center gap-2 rounded-[1.75rem] border border-slate-200/70 bg-white/95 dark:border-slate-700/70 dark:bg-slate-900/80 p-3 text-center transition hover:border-slate-300 hover:bg-white/97 dark:hover:border-slate-500 dark:hover:bg-slate-900/95"
               >
-                <Icon className="w-5 h-5 text-slate-200" />
-                <span className="text-xs sm:text-sm font-medium text-slate-100">
+                <Icon className="w-5 h-5 text-slate-900 dark:text-slate-200" />
+                <span className="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100">
                   {item.label}
                 </span>
               </Link>
