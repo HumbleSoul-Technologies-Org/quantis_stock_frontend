@@ -44,9 +44,14 @@ export function TrialWarningDialog({
     setSuccess(false);
 
     try {
-      const response = await apiRequest("POST", `/users/${userId}/verify-key`, {
-        productKey: productKey.trim(),
-      });
+      const response = await apiRequest(
+        "POST",
+        `/users/${userId}/verify-key`,
+        {
+          productKey: productKey.trim(),
+        },
+        user?.token,
+      );
 
       if (response.ok && response.data?.user) {
         const { trial_expires, product_key_verified } = response.data.user;

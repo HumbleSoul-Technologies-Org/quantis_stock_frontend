@@ -14,7 +14,9 @@ export const CLOUDINARY_CLOUD_NAME =
 export const CLOUDINARY_UPLOAD_PRESET =
   process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-export const TRIAL_DAYS = Number(process.env.NEXT_PUBLIC_TRIAL_DAYS ?? 31);
+export const TRIAL_DAYS = Number(
+  process.env.NEXT_PUBLIC_TRIAL_DAYS ?? process.env.TRIAL_DAYS ?? 31,
+);
 
 export function assertPublicEnv(name: string, value: string | undefined) {
   if (!value) {

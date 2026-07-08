@@ -108,6 +108,8 @@ export function RegisterForm() {
         token: responseData.token,
         businessId: responseData.user.businessId, // Include business data if returned by backend
         business: responseData.user.business, // Include business data if returned by backend
+        trial_expires: responseData.user.trial_expires,
+        product_key_verified: responseData.user.product_key_verified,
       };
 
       setSuccess("Account created successfully! Redirecting...");

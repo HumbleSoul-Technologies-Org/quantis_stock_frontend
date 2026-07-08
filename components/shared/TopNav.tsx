@@ -11,7 +11,7 @@ import { TrialWarningDialog } from "@/components/TrialWarningDialog";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 
 export function TopNav() {
-  const { user, logout } = useAuth();
+  const { user, business, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { getUnreadCount } = useNotifications();
@@ -97,7 +97,9 @@ export function TopNav() {
               <Wifi className="w-4 h-4 animate-pulse" />
               <span className="hidden sm:inline">Connected</span>
             </span>
-            {user?.trial_expires ? (
+            {!business?.activated &&
+            user?.trial_expires &&
+            trialStatus.isActive ? (
               <button
                 type="button"
                 onClick={() => setShowTrialDialog((open) => !open)}

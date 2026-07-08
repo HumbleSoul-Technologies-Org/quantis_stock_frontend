@@ -23,6 +23,15 @@ export default function DashboardLayout({
       return;
     }
 
+    if (user.role === "admin" && business && !business.activated) {
+      const trialExpired =
+        !user.trial_expires || new Date(user.trial_expires) <= new Date();
+      if (trialExpired) {
+        router.push("/product-key");
+        return;
+      }
+    }
+
     if (user.role === "admin" && !business) {
       router.push("/onboarding");
       return;
