@@ -127,6 +127,7 @@ export interface User {
   createdAt?: string;
   token?: string; // For session management
   trial_expires?: string; // ISO date string when trial expires
+  trial_days?: number; // Configured trial duration from server
   product_key_verified?: boolean; // Whether product key has been verified
 }
 

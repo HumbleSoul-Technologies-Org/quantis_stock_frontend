@@ -9,7 +9,6 @@ import { clearUserSession } from "@/lib/authStorage";
 import { AlertCircle, CheckCircle, Key, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
-import { TRIAL_DAYS } from "@/lib/config";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 import {
   productKeySchema,
@@ -22,6 +21,7 @@ export function ProductKeyForm() {
   const [success, setSuccess] = useState("");
 
   const { loginWithApiData, user, business } = useAuth();
+  const trialDays = user?.trial_days ?? 31;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -200,9 +200,9 @@ export function ProductKeyForm() {
 
           <div className="space-y-3">
             <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-              No product key right now? Continue with your {TRIAL_DAYS}-day
-              trial and access the dashboard immediately. Your trial will still
-              expire after the configured period.
+              No product key right now? Continue with your {trialDays}-day trial
+              and access the dashboard immediately. Your trial will still expire
+              after the configured period.
             </p>
             <AuthButton
               type="button"
@@ -210,7 +210,7 @@ export function ProductKeyForm() {
               onClick={() => router.push("/dashboard")}
               disabled={isLoading}
             >
-              Continue with {TRIAL_DAYS}-day trial
+              Continue with {trialDays}-day trial
             </AuthButton>
           </div>
 

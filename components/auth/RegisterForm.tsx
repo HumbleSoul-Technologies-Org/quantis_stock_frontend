@@ -109,6 +109,7 @@ export function RegisterForm() {
         businessId: responseData.user.businessId, // Include business data if returned by backend
         business: responseData.user.business, // Include business data if returned by backend
         trial_expires: responseData.user.trial_expires,
+        trial_days: responseData.user.trial_days,
         product_key_verified: responseData.user.product_key_verified,
       };
 
