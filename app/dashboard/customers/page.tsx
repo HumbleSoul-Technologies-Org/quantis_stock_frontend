@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { useCredit, Customer } from "@/hooks/useCredit";
 import { useDataContext } from "@/context/DataContext";
 import { SalesDialog } from "@/components/sales/SalesDialog";
@@ -22,13 +23,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2 } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Eye,
+  ShoppingCartIcon,
+  NotebookPen,
+  MoreVertical,
+} from "lucide-react";
 
 interface CustomerFormData {
   name: string;
@@ -58,6 +72,8 @@ const defaultCustomerForm: CustomerFormData = {
 
 export default function CustomersPage() {
   const { user, business } = useAuth();
+  const { getCurrencySymbol } = useSettings();
+  const currencySymbol = getCurrencySymbol();
   const {
     customers,
     fetchCustomers,
@@ -169,7 +185,7 @@ export default function CustomersPage() {
         });
       }
 
-      // resetDialog();
+      resetDialog();
     } catch (error) {
       console.error("Error saving customer:", error);
     } finally {
@@ -274,11 +290,11 @@ export default function CustomersPage() {
                   <Input
                     id="customerCreditLimit"
                     type="text"
-                    value={customerForm.creditLimit}
+                    value={customerForm.creditLimit?.toLocaleString()}
                     onChange={(e) =>
                       setCustomerForm({
                         ...customerForm,
-                        creditLimit: e.target.value,
+                        creditLimit: e.target.value || 0,
                       })
                     }
                   />
@@ -448,6 +464,9 @@ export default function CustomersPage() {
                       Outstanding
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                      Total Purchases
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                       Actions
                     </th>
                   </tr>
@@ -475,53 +494,69 @@ export default function CustomersPage() {
                         {customer.creditStatus || "unknown"}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">
-                        ₦{customer.outstandingBalance?.toFixed(2) ?? "0.00"}
+                        {currencySymbol}{" "}
+                        {Number(
+                          customer.outstandingBalance ?? 0,
+                        ).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">
+                        {currencySymbol}{" "}
+                        {Number(customer.totalPurchases ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="inline-flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCustomer(customer);
-                              setDetailDialogOpen(true);
-                            }}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-44 dark:bg-slate-800 dark:border-slate-700"
                           >
-                            View
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCustomer(customer);
-                              setSalesDialogOpen(true);
-                            }}
-                          >
-                            Create Sale
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCustomer(customer);
-                              setPaymentDialogOpen(true);
-                            }}
-                          >
-                            Record Payment
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="inline-flex items-center gap-2"
-                            onClick={() => openEditCustomerDialog(customer)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Edit
-                          </Button>
-                        </div>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setDetailDialogOpen(true);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setSalesDialogOpen(true);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <ShoppingCartIcon className="mr-2 h-4 w-4" />
+                              Create sale
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setPaymentDialogOpen(true);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <NotebookPen className="mr-2 h-4 w-4" />
+                              Record payment
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => openEditCustomerDialog(customer)}
+                              className="cursor-pointer"
+                            >
+                              <Edit2 className="mr-2 h-4 w-4" />
+                              Edit customer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))}
@@ -534,7 +569,7 @@ export default function CustomersPage() {
 
       {/* Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl dark:bg-slate-800">
+        <DialogContent className="max-w-2xl dark:bg-slate-800 max-h-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
           </DialogHeader>
@@ -549,11 +584,14 @@ export default function CustomersPage() {
                   Phone: {selectedCustomer.phone || "—"}
                 </p>
                 <p className="text-sm">
-                  Credit Limit: ₦{selectedCustomer.creditLimit}
+                  Credit Limit: {currencySymbol}{" "}
+                  {Number(selectedCustomer.creditLimit ?? 0).toLocaleString()}
                 </p>
                 <p className="text-sm">
-                  Outstanding: ₦
-                  {selectedCustomer.outstandingBalance?.toFixed(2) ?? "0.00"}
+                  Outstanding: {currencySymbol}{" "}
+                  {Number(
+                    selectedCustomer.outstandingBalance ?? 0,
+                  ).toLocaleString()}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -599,7 +637,7 @@ export default function CustomersPage() {
 
       {/* Payment Dialog */}
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="max-w-2xl dark:bg-slate-800">
+        <DialogContent className="max-w-2xl dark:bg-slate-800 h-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
           </DialogHeader>

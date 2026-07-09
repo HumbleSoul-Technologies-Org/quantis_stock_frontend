@@ -5,6 +5,8 @@ import { CreditAPIService } from "@/lib/creditAPI";
 import { storage } from "@/lib/storage";
 
 export interface Customer {
+  country: string;
+  district: string;
   id?: string;
   _id?: string;
   businessId?: string;
@@ -221,20 +223,12 @@ export function useCredit() {
       if (!apiService) return;
 
       const offlineId = `cust_${Date.now()}`;
+
       const newCustomer: Customer = {
-        name: customer.name || "",
-        email: customer.email || "",
-        creditLimit: customer.creditLimit || 0,
-        creditStatus: customer.creditStatus || "approved",
-        creditScore: customer.creditScore || 0,
-        totalPurchases: 0,
-        outstandingBalance: 0,
-        totalPaid: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        offline_id: offlineId,
         ...customer,
       };
+
+      console.log("Adding customer:", newCustomer);
 
       try {
         const response = await apiService.createCustomer(

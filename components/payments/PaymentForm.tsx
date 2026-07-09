@@ -140,11 +140,14 @@ export default function PaymentForm({
   };
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-2xl h-xl overflow-auto">
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-6">Record Payment</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 border-none overflow-y-auto "
+        >
           {/* Customer Selection */}
           <div>
             <label className="block text-sm font-medium mb-2">Customer *</label>

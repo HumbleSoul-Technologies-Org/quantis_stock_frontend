@@ -56,7 +56,7 @@ export class CreditAPIService {
   // ============================================================
 
   async createCustomer(data: CreateCustomerPayload, token?: string) {
-    return await apiRequest("POST", "/credit/customers/new", { data }, token);
+    return await apiRequest("POST", "/credit/customers/new", data, token);
   }
 
   async getCustomers(
@@ -68,7 +68,7 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("GET", "/credit/customers", { params }, token);
+    return await apiRequest("GET", "/credit/customers", params, token);
   }
 
   async getCustomerById(id: string, token?: string) {
@@ -80,7 +80,7 @@ export class CreditAPIService {
     data: Partial<CreateCustomerPayload>,
     token?: string,
   ) {
-    return await apiRequest("PUT", `/credit/customers/${id}`, { data }, token);
+    return await apiRequest("PUT", `/credit/customers/${id}`, data, token);
   }
 
   // ============================================================
@@ -88,7 +88,7 @@ export class CreditAPIService {
   // ============================================================
 
   async recordPayment(data: RecordPaymentPayload, token?: string) {
-    return await apiRequest("POST", "/payments", { data }, token);
+    return await apiRequest("POST", "/payments", data, token);
   }
 
   async getPayments(
@@ -101,7 +101,7 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("GET", "/payments", { params }, token);
+    return await apiRequest("GET", "/payments", params, token);
   }
 
   // ============================================================
@@ -119,14 +119,14 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("POST", "/approvals", { data }, token);
+    return await apiRequest("POST", "/approvals", data, token);
   }
 
   async getPendingApprovals(
     params?: { page?: number; limit?: number },
     token?: string,
   ) {
-    return await apiRequest("GET", "/approvals/pending", { params }, token);
+    return await apiRequest("GET", "/approvals/pending", params, token);
   }
 
   async approveCreditApproval(id: string, token?: string) {
@@ -140,7 +140,7 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("PUT", `/approvals/${id}/reject`, { data }, token);
+    return await apiRequest("PUT", `/approvals/${id}/reject`, data, token);
   }
 
   // ============================================================
@@ -152,7 +152,7 @@ export class CreditAPIService {
   }
 
   async updateCreditConfig(data: UpdateCreditConfigPayload, token?: string) {
-    return await apiRequest("PUT", "/config", { data }, token);
+    return await apiRequest("PUT", "/config", data, token);
   }
 
   // ============================================================
@@ -163,7 +163,7 @@ export class CreditAPIService {
     params?: { startDate?: string; endDate?: string },
     token?: string,
   ) {
-    return await apiRequest("GET", "/reports/aging", { params }, token);
+    return await apiRequest("GET", "/reports/aging", params, token);
   }
 
   async getCreditMetrics(token?: string) {
