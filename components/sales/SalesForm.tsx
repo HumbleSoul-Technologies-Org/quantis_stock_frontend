@@ -149,11 +149,6 @@ export function SalesForm({
     ?.filter((p) => {
       const hasStock = p.currentStock > 0;
       if (!hasStock) {
-        console.debug("🚫 [SALESFORM] Product filtered (no stock):", {
-          id: p.id,
-          name: p.name,
-          stock: p.currentStock,
-        });
       }
       return hasStock;
     })
@@ -163,57 +158,26 @@ export function SalesForm({
     }));
 
   const addItem = () => {
-    console.log(
-      "🛒 [SALESFORM] addItem - selectedProductId:",
-      selectedProductId,
-      "quantity:",
-      quantity,
-    );
     if (!selectedProductId || !quantity) {
-      console.log("⚠️ [SALESFORM] Missing product or quantity");
       setErrors({ product: "Select product and quantity" });
       return;
     }
 
-    console.log(
-      "🔍 [SALESFORM] Looking up product, available products:",
-      products.length,
-    );
-    console.log(
-      "🔍 [SALESFORM] Searching for product with id/._id matching:",
-      selectedProductId,
-    );
     let product = products.find(
       (p) => p.id === selectedProductId || p._id === selectedProductId,
     );
 
     // Fallback: if not found by ID, try alternate identifiers
     if (!product) {
-      console.warn(
-        "⚠️ [SALESFORM] Product not found by ID, trying fallback lookup",
-      );
       product = products.find(
         (p) => p.id === selectedProductId || p._id === selectedProductId,
       );
     }
 
     if (!product) {
-      console.error(
-        "❌ [SALESFORM] Product not found for id:",
-        selectedProductId,
-      );
-      console.log(
-        "📋 [SALESFORM] Available product IDs:",
-        products.map((p) => ({ id: p.id, _id: (p as any)._id })),
-      );
       setErrors({ product: "Product not found. Please select again." });
       return;
     }
-    console.log("✓ [SALESFORM] Product found:", {
-      id: product.id,
-      name: product.name,
-      stock: product.currentStock,
-    });
 
     if (parseInt(quantity) > product.currentStock) {
       setErrors({ quantity: `Only ${product.currentStock} available` });
@@ -398,113 +362,115 @@ export function SalesForm({
           />
         </div>
 
-        <div className="md:col-span-2">
-          <div className="flex flex-col gap-2">
+        {business?.businessType !== "retail" && (
+          <div className="md:col-span-2">
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <input
-                  id="creditSale"
-                  type="checkbox"
-                  checked={isCreditSale}
-                  disabled={!allowCreditSales || user?.role === "accountant"}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setIsCreditSale(checked);
-                    if (checked) {
-                      setPaymentType("credit");
-                    } else if (paymentType === "credit") {
-                      setPaymentType("cash");
-                    }
-                  }}
-                  className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                />
-                <label
-                  htmlFor="creditSale"
-                  className="text-sm font-medium text-gray-700 dark:text-slate-200"
-                >
-                  Record as credit sale
-                </label>
-              </div>
-              {!isWholesaler && !sale?.isCreditSale && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Credit sales are available for wholesaler businesses only.
-                </p>
-              )}
-            </div>
-
-            {isCreditSaleActive && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
-                    Credit Customer *
-                  </label>
-                  <select
-                    disabled={user?.role === "accountant"}
-                    value={customerId}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="creditSale"
+                    type="checkbox"
+                    checked={isCreditSale}
+                    disabled={!allowCreditSales || user?.role === "accountant"}
                     onChange={(e) => {
-                      setCustomerId(e.target.value);
-                      const selected = customers.find(
-                        (customer) =>
-                          customer.id === e.target.value ||
-                          customer._id === e.target.value,
-                      );
-                      if (selected) {
-                        setCustomerName(selected.name);
+                      const checked = e.target.checked;
+                      setIsCreditSale(checked);
+                      if (checked) {
+                        setPaymentType("credit");
+                      } else if (paymentType === "credit") {
+                        setPaymentType("cash");
                       }
                     }}
-                    className={`w-full px-4 py-2 border-2 rounded-lg bg-white dark:bg-slate-900 dark:text-slate-100 ${
-                      errors.customerId
-                        ? "border-red-500 dark:border-red-500"
-                        : "border-teal-200 dark:border-teal-700"
-                    }`}
-                  >
-                    <option value="">Select a customer...</option>
-                    {customers.map((customer) => (
-                      <option
-                        key={customer._id || customer.id}
-                        value={customer._id || customer.id}
-                      >
-                        {customer.name}{" "}
-                        {customer.email ? `(${customer.email})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.customerId && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-red-500">
-                        {errors.customerId}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
-                    Due Date *
-                  </label>
-                  <Input
-                    disabled={user?.role === "accountant"}
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className={`border-2 dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      errors.dueDate
-                        ? "border-red-500 dark:border-red-500"
-                        : "border-teal-200 dark:border-teal-700"
-                    }`}
+                    className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                   />
-                  {errors.dueDate && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-red-500">
-                        {errors.dueDate}
-                      </span>
-                    </div>
-                  )}
+                  <label
+                    htmlFor="creditSale"
+                    className="text-sm font-medium text-gray-700 dark:text-slate-200"
+                  >
+                    Record as credit sale
+                  </label>
                 </div>
+                {!isWholesaler && !sale?.isCreditSale && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Credit sales are available for wholesaler businesses only.
+                  </p>
+                )}
               </div>
-            )}
+
+              {isCreditSaleActive && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
+                      Credit Customer *
+                    </label>
+                    <select
+                      disabled={user?.role === "accountant"}
+                      value={customerId}
+                      onChange={(e) => {
+                        setCustomerId(e.target.value);
+                        const selected = customers.find(
+                          (customer) =>
+                            customer.id === e.target.value ||
+                            customer._id === e.target.value,
+                        );
+                        if (selected) {
+                          setCustomerName(selected.name);
+                        }
+                      }}
+                      className={`w-full px-4 py-2 border-2 rounded-lg bg-white dark:bg-slate-900 dark:text-slate-100 ${
+                        errors.customerId
+                          ? "border-red-500 dark:border-red-500"
+                          : "border-teal-200 dark:border-teal-700"
+                      }`}
+                    >
+                      <option value="">Select a customer...</option>
+                      {customers.map((customer) => (
+                        <option
+                          key={customer._id || customer.id}
+                          value={customer._id || customer.id}
+                        >
+                          {customer.name}{" "}
+                          {customer.email ? `(${customer.email})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.customerId && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-red-500">
+                          {errors.customerId}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">
+                      Due Date *
+                    </label>
+                    <Input
+                      disabled={user?.role === "accountant"}
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className={`border-2 dark:bg-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        errors.dueDate
+                          ? "border-red-500 dark:border-red-500"
+                          : "border-teal-200 dark:border-teal-700"
+                      }`}
+                    />
+                    {errors.dueDate && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-red-500">
+                          {errors.dueDate}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">

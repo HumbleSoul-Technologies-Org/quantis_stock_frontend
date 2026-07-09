@@ -70,6 +70,10 @@ function OnboardingContent() {
         businessEmail: businessSetup.businessEmail,
         businessPhone: businessSetup.businessPhone,
         businessAddress: businessSetup.businessAddress,
+        // Include manufacturer fields when provided
+        factoryAddress: businessSetup.factoryAddress,
+        taxId: businessSetup.taxId,
+        productionLeadTime: businessSetup.productionLeadTime,
         setupCompletedAt: businessSetup.setupCompletedAt,
         settings: {
           currency: currencyInfo,
@@ -105,6 +109,14 @@ function OnboardingContent() {
               sms: false,
             },
           },
+          // Map production settings if manufacturer provided
+          production:
+            businessSetup.businessType === "manufacturer"
+              ? {
+                  enabled: true,
+                  defaultLeadTimeDays: businessSetup.productionLeadTime,
+                }
+              : undefined,
         },
       };
 

@@ -261,8 +261,41 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
           // Sync AuthContext with updated business settings
           if (business) {
-            const updatedBusiness = { ...business, settings: updatedSettings };
-            updateBusiness(updatedBusiness);
+            const existingSettings =
+              business.settings ?? (business as any)?.businessSettings;
+
+            // Avoid calling updateBusiness when nothing meaningful changed.
+            // This prevents a loop where AuthContext update -> Settings
+            // re-fetch -> calls updateBusiness again.
+            try {
+              const unchanged =
+                JSON.stringify(existingSettings) ===
+                JSON.stringify(updatedSettings);
+              if (unchanged) {
+                console.debug(
+                  "[SETTINGS_CONTEXT] settings unchanged; skipping updateBusiness",
+                );
+              } else {
+                const updatedBusiness = {
+                  ...business,
+                  settings: updatedSettings,
+                };
+                try {
+                  console.debug(
+                    "[SETTINGS_CONTEXT] syncing updated business to AuthContext",
+                    updatedBusiness,
+                  );
+                } catch (e) {}
+                updateBusiness(updatedBusiness);
+              }
+            } catch (e) {
+              // If deep-compare failed for any reason, fall back to updating.
+              const updatedBusiness = {
+                ...business,
+                settings: updatedSettings,
+              };
+              updateBusiness(updatedBusiness);
+            }
           }
         }
       }
@@ -292,6 +325,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         // Sync AuthContext with updated business settings
         if (business) {
           const updatedBusiness = { ...business, settings: updatedSettings };
+          try {
+            console.debug(
+              "[SETTINGS_CONTEXT] syncing updated business to AuthContext",
+              updatedBusiness,
+            );
+          } catch (e) {}
           updateBusiness(updatedBusiness);
         }
 
@@ -331,6 +370,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         // Sync AuthContext with updated business settings
         if (business) {
           const updatedBusiness = { ...business, settings: updatedSettings };
+          try {
+            console.debug(
+              "[SETTINGS_CONTEXT] syncing updated business to AuthContext",
+              updatedBusiness,
+            );
+          } catch (e) {}
           updateBusiness(updatedBusiness);
         }
 
@@ -364,6 +409,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         // Sync AuthContext with updated business settings
         if (business) {
           const updatedBusiness = { ...business, settings: updatedSettings };
+          try {
+            console.debug(
+              "[SETTINGS_CONTEXT] syncing updated business to AuthContext",
+              updatedBusiness,
+            );
+          } catch (e) {}
           updateBusiness(updatedBusiness);
         }
 

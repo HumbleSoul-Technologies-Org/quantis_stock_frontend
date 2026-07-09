@@ -33,11 +33,6 @@ export function Profile() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { data: usersData } = useQuery<any[]>({
-    queryKey: ["users", business?._id || user?.businessId],
-    enabled: !!user?.token,
-  });
-
   const handleEditSave = async () => {
     setProcessing(true);
     try {
@@ -68,23 +63,55 @@ export function Profile() {
           user?.token,
         );
 
-        // Update local state and storage immediately after successful save
+        // Update local state and storage using the server's authoritative response
         if (res.ok && business) {
-          const updatedBusiness = {
-            ...business,
-            businessName: editForm.businessName,
-            businessType: editForm.businessType,
-            businessEmail: {
-              email: editForm.businessEmail,
-              verified: business?.businessEmail?.verified ?? false,
-            },
-            businessPhone: {
-              contact: editForm.businessPhone,
-              verified: business?.businessPhone?.verified ?? false,
-            },
-            businessAddress: editForm.businessAddress,
-          };
-          updateBusiness(updatedBusiness);
+          try {
+            const data = await res.json();
+            const serverBusiness = data.business || data.businessData;
+            const updatedBusiness = serverBusiness
+              ? { ...serverBusiness, _clientUpdatedAt: Date.now() }
+              : {
+                  ...business,
+                  businessName: editForm.businessName,
+                  businessType: editForm.businessType,
+                  businessEmail: {
+                    email: editForm.businessEmail,
+                    verified: business?.businessEmail?.verified ?? false,
+                  },
+                  businessPhone: {
+                    contact: editForm.businessPhone,
+                    verified: business?.businessPhone?.verified ?? false,
+                  },
+                  businessAddress: editForm.businessAddress,
+                  _clientUpdatedAt: Date.now(),
+                };
+
+            try {
+              console.debug(
+                "[PROFILE] calling updateBusiness with",
+                updatedBusiness,
+              );
+            } catch (e) {}
+            updateBusiness(updatedBusiness as any);
+          } catch (e) {
+            // Fallback to optimistic update if parsing fails
+            const updatedBusiness = {
+              ...business,
+              businessName: editForm.businessName,
+              businessType: editForm.businessType,
+              businessEmail: {
+                email: editForm.businessEmail,
+                verified: business?.businessEmail?.verified ?? false,
+              },
+              businessPhone: {
+                contact: editForm.businessPhone,
+                verified: business?.businessPhone?.verified ?? false,
+              },
+              businessAddress: editForm.businessAddress,
+              _clientUpdatedAt: Date.now(),
+            };
+            updateBusiness(updatedBusiness as any);
+          }
         }
       }
     } catch (error) {
@@ -121,9 +148,14 @@ export function Profile() {
                 Business Type
               </label>
               <p className="text-sm text-gray-900 dark:text-slate-100">
-                {business?.businessType === "retail"
+                {business?.businessType || "Not set"}
+                {/* {business?.businessType === "retail"
                   ? "Retail - Optimized for retail stores"
-                  : "Other"}
+                  : business?.businessType === "wholesaler"
+                    ? "Wholesaler - Manage bulk customers and credit accounts"
+                    : business?.businessType === "manufacturer"
+                      ? "Manufacturer - Manage BOMs, production and finished goods"
+                      : "Other"} */}
               </p>
             </div>
             <div>
@@ -153,7 +185,7 @@ export function Profile() {
           </div>
 
           {/* Users and Roles */}
-          <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
+          {/* <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
             <h3 className="font-semibold text-gray-900 dark:text-teal-100 mb-4 flex items-center gap-2">
               <Users className="w-4 h-4" />
               Users and Roles
@@ -184,7 +216,7 @@ export function Profile() {
                 </p>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* Edit Button */}
           <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
@@ -225,7 +257,6 @@ export function Profile() {
                   <div>
                     <Label htmlFor="businessType">Business Type</Label>
                     <select
-                      disabled={true}
                       id="businessType"
                       value={editForm.businessType}
                       onChange={(e) =>
@@ -234,13 +265,15 @@ export function Profile() {
                           businessType: e.target.value as
                             | "retail"
                             | "other"
-                            | "wholesaler",
+                            | "wholesaler"
+                            | "manufacturer",
                         })
                       }
                       className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
                     >
                       <option value="retail">Retail</option>
                       <option value="wholesaler">Wholesaler</option>
+                      <option value="manufacturer">Manufacturer</option>
                       <option value="other">Other</option>
                     </select>
                   </div>

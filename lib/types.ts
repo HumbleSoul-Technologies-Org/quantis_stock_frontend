@@ -1,6 +1,6 @@
 // Auth Types
 export type UserRole = "admin" | "manager" | "sales" | "accountant";
-export type BusinessType = "retail" | "other" | "wholesaler";
+export type BusinessType = "retail" | "other" | "wholesaler" | "manufacturer";
 export type RetailSubType =
   | "electronics"
   | "clothing"
@@ -34,6 +34,12 @@ export interface BusinessSettings {
   security: {
     autoLogoutTimeout: number;
   };
+  // Manufacturing-specific settings (optional)
+  production?: {
+    enabled: boolean;
+    defaultLeadTimeDays?: number;
+    defaultYieldPercent?: number;
+  };
 }
 
 export interface BusinessOnboardingPayload {
@@ -49,6 +55,10 @@ export interface BusinessOnboardingPayload {
     verified: boolean;
   };
   businessAddress?: string;
+  // Manufacturer-specific optional fields
+  factoryAddress?: string;
+  taxId?: string;
+  productionLeadTime?: number;
   setupCompletedAt: string;
   settings: {
     currency: {
@@ -57,6 +67,7 @@ export interface BusinessOnboardingPayload {
       decimalPlaces: number;
     };
     notifications: BusinessSettings["notifications"];
+    production?: BusinessSettings["production"];
   };
 }
 
@@ -75,6 +86,10 @@ export interface BusinessSetup {
   retailSubType?: RetailSubType; // Optional for backward compatibility
   currency: string; // Currency code (KES, USD, EUR, etc)
   lowStockThreshold: number; // Percentage of reorder level
+  // Manufacturer-specific optional fields
+  factoryAddress?: string;
+  taxId?: string;
+  productionLeadTime?: number;
   notifications?: {
     resourceChanges?: { email: boolean; sms: boolean };
     salesAlert?: { email: boolean; sms: boolean };
@@ -211,6 +226,9 @@ export interface Product {
     url: string;
     public_id: string;
   };
+  // Manufacturing fields
+  isFinishedGood?: boolean;
+  bom?: Array<{ componentId: string; quantity: number; unit?: string }>;
 }
 
 // Inventory Types

@@ -67,6 +67,15 @@ export function ProductForm({
   const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isFinishedGood, setIsFinishedGood] = useState<boolean>(
+    product?.isFinishedGood || false,
+  );
+  const [bomItems, setBomItems] = useState<
+    Array<{ componentId?: string; quantity?: number; unit?: string }>
+  >(product?.bom || []);
+  const [availableComponents, setAvailableComponents] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
@@ -216,6 +225,36 @@ export function ProductForm({
       }));
     }
   }, [product?.id]);
+
+  // Fetch products for BOM component selector
+  useEffect(() => {
+    let mounted = true;
+    const fetchComponents = async () => {
+      try {
+        const resp = await (
+          await import("@/lib/queryClient")
+        ).apiRequest(
+          "GET",
+          "/products/all",
+          { businessId: user?.businessId },
+          user?.token,
+        );
+        if (mounted && resp.ok) {
+          const list = (resp.data || []).map((p: any) => ({
+            id: p._id || p.id || p.id,
+            name: p.name,
+          }));
+          setAvailableComponents(list);
+        }
+      } catch (err) {
+        console.error("Failed to fetch components", err);
+      }
+    };
+    fetchComponents();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.businessId, user?.token]);
 
   // Generic field renderer for any field type
   const renderField = (fieldDef: FieldDefinition) => {
@@ -442,6 +481,18 @@ export function ProductForm({
         formData.supplierId ||
         "";
 
+      const bomForPayload = isFinishedGood
+        ? bomItems
+            .filter(
+              (it) => it.componentId && it.quantity && Number(it.quantity) > 0,
+            )
+            .map((it) => ({
+              componentId: it.componentId as string,
+              quantity: Number(it.quantity),
+              unit: it.unit || formData.unit || "units",
+            }))
+        : undefined;
+
       const payLoad = {
         name: formData.name || "",
         sku: formData.sku || "",
@@ -490,6 +541,9 @@ export function ProductForm({
             product?.image?.public_id ||
             "",
         },
+        // Manufacturing fields
+        isFinishedGood,
+        bom: bomForPayload,
       };
 
       if ((product && product.id) || product?._id) {
@@ -750,6 +804,21 @@ export function ProductForm({
         </div>
 
         <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            <input
+              type="checkbox"
+              checked={isFinishedGood}
+              onChange={(e) => setIsFinishedGood(e.target.checked)}
+            />
+            Finished Good (has BOM)
+          </label>
+          <p className="text-xs text-slate-500">
+            Mark this product as a finished good and define its Bill of
+            Materials.
+          </p>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             Reorder Level
           </label>
@@ -798,6 +867,84 @@ export function ProductForm({
                 {renderCategoryFields()}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {isFinishedGood && (
+        <div className="pt-4 border-t">
+          <h3 className="font-medium text-gray-700 dark:text-slate-300 mb-2">
+            Bill of Materials (BOM)
+          </h3>
+          <div className="space-y-3">
+            {bomItems.map((item, idx) => (
+              <div key={idx} className="grid grid-cols-6 gap-2 items-end">
+                <div className="col-span-3">
+                  <label className="text-xs">Component</label>
+                  <select
+                    value={item.componentId || ""}
+                    onChange={(e) => {
+                      const updated = [...bomItems];
+                      updated[idx].componentId = e.target.value;
+                      setBomItems(updated);
+                    }}
+                    className="w-full px-2 py-2 border rounded"
+                  >
+                    <option value="">Select component</option>
+                    {availableComponents.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs">Quantity</label>
+                  <Input
+                    type="number"
+                    value={item.quantity || ""}
+                    onChange={(e) => {
+                      const updated = [...bomItems];
+                      updated[idx].quantity = Number(e.target.value);
+                      setBomItems(updated);
+                    }}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs">Unit</label>
+                  <Input
+                    value={item.unit || formData.unit || "units"}
+                    onChange={(e) => {
+                      const updated = [...bomItems];
+                      updated[idx].unit = e.target.value;
+                      setBomItems(updated);
+                    }}
+                  />
+                </div>
+                <div className="col-span-6 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setBomItems(bomItems.filter((_, i) => i !== idx))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              onClick={() =>
+                setBomItems([
+                  ...bomItems,
+                  { quantity: 1, unit: formData.unit || "units" },
+                ])
+              }
+            >
+              Add Component
+            </Button>
           </div>
         </div>
       )}

@@ -35,7 +35,7 @@ export const businessSetupSchema = z.object({
     .string()
     .max(500, "Address must be less than 500 characters")
     .optional(),
-  businessType: z.enum(["retail", "other", "wholesaler"]),
+  businessType: z.enum(["retail", "other", "wholesaler", "manufacturer"]),
   currency: z.string().min(1, "Currency is required"),
   lowStockThreshold: z
     .number()
@@ -70,7 +70,7 @@ export const profileUpdateSchema = z.object({
     .min(1, "Business name is required")
     .min(2, "Business name must be at least 2 characters")
     .max(100, "Business name must be less than 100 characters"),
-  businessType: z.enum(["retail", "other", "wholesaler"]),
+  businessType: z.enum(["retail", "other", "wholesaler", "manufacturer"]),
   businessEmail: businessEmailSchema,
   businessPhone: businessPhoneSchema,
   businessAddress: z

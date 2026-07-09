@@ -13,8 +13,9 @@ import {
   saveUserSession,
   clearUserSession,
 } from "@/lib/authStorage";
-import { useSessionKey } from "@/hooks/useSessionKey";
+import { encryptedStorageService } from "@/lib/encryptedStorage";
 import { sessionKeyManager } from "@/lib/sessionKeyManager";
+import { useSessionKey } from "@/hooks/useSessionKey";
 
 interface AuthContextType {
   user: User | null;
@@ -146,12 +147,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateBusiness = (newBusiness: Business | null): void => {
+    // Debug: log incoming and current for tracing flicker sources
+    try {
+      const trace = new Error().stack || "";
+      console.debug("[AUTH_CONTEXT] updateBusiness called", {
+        incoming: newBusiness,
+        current: business,
+        time: Date.now(),
+        traceSummary: trace.split("\n").slice(0, 6).join("\n"),
+      });
+      console.trace();
+
+      // Append a lightweight trace record into localStorage so the user
+      // can copy it from the browser after reproducing the issue.
+      try {
+        if (typeof window !== "undefined") {
+          const KEY = "__updateBusiness_traces";
+          const raw = localStorage.getItem(KEY);
+          const arr = raw ? JSON.parse(raw) : [];
+          arr.push({ time: Date.now(), trace: trace, incoming: newBusiness });
+          // Keep the log bounded to the most recent 200 entries.
+          if (arr.length > 200) arr.splice(0, arr.length - 200);
+          localStorage.setItem(KEY, JSON.stringify(arr));
+        }
+      } catch (e) {
+        console.warn(
+          "[AUTH_CONTEXT] Failed to persist updateBusiness trace:",
+          e,
+        );
+      }
+    } catch (e) {}
+
+    // Prevent older updates (e.g., background fetches) from overwriting
+    // a more recent client-side change. Use an optional local-only
+    // `_clientUpdatedAt` timestamp on the business object.
+    const currentTs = (business as any)?._clientUpdatedAt || 0;
+    const incomingTs = (newBusiness as any)?._clientUpdatedAt || 0;
+
+    if (currentTs && incomingTs === 0) {
+      // We have a newer client update; ignore incoming server updates that
+      // don't carry a timestamp to avoid reverting optimistic changes.
+      return;
+    }
+
+    if (currentTs && incomingTs && incomingTs < currentTs) {
+      // Incoming update is older than the current client-side update.
+      return;
+    }
+
     setBusiness(newBusiness);
 
     const updatedUser = user ? { ...user, business: newBusiness as any } : null;
     if (updatedUser) {
       setUser(updatedUser);
       saveUserSession(updatedUser);
+      // Also persist a separate businessData key for compatibility with
+      // components that read `businessData` directly from storage.
+      try {
+        if (typeof window !== "undefined") {
+          // Write synchronous fallback first so other components reading
+          // `localStorage` see the updated value immediately and avoid UI flicker.
+          try {
+            localStorage.setItem("businessData", JSON.stringify(newBusiness));
+            console.debug(
+              "[AUTH_CONTEXT] businessData written to localStorage",
+              {
+                time: Date.now(),
+              },
+            );
+          } catch (e) {
+            console.warn(
+              "[AUTH_CONTEXT] Failed to write businessData to localStorage:",
+              e,
+            );
+          }
+
+          // Also update encrypted storage asynchronously when key is available.
+          if (sessionKeyManager.isInitialized()) {
+            encryptedStorageService
+              .setEncrypted("businessData", newBusiness as any)
+              .then(() =>
+                console.debug(
+                  "[AUTH_CONTEXT] encrypted businessData persisted",
+                  {
+                    time: Date.now(),
+                  },
+                ),
+              )
+              .catch((err) =>
+                console.warn(
+                  "[AUTH_CONTEXT] Failed to persist encrypted businessData:",
+                  err,
+                ),
+              );
+          }
+        }
+      } catch (err) {
+        console.warn(
+          "[AUTH_CONTEXT] Failed to persist businessData to storage:",
+          err,
+        );
+      }
     }
   };
 

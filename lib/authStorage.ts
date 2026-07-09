@@ -14,9 +14,9 @@ export async function getUserSession(): Promise<User | null> {
   try {
     // Try to get decrypted version first
     if (sessionKeyManager.isInitialized()) {
-      const decrypted = await encryptedStorageService.getDecrypted<User>(USER_SESSION_KEY);
+      const decrypted =
+        await encryptedStorageService.getDecrypted<User>(USER_SESSION_KEY);
       if (decrypted) {
-        console.log('✅ [AUTH_STORAGE] Retrieved encrypted user session');
         return decrypted;
       }
     }
@@ -24,15 +24,13 @@ export async function getUserSession(): Promise<User | null> {
     // Fallback for legacy unencrypted data
     const stored = localStorage.getItem(USER_SESSION_KEY);
     if (!stored) return null;
-    
+
     try {
       const parsed = JSON.parse(stored);
       // Check if this looks like encrypted data
       if (parsed.ciphertext && parsed.iv) {
-        console.warn('[AUTH_STORAGE] Found encrypted data but key not initialized - cannot decrypt');
         return null;
       }
-      console.log('[AUTH_STORAGE] Retrieved legacy unencrypted user session');
       return parsed as User;
     } catch {
       return null;
@@ -58,7 +56,6 @@ export async function saveUserSession(user: User | null): Promise<void> {
       } else {
         localStorage.removeItem(USER_SESSION_KEY);
       }
-      console.log('[AUTH_STORAGE] Cleared user session');
       return;
     }
 
@@ -69,9 +66,7 @@ export async function saveUserSession(user: User | null): Promise<void> {
     // Encrypt if key is available, otherwise save unencrypted
     if (sessionKeyManager.isInitialized()) {
       await encryptedStorageService.setEncrypted(USER_SESSION_KEY, sessionUser);
-      console.log('[AUTH_STORAGE] Saved encrypted user session');
     } else {
-      console.warn('[AUTH_STORAGE] Session key not initialized - saving unencrypted (fallback)');
       localStorage.setItem(USER_SESSION_KEY, JSON.stringify(sessionUser));
     }
   } catch (error) {
@@ -91,18 +86,13 @@ export async function clearUserSession(): Promise<void> {
     await encryptedStorageService.clearAllEncrypted();
 
     // Also clear any remaining non-encrypted keys
-    const additionalKeys = [
-      "state",
-      "notificationState",
-    ];
+    const additionalKeys = ["state", "notificationState"];
     for (const key of additionalKeys) {
       localStorage.removeItem(key);
     }
 
     // Lock the encryption key
     sessionKeyManager.lockKey();
-
-    console.log('[AUTH_STORAGE] Cleared all user sessions and locked encryption key');
   } catch (error) {
     console.error("[AUTH_STORAGE] Failed to clear user session:", error);
     // Fallback: force remove all sensitive keys manually

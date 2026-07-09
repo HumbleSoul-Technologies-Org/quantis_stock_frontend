@@ -148,12 +148,15 @@ export function useCredit() {
       setCreditError(null);
 
       try {
-        const response = await apiService.getCustomers({
-          page: params?.page ?? 1,
-          limit: params?.limit ?? 100,
-          creditStatus: params?.creditStatus,
-          search: params?.search,
-        });
+        const response = await apiService.getCustomers(
+          {
+            page: params?.page ?? 1,
+            limit: params?.limit ?? 100,
+            creditStatus: params?.creditStatus,
+            search: params?.search,
+          },
+          user?.token ? user.token : "",
+        );
 
         const customerData = response.data?.data?.customers || [];
         setCustomers(customerData);
@@ -183,7 +186,10 @@ export function useCredit() {
       if (!apiService) return null;
 
       try {
-        const response = await apiService.getCustomerById(id);
+        const response = await apiService.getCustomerById(
+          id,
+          user?.token ? user.token : "",
+        );
         const customer = response.data?.data || null;
 
         // Update cache/state
@@ -230,30 +236,22 @@ export function useCredit() {
         ...customer,
       };
 
-      // Optimistic update and persist using latest storage snapshot
-      setCustomers((prev) => {
-        const updated = [...prev, newCustomer];
-        const state = storage.getState() as any;
-        storage.saveState({ ...state, customers: updated });
-        return updated;
-      });
+      try {
+        const response = await apiService.createCustomer(
+          newCustomer,
+          user?.token ? user.token : "",
+        );
+        const serverCustomer = response.data?.data;
 
-      // Sync to server if online
-      if (online) {
-        try {
-          const response = await apiService.createCustomer(newCustomer);
-          const serverCustomer = response.data?.data;
+        // Update with server ID
+        setCustomers((prev) =>
+          prev.map((c) => (c.offline_id === offlineId ? serverCustomer : c)),
+        );
 
-          // Update with server ID
-          setCustomers((prev) =>
-            prev.map((c) => (c.offline_id === offlineId ? serverCustomer : c)),
-          );
-
-          success(`Customer ${serverCustomer.name} added successfully`);
-        } catch (err: any) {
-          setCreditError(err.message);
-          info("Customer will be synced when connection is restored.");
-        }
+        success(`Customer ${serverCustomer.name} added successfully`);
+      } catch (err: any) {
+        setCreditError(err.message);
+        info("Customer will be synced when connection is restored.");
       }
     },
     [apiService, success, toastError, info, online],
@@ -271,7 +269,11 @@ export function useCredit() {
       );
 
       try {
-        const response = await apiService.updateCustomer(id, updates);
+        const response = await apiService.updateCustomer(
+          id,
+          updates,
+          user?.token ? user.token : "",
+        );
         const updated = response.data?.data;
 
         setCustomers((prev) =>
@@ -304,13 +306,16 @@ export function useCredit() {
       setIsLoadingCredit(true);
 
       try {
-        const response = await apiService.getPayments({
-          page: params?.page ?? 1,
-          limit: params?.limit ?? 100,
-          customerId: params?.customerId,
-          saleId: params?.saleId,
-          paymentStatus: params?.paymentStatus,
-        });
+        const response = await apiService.getPayments(
+          {
+            page: params?.page ?? 1,
+            limit: params?.limit ?? 100,
+            customerId: params?.customerId,
+            saleId: params?.saleId,
+            paymentStatus: params?.paymentStatus,
+          },
+          user?.token ? user.token : "",
+        );
 
         const paymentData = response.data?.data?.payments || [];
         setPayments(paymentData);
@@ -359,22 +364,21 @@ export function useCredit() {
         storage.saveState({ ...state, payments: updated });
         return updated;
       });
+      try {
+        const response = await apiService.recordPayment(
+          newPayment,
+          user?.token ? user.token : "",
+        );
+        const serverPayment = response.data?.data;
 
-      // Sync to server if online
-      if (online) {
-        try {
-          const response = await apiService.recordPayment(newPayment);
-          const serverPayment = response.data?.data;
+        setPayments((prev) =>
+          prev.map((p) => (p.offline_id === offlineId ? serverPayment : p)),
+        );
 
-          setPayments((prev) =>
-            prev.map((p) => (p.offline_id === offlineId ? serverPayment : p)),
-          );
-
-          success(`Payment of ${newPayment.amount} recorded successfully`);
-        } catch (err: any) {
-          setCreditError(err.message);
-          info("Payment saved locally. Will sync when online.");
-        }
+        success(`Payment of ${newPayment.amount} recorded successfully`);
+      } catch (err: any) {
+        setCreditError(err.message);
+        info("Payment saved locally. Will sync when online.");
       }
     },
     [apiService, success, toastError, info, online],
@@ -419,7 +423,10 @@ export function useCredit() {
       if (!apiService) return;
 
       try {
-        const response = await apiService.updateCreditConfig(config);
+        const response = await apiService.updateCreditConfig(
+          config,
+          user?.token ? user.token : "",
+        );
         const updated = response.data?.data;
 
         setCreditConfig(updated);

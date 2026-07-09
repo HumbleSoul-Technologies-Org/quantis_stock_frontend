@@ -36,11 +36,11 @@ interface CustomerFormData {
   phone?: string;
   address?: string;
   city?: string;
-  state?: string;
-  zipcode?: string;
-  creditLimit: number;
+  country?: string;
+  district?: string;
+  creditLimit: string | number;
   creditStatus: "approved" | "pending" | "rejected" | "suspended";
-  creditScore: number;
+  creditScore: string | number;
 }
 
 const defaultCustomerForm: CustomerFormData = {
@@ -49,8 +49,8 @@ const defaultCustomerForm: CustomerFormData = {
   phone: "",
   address: "",
   city: "",
-  state: "",
-  zipcode: "",
+  country: "",
+  district: "",
   creditLimit: 0,
   creditStatus: "approved",
   creditScore: 0,
@@ -95,8 +95,8 @@ export default function CustomersPage() {
         phone: selectedCustomer.phone || "",
         address: selectedCustomer.address || "",
         city: selectedCustomer.city || "",
-        state: selectedCustomer.state || "",
-        zipcode: selectedCustomer.zipcode || "",
+        district: selectedCustomer.district || "",
+        country: selectedCustomer.country || "",
         creditLimit: selectedCustomer.creditLimit || 0,
         creditStatus: selectedCustomer.creditStatus || "approved",
         creditScore: selectedCustomer.creditScore || 0,
@@ -134,7 +134,7 @@ export default function CustomersPage() {
       errors.email = "Customer email is required";
     }
 
-    if (customerForm.creditLimit < 0) {
+    if (Number(customerForm.creditLimit) < 0) {
       errors.creditLimit = "Credit limit cannot be negative";
     }
 
@@ -157,15 +157,21 @@ export default function CustomersPage() {
         if (id) {
           await updateCustomer(id, {
             ...customerForm,
+            creditLimit: Number(customerForm.creditLimit),
+            creditScore: Number(customerForm.creditScore),
           });
         }
       } else {
         await addCustomer({
           ...customerForm,
+          creditLimit: Number(customerForm.creditLimit),
+          creditScore: Number(customerForm.creditScore),
         });
       }
 
-      resetDialog();
+      // resetDialog();
+    } catch (error) {
+      console.error("Error saving customer:", error);
     } finally {
       setIsSaving(false);
     }
@@ -267,13 +273,12 @@ export default function CustomersPage() {
                   <Label htmlFor="customerCreditLimit">Credit Limit</Label>
                   <Input
                     id="customerCreditLimit"
-                    type="number"
-                    min={0}
+                    type="text"
                     value={customerForm.creditLimit}
                     onChange={(e) =>
                       setCustomerForm({
                         ...customerForm,
-                        creditLimit: Number(e.target.value),
+                        creditLimit: e.target.value,
                       })
                     }
                   />
@@ -312,13 +317,12 @@ export default function CustomersPage() {
                   <Label htmlFor="customerCreditScore">Credit Score</Label>
                   <Input
                     id="customerCreditScore"
-                    type="number"
-                    min={0}
+                    type="text"
                     value={customerForm.creditScore}
                     onChange={(e) =>
                       setCustomerForm({
                         ...customerForm,
-                        creditScore: Number(e.target.value),
+                        creditScore: e.target.value,
                       })
                     }
                   />
@@ -327,7 +331,7 @@ export default function CustomersPage() {
 
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="customerAddress">Address</Label>
+                  <Label htmlFor="customerAddress">Address (physical)</Label>
                   <Textarea
                     id="customerAddress"
                     value={customerForm.address}
@@ -343,6 +347,19 @@ export default function CustomersPage() {
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
+                    <Label htmlFor="customerDistrict">District</Label>
+                    <Input
+                      id="customerDistrict"
+                      value={customerForm.district}
+                      onChange={(e) =>
+                        setCustomerForm({
+                          ...customerForm,
+                          district: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="customerCity">City</Label>
                     <Input
                       id="customerCity"
@@ -356,27 +373,14 @@ export default function CustomersPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="customerState">State</Label>
+                    <Label htmlFor="country">Country</Label>
                     <Input
-                      id="customerState"
-                      value={customerForm.state}
+                      id="country"
+                      value={customerForm.country}
                       onChange={(e) =>
                         setCustomerForm({
                           ...customerForm,
-                          state: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="customerZipcode">Zip code</Label>
-                    <Input
-                      id="customerZipcode"
-                      value={customerForm.zipcode}
-                      onChange={(e) =>
-                        setCustomerForm({
-                          ...customerForm,
-                          zipcode: e.target.value,
+                          country: e.target.value,
                         })
                       }
                     />

@@ -131,6 +131,9 @@ export function BusinessSetupForm({
   });
   const [businessAddress, setBusinessAddress] = useState("");
   const [businessType, setBusinessType] = useState<BusinessType>("retail");
+  const [factoryAddress, setFactoryAddress] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [productionLeadTime, setProductionLeadTime] = useState<number | "">(3);
   const [currency, setCurrency] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState(20);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -170,6 +173,10 @@ export function BusinessSetupForm({
       if (!businessType) {
         newErrors.businessType = "Business type is required";
       }
+      if (businessType === "manufacturer" && !factoryAddress?.trim()) {
+        newErrors.factoryAddress =
+          "Factory address is required for manufacturers";
+      }
     } else if (step === 2) {
       if (!currency?.trim()) {
         newErrors.currency = "Currency is required";
@@ -191,8 +198,7 @@ export function BusinessSetupForm({
   };
 
   const handleCompleteSetup = () => {
-    // This function completes the setup without saving settings
-    // The settings should be saved separately using Save Settings button
+    // Build payload and submit
     const businessSetup = {
       businessName,
       businessEmail,
@@ -202,7 +208,17 @@ export function BusinessSetupForm({
       currency,
       lowStockThreshold,
       setupCompletedAt: new Date().toISOString(),
+      factoryAddress:
+        businessType === "manufacturer" ? factoryAddress : undefined,
+      taxId: businessType === "manufacturer" ? taxId : undefined,
+      productionLeadTime:
+        businessType === "manufacturer"
+          ? productionLeadTime === ""
+            ? undefined
+            : productionLeadTime
+          : undefined,
     };
+
     onSubmit(businessSetup as any);
   };
 
@@ -231,6 +247,11 @@ export function BusinessSetupForm({
     }
     if (lowStockThreshold < 1 || lowStockThreshold > 100) {
       newErrors.lowStockThreshold = "Threshold must be between 1 and 100";
+    }
+
+    if (businessType === "manufacturer" && !factoryAddress?.trim()) {
+      newErrors.factoryAddress =
+        "Factory address is required for manufacturers";
     }
 
     setErrors(newErrors);
@@ -395,6 +416,7 @@ export function BusinessSetupForm({
                   >
                     <option value="retail">Retail</option>
                     <option value="wholesaler">Wholesaler</option>
+                    <option value="manufacturer">Manufacturer</option>
                     <option value="other">Other</option>
                   </select>
                   {errors.businessType && (
@@ -410,10 +432,52 @@ export function BusinessSetupForm({
                       "Optimized for retail stores with inventory tracking and sales management."}
                     {businessType === "wholesaler" &&
                       "Wholesaler businesses can manage customer credit, approvals, and payment tracking."}
+                    {businessType === "manufacturer" &&
+                      "Manufacturer businesses can manage BOMs, production orders and finished goods inventory."}
                     {businessType === "other" &&
                       "Other business types can use core inventory and sales features."}
                   </p>
                 </div>
+
+                {businessType === "manufacturer" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                        Factory Address{" "}
+                      </label>
+                      <Input
+                        value={factoryAddress}
+                        onChange={(e) => setFactoryAddress(e.target.value)}
+                        placeholder="e.g., 45 Industrial Park, Nairobi"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                        Tax / Business Registration ID
+                      </label>
+                      <Input
+                        value={taxId}
+                        onChange={(e) => setTaxId(e.target.value)}
+                        placeholder="e.g., PIN / VAT number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">
+                        Default Production Lead Time (days)
+                      </label>
+                      <Input
+                        value={productionLeadTime as any}
+                        onChange={(e) =>
+                          setProductionLeadTime(Number(e.target.value))
+                        }
+                        placeholder="e.g., 3"
+                        type="number"
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

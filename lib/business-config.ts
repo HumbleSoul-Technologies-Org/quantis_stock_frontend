@@ -1,7 +1,7 @@
 // Business Configuration for Retail
 // This defines presets for different business types
 
-export type BusinessType = "retail" | "other" | "wholesaler";
+export type BusinessType = "retail" | "other" | "wholesaler" | "manufacturer";
 export type RetailSubType =
   | "electronics"
   | "clothing"
@@ -182,6 +182,19 @@ export const BUSINESS_CONFIGS: Record<BusinessType, BusinessConfig> = {
   retail: RETAIL_CONFIG,
   other: RETAIL_CONFIG,
   wholesaler: RETAIL_CONFIG,
+  manufacturer: {
+    categories: [
+      "Finished Goods",
+      "Raw Materials",
+      "Components",
+      "Sub-assemblies",
+      "Packaging",
+      "Other",
+    ],
+    units: ["units", "pieces", "kg", "g", "L", "ml", "meters"],
+    currencies: CURRENCIES,
+    lowStockWarningThreshold: 10,
+  },
 };
 
 export function getBusinessConfig(businessType: BusinessType): BusinessConfig {

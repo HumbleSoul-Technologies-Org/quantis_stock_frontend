@@ -155,7 +155,7 @@ export function Sidebar() {
                     isActive
                       ? "bg-teal-700 dark:bg-teal-700 text-white dark:text-white font-semibold"
                       : "hover:bg-green-100 dark:hover:bg-teal-800 hover:text-green-700 dark:hover:text-teal-300 text-gray-700 dark:text-gray-300"
-                  }`}
+                  }  ${business?.businessType === "retail" && item.label === "Customers" ? "hidden" : ""}`}
                 >
                   <Icon className="w-5 h-5 mr-3 shrink-0" />
                   <span className="truncate">{item.label}</span>

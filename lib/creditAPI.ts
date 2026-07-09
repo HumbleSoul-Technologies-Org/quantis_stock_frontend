@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
+import { apiRequest } from "./queryClient";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -54,65 +55,82 @@ export class CreditAPIService {
   // CUSTOMER OPERATIONS
   // ============================================================
 
-  async createCustomer(data: CreateCustomerPayload) {
-    return this.api.post("/customers", data);
+  async createCustomer(data: CreateCustomerPayload, token?: string) {
+    return await apiRequest("POST", "/credit/customers/new", { data }, token);
   }
 
-  async getCustomers(params?: {
-    page?: number;
-    limit?: number;
-    creditStatus?: string;
-    search?: string;
-  }) {
-    return this.api.get("/customers", { params });
+  async getCustomers(
+    params?: {
+      page?: number;
+      limit?: number;
+      creditStatus?: string;
+      search?: string;
+    },
+    token?: string,
+  ) {
+    return await apiRequest("GET", "/credit/customers", { params }, token);
   }
 
-  async getCustomerById(id: string) {
-    return this.api.get(`/customers/${id}`);
+  async getCustomerById(id: string, token?: string) {
+    return await apiRequest("GET", `/credit/customers/${id}`, {}, token);
   }
 
-  async updateCustomer(id: string, data: Partial<CreateCustomerPayload>) {
-    return this.api.put(`/customers/${id}`, data);
+  async updateCustomer(
+    id: string,
+    data: Partial<CreateCustomerPayload>,
+    token?: string,
+  ) {
+    return await apiRequest("PUT", `/credit/customers/${id}`, { data }, token);
   }
 
   // ============================================================
   // PAYMENT OPERATIONS
   // ============================================================
 
-  async recordPayment(data: RecordPaymentPayload) {
-    return this.api.post("/payments", data);
+  async recordPayment(data: RecordPaymentPayload, token?: string) {
+    return await apiRequest("POST", "/payments", { data }, token);
   }
 
-  async getPayments(params?: {
-    page?: number;
-    limit?: number;
-    customerId?: string;
-    saleId?: string;
-    paymentStatus?: string;
-  }) {
-    return this.api.get("/payments", { params });
+  async getPayments(
+    params?: {
+      page?: number;
+      limit?: number;
+      customerId?: string;
+      saleId?: string;
+      paymentStatus?: string;
+    },
+    token?: string,
+  ) {
+    return await apiRequest("GET", "/payments", { params }, token);
   }
 
   // ============================================================
   // CREDIT APPROVAL OPERATIONS
   // ============================================================
 
-  async createCreditApproval(data: {
-    customerId: string;
-    saleId: string;
-    requestedAmount: number;
-    requestedLimit?: number;
-    reason?: string;
-  }) {
-    return this.api.post("/approvals", data);
+  async createCreditApproval(
+    data: {
+      customerId: string;
+      saleId: string;
+      requestedAmount: number;
+      requestedLimit?: number;
+      reason?: string;
+      // Optional token for approval
+    },
+    token?: string,
+  ) {
+    return await apiRequest("POST", "/approvals", { data }, token);
   }
 
-  async getPendingApprovals(params?: { page?: number; limit?: number }) {
-    return this.api.get("/approvals/pending", { params });
+  async getPendingApprovals(
+    params?: { page?: number; limit?: number },
+    token?: string,
+  ) {
+    return await apiRequest("GET", "/approvals/pending", { params }, token);
   }
 
-  async approveCreditApproval(id: string) {
-    return this.api.put(`/approvals/${id}/approve`);
+  async approveCreditApproval(id: string, token?: string) {
+    return await apiRequest("PUT", `/approvals/${id}/approve`, {}, token);
   }
 
   async rejectCreditApproval(
@@ -120,32 +138,36 @@ export class CreditAPIService {
     data: {
       rejectionReason: string;
     },
+    token?: string,
   ) {
-    return this.api.put(`/approvals/${id}/reject`, data);
+    return await apiRequest("PUT", `/approvals/${id}/reject`, { data }, token);
   }
 
   // ============================================================
   // CREDIT CONFIG OPERATIONS
   // ============================================================
 
-  async getCreditConfig() {
-    return this.api.get("/config");
+  async getCreditConfig(token?: string) {
+    return await apiRequest("GET", "/config", {}, token);
   }
 
-  async updateCreditConfig(data: UpdateCreditConfigPayload) {
-    return this.api.put("/config", data);
+  async updateCreditConfig(data: UpdateCreditConfigPayload, token?: string) {
+    return await apiRequest("PUT", "/config", { data }, token);
   }
 
   // ============================================================
   // REPORTING OPERATIONS
   // ============================================================
 
-  async getAgingReport(params?: { startDate?: string; endDate?: string }) {
-    return this.api.get("/reports/aging", { params });
+  async getAgingReport(
+    params?: { startDate?: string; endDate?: string },
+    token?: string,
+  ) {
+    return await apiRequest("GET", "/reports/aging", { params }, token);
   }
 
-  async getCreditMetrics() {
-    return this.api.get("/reports/metrics");
+  async getCreditMetrics(token?: string) {
+    return await apiRequest("GET", "/reports/metrics", {}, token);
   }
 }
 
