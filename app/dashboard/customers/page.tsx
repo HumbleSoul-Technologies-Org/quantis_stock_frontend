@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useCredit, Customer } from "@/hooks/useCredit";
@@ -42,7 +43,9 @@ import {
   ShoppingCartIcon,
   NotebookPen,
   MoreVertical,
+  Download,
 } from "lucide-react";
+import { exportCustomerPaymentHistoryToCSV } from "@/lib/exportUtils";
 
 interface CustomerFormData {
   name: string;
@@ -76,11 +79,13 @@ export default function CustomersPage() {
   const currencySymbol = getCurrencySymbol();
   const {
     customers,
+    payments,
     fetchCustomers,
     isLoadingCredit,
     creditError,
     addCustomer,
     updateCustomer,
+    fetchPayments,
   } = useCredit();
 
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
@@ -121,6 +126,59 @@ export default function CustomersPage() {
       setCustomerForm(defaultCustomerForm);
     }
   }, [selectedCustomer]);
+
+  const normalizeId = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string" || typeof value === "number")
+      return String(value);
+    if (typeof value === "object") {
+      const maybe = value as Record<string, unknown>;
+      return String(
+        maybe._id || maybe.id || maybe.offline_id || maybe.customerId || "",
+      );
+    }
+    return "";
+  };
+
+  const selectedCustomerId = normalizeId(
+    selectedCustomer?._id ||
+      selectedCustomer?.id ||
+      selectedCustomer?.offline_id,
+  );
+
+  const paymentHistory = payments.filter((payment) => {
+    const paymentCustomerId = normalizeId(
+      payment.customerId ||
+        (payment as any).customer ||
+        (payment as any).customerId ||
+        (payment as any).customer?._id ||
+        (payment as any).customer?.id ||
+        (payment as any).customer?.offline_id,
+    );
+
+    return paymentCustomerId === selectedCustomerId;
+  });
+
+  const totalPaidOnDebt = paymentHistory.reduce(
+    (sum, payment) => sum + (payment.amount || 0),
+    0,
+  );
+
+  useEffect(() => {
+    if (selectedCustomer && detailDialogOpen) {
+      void fetchPayments({ customerId: selectedCustomerId });
+    }
+  }, [selectedCustomer, selectedCustomerId, detailDialogOpen, fetchPayments]);
+
+  const handleExportCustomerCSV = () => {
+    if (!selectedCustomer) return;
+
+    exportCustomerPaymentHistoryToCSV(selectedCustomer, paymentHistory, {
+      filename: `customer-${selectedCustomer.name
+        .replace(/[^a-zA-Z0-9]/g, "_")
+        .toLowerCase()}-payments-${format(new Date(), "yyyy-MM-dd")}.csv`,
+    });
+  };
 
   const resetDialog = () => {
     setSelectedCustomer(null);
@@ -206,6 +264,8 @@ export default function CustomersPage() {
             Manage customer credit profiles and contact details.
           </p>
         </div>
+
+        {/* customer profile form dialog */}
         <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
           <DialogTrigger asChild>
             <Button
@@ -500,7 +560,6 @@ export default function CustomersPage() {
                         ).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">
-                        {currencySymbol}{" "}
                         {Number(customer.totalPurchases ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -569,52 +628,237 @@ export default function CustomersPage() {
 
       {/* Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl dark:bg-slate-800 max-h-2xl overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="!sm:max-w-none !max-w-[min(100vw-2rem,90rem)] w-full dark:bg-slate-900 max-h-[calc(100vh-4rem)] overflow-hidden">
+          <DialogHeader className="px-4 pt-4 sm:px-6">
             <DialogTitle>Customer Details</DialogTitle>
+            <DialogDescription>
+              View profile, outstanding credit, and payment history for the
+              selected customer.
+            </DialogDescription>
           </DialogHeader>
-          <div className="p-4">
-            {selectedCustomer ? (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  {selectedCustomer.name}
-                </h3>
-                <p className="text-sm">Email: {selectedCustomer.email}</p>
-                <p className="text-sm">
-                  Phone: {selectedCustomer.phone || "—"}
-                </p>
-                <p className="text-sm">
-                  Credit Limit: {currencySymbol}{" "}
-                  {Number(selectedCustomer.creditLimit ?? 0).toLocaleString()}
-                </p>
-                <p className="text-sm">
-                  Outstanding: {currencySymbol}{" "}
-                  {Number(
-                    selectedCustomer.outstandingBalance ?? 0,
-                  ).toLocaleString()}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      setSalesDialogOpen(true);
-                      setDetailDialogOpen(false);
-                    }}
-                  >
-                    Create Sale
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setPaymentDialogOpen(true);
-                      setDetailDialogOpen(false);
-                    }}
-                  >
-                    Record Payment
-                  </Button>
-                </div>
+
+          <div className="grid grid-cols-1 gap-6 px-4 pb-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              <div className="max-h-[calc(100vh-18rem)] overflow-y-auto p-6">
+                {selectedCustomer ? (
+                  <div className="space-y-6">
+                    <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+                      <div className="rounded-3xl bg-slate-50 p-6 text-center dark:bg-slate-900">
+                        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary text-4xl font-bold text-white">
+                          {selectedCustomer.name
+                            .split(" ")
+                            .map((part) => part[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()}
+                        </div>
+                        <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                          {selectedCustomer.name}
+                        </p>
+                        <p className="mt-2 text-sm uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          {selectedCustomer.creditStatus || "No status"}
+                        </p>
+                        <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                          <p>{selectedCustomer.email}</p>
+                          <p>
+                            {selectedCustomer.phone || "No phone available"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                              Outstanding debt
+                            </p>
+                            <p className="mt-3 text-2xl font-semibold text-red-600 dark:text-red-400">
+                              {currencySymbol}{" "}
+                              {Number(
+                                selectedCustomer.outstandingBalance ?? 0,
+                              ).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                              Paid to date
+                            </p>
+                            <p className="mt-3 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+                              {currencySymbol}{" "}
+                              {Number(totalPaidOnDebt).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                              Credit limit
+                            </p>
+                            <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                              {currencySymbol}{" "}
+                              {Number(
+                                selectedCustomer.creditLimit ?? 0,
+                              ).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                              Total purchases
+                            </p>
+                            <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                              {Number(
+                                selectedCustomer.totalPurchases ?? 0,
+                              ).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                            Contact details
+                          </p>
+                          <div className="mt-4 grid gap-3 text-sm text-slate-700 dark:text-slate-300">
+                            <div className="flex justify-between">
+                              <span>Email</span>
+                              <span>{selectedCustomer.email || "—"}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Phone</span>
+                              <span>{selectedCustomer.phone || "—"}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>City</span>
+                              <span>{selectedCustomer.city || "—"}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>District</span>
+                              <span>{selectedCustomer.district || "—"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-900">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                            Payment History
+                          </h4>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Recent payments made against this customer’s credit
+                            sales.
+                          </p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleExportCustomerCSV}
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Export CSV
+                        </Button>
+                      </div>
+
+                      {paymentHistory.length === 0 ? (
+                        <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                          No payment history available for this customer.
+                        </div>
+                      ) : (
+                        <div className="mt-6 overflow-x-auto">
+                          <table className="min-w-full text-left text-sm">
+                            <thead className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                              <tr>
+                                <th className="px-3 py-3">Date</th>
+                                <th className="px-3 py-3 text-right">Amount</th>
+                                <th className="px-3 py-3">Method</th>
+                                <th className="px-3 py-3">Reference</th>
+                                <th className="px-3 py-3">Status</th>
+                                <th className="px-3 py-3">Notes</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paymentHistory.map((payment) => (
+                                <tr
+                                  key={
+                                    payment._id ||
+                                    payment.id ||
+                                    `${payment.paymentDate}-${payment.amount}`
+                                  }
+                                  className="border-b border-slate-200 odd:bg-slate-50 dark:border-slate-700 dark:odd:bg-slate-900"
+                                >
+                                  <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                                    {format(
+                                      new Date(payment.paymentDate),
+                                      "yyyy-MM-dd",
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-3 text-right text-slate-900 dark:text-slate-100">
+                                    {currencySymbol}{" "}
+                                    {Number(payment.amount).toLocaleString()}
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                                    {payment.paymentMethod}
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                                    {payment.reference || "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                                    {payment.paymentStatus}
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                                    {payment.notes || "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 dark:text-slate-400">
+                    No customer selected
+                  </div>
+                )}
               </div>
-            ) : (
-              <p>No customer selected</p>
-            )}
+            </div>
+
+            <div className="space-y-4 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900">
+              <div className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                Quick actions
+              </div>
+              <div className="space-y-3">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setSalesDialogOpen(true);
+                    setDetailDialogOpen(false);
+                  }}
+                >
+                  Create Sale
+                </Button>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setPaymentDialogOpen(true);
+                    setDetailDialogOpen(false);
+                  }}
+                >
+                  Record Payment
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setDetailDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -627,22 +871,22 @@ export default function CustomersPage() {
         currentUsername={user.username || ""}
         onOpenChange={(open) => setSalesDialogOpen(open)}
         onSubmit={async (sale) => {
-          try {
-            await useDataContext().addSale(sale);
-          } catch (err) {
-            // noop
-          }
+          await useDataContext().addSale(sale);
         }}
       />
 
       {/* Payment Dialog */}
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="max-w-2xl dark:bg-slate-800 h-2xl overflow-y-auto">
+        <DialogContent className="max-w-2xl dark:bg-slate-800 max-h-175 overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
           </DialogHeader>
           <div className="p-4">
             <PaymentForm
+              key={
+                selectedCustomer?._id || selectedCustomer?.id || "payment-form"
+              }
+              initialCustomer={selectedCustomer}
               initialCustomerId={
                 selectedCustomer?._id || selectedCustomer?.id || ""
               }

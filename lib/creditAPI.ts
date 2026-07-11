@@ -1,8 +1,6 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { apiRequest } from "./queryClient";
-
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL } from "./config";
 
 export interface CreateCustomerPayload {
   name: string;
@@ -88,7 +86,7 @@ export class CreditAPIService {
   // ============================================================
 
   async recordPayment(data: RecordPaymentPayload, token?: string) {
-    return await apiRequest("POST", "/payments", data, token);
+    return await apiRequest("POST", "/credit/payments", data, token);
   }
 
   async getPayments(
@@ -101,7 +99,7 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("GET", "/payments", params, token);
+    return await apiRequest("GET", "/credit/payments", params, token);
   }
 
   // ============================================================
@@ -119,18 +117,23 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("POST", "/approvals", data, token);
+    return await apiRequest("POST", "/credit/approvals", data, token);
   }
 
   async getPendingApprovals(
     params?: { page?: number; limit?: number },
     token?: string,
   ) {
-    return await apiRequest("GET", "/approvals/pending", params, token);
+    return await apiRequest("GET", "/credit/approvals/pending", params, token);
   }
 
   async approveCreditApproval(id: string, token?: string) {
-    return await apiRequest("PUT", `/approvals/${id}/approve`, {}, token);
+    return await apiRequest(
+      "PUT",
+      `/credit/approvals/${id}/approve`,
+      {},
+      token,
+    );
   }
 
   async rejectCreditApproval(
@@ -140,7 +143,12 @@ export class CreditAPIService {
     },
     token?: string,
   ) {
-    return await apiRequest("PUT", `/approvals/${id}/reject`, data, token);
+    return await apiRequest(
+      "PUT",
+      `/credit/approvals/${id}/reject`,
+      data,
+      token,
+    );
   }
 
   // ============================================================
@@ -148,11 +156,11 @@ export class CreditAPIService {
   // ============================================================
 
   async getCreditConfig(token?: string) {
-    return await apiRequest("GET", "/config", {}, token);
+    return await apiRequest("GET", "/credit/config", {}, token);
   }
 
   async updateCreditConfig(data: UpdateCreditConfigPayload, token?: string) {
-    return await apiRequest("PUT", "/config", data, token);
+    return await apiRequest("PUT", "/credit/config", data, token);
   }
 
   // ============================================================
@@ -163,11 +171,11 @@ export class CreditAPIService {
     params?: { startDate?: string; endDate?: string },
     token?: string,
   ) {
-    return await apiRequest("GET", "/reports/aging", params, token);
+    return await apiRequest("GET", "/credit/reports/aging", params, token);
   }
 
   async getCreditMetrics(token?: string) {
-    return await apiRequest("GET", "/reports/metrics", {}, token);
+    return await apiRequest("GET", "/credit/reports/metrics", {}, token);
   }
 }
 

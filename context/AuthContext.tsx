@@ -16,6 +16,7 @@ import {
 import { encryptedStorageService } from "@/lib/encryptedStorage";
 import { sessionKeyManager } from "@/lib/sessionKeyManager";
 import { useSessionKey } from "@/hooks/useSessionKey";
+import { preserveCreditSaleTxnCounterOnLogout } from "@/lib/transactionIdStorage";
 
 interface AuthContextType {
   user: User | null;
@@ -111,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async (): Promise<void> => {
     setUser(null);
     setBusiness(null);
-    localStorage.clear();
+    preserveCreditSaleTxnCounterOnLogout();
 
     // Clear encrypted session
     await clearUserSession().catch((error) => {

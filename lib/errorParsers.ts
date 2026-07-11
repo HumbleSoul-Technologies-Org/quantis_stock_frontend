@@ -15,7 +15,7 @@ export interface ParsedApiError {
 
 export interface FieldError {
   messages: string[];
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
   suggestion?: string;
   receivedValue?: any;
 }
@@ -39,8 +39,12 @@ export function parseApiError(error: unknown): ParsedApiError {
   // Extract basic error information
   result.message = getApiErrorText(error);
   result.code = typeof apiError.code === "string" ? apiError.code : undefined;
-  result.correlationId = typeof apiError.correlationId === "string" ? apiError.correlationId : undefined;
-  result.timestamp = typeof apiError.timestamp === "string" ? apiError.timestamp : undefined;
+  result.correlationId =
+    typeof apiError.correlationId === "string"
+      ? apiError.correlationId
+      : undefined;
+  result.timestamp =
+    typeof apiError.timestamp === "string" ? apiError.timestamp : undefined;
 
   // Extract field-level errors from details
   const details = apiError.details as Record<string, unknown>;
@@ -52,9 +56,14 @@ export function parseApiError(error: unknown): ParsedApiError {
         // Handle new structured format
         if (fieldInfo.messages) {
           result.fields[field] = {
-            messages: Array.isArray(fieldInfo.messages) ? fieldInfo.messages as string[] : [String(fieldInfo.messages)],
-            severity: (fieldInfo.severity as FieldError['severity']) || 'error',
-            suggestion: typeof fieldInfo.suggestion === "string" ? fieldInfo.suggestion : undefined,
+            messages: Array.isArray(fieldInfo.messages)
+              ? (fieldInfo.messages as string[])
+              : [String(fieldInfo.messages)],
+            severity: (fieldInfo.severity as FieldError["severity"]) || "error",
+            suggestion:
+              typeof fieldInfo.suggestion === "string"
+                ? fieldInfo.suggestion
+                : undefined,
             receivedValue: fieldInfo.receivedValue,
           };
         }
@@ -62,12 +71,14 @@ export function parseApiError(error: unknown): ParsedApiError {
         else if (typeof fieldInfo === "string") {
           result.fields[field] = {
             messages: [fieldInfo],
-            severity: 'error',
+            severity: "error",
           };
         } else if (Array.isArray(fieldInfo)) {
           result.fields[field] = {
-            messages: fieldInfo.filter(m => typeof m === "string") as string[],
-            severity: 'error',
+            messages: fieldInfo.filter(
+              (m) => typeof m === "string",
+            ) as string[],
+            severity: "error",
           };
         }
       }
@@ -75,7 +86,10 @@ export function parseApiError(error: unknown): ParsedApiError {
   }
 
   // If no field errors but we have a message, put it in general
-  if (Object.keys(result.fields).length === 0 && result.message !== "An unexpected error occurred") {
+  if (
+    Object.keys(result.fields).length === 0 &&
+    result.message !== "An unexpected error occurred"
+  ) {
     result.general = result.message;
   }
 
@@ -99,6 +113,35 @@ export function getApiErrorText(error: unknown): string {
     if (typeof apiError.error === "string" && apiError.error.trim()) {
       return apiError.error.trim();
     }
+
+    if (apiError.details && typeof apiError.details === "object") {
+      const details = apiError.details as Record<string, unknown>;
+      const detailValues = Object.values(details);
+
+      for (const detail of detailValues) {
+        if (detail && typeof detail === "object") {
+          const detailRecord = detail as Record<string, unknown>;
+          const nestedMessages = detailRecord.messages;
+          if (Array.isArray(nestedMessages)) {
+            const joined = nestedMessages
+              .filter(
+                (message): message is string => typeof message === "string",
+              )
+              .join(". ");
+            if (joined) {
+              return joined;
+            }
+          }
+
+          if (
+            typeof detailRecord.message === "string" &&
+            detailRecord.message.trim()
+          ) {
+            return detailRecord.message.trim();
+          }
+        }
+      }
+    }
   }
 
   return String(error ?? "An unexpected error occurred.");
@@ -111,7 +154,7 @@ export function extractApiErrorFields(error: unknown): Record<string, string> {
   const result: Record<string, string> = {};
 
   Object.entries(parsed.fields).forEach(([field, fieldError]) => {
-    result[field] = fieldError.messages.join('. ');
+    result[field] = fieldError.messages.join(". ");
   });
 
   return result;
@@ -225,7 +268,10 @@ export function parseFormError(errorText: string): Record<string, string> {
     errors.address = "Address is required";
   }
 
-  if (lowerError.includes("payment terms") || lowerError.includes("payment type")) {
+  if (
+    lowerError.includes("payment terms") ||
+    lowerError.includes("payment type")
+  ) {
     errors.paymentTerms = "Payment information is required";
   }
 

@@ -205,11 +205,13 @@ export const calculatePercentChange = (
   if (Math.abs(current) < 0.01 && Math.abs(previous) < 0.01) {
     return 0;
   }
-  // If previous is zero but current isn't, we can't calculate a meaningful percentage
-  // Return 0 to avoid division by zero (keep UI stable)
+
+  // When the previous period has no value, show a meaningful delta instead of a flat zero.
+  // This keeps KPI badges informative when the current period has new activity.
   if (previous === 0) {
-    return 0;
+    return current > 0 ? 100 : current < 0 ? -100 : 0;
   }
+
   // Normal percentage change calculation
   return ((current - previous) / previous) * 100;
 };

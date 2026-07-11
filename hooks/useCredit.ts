@@ -26,7 +26,6 @@ export interface Customer {
   lastPaymentDate?: string;
   createdAt: string;
   updatedAt: string;
-  offline_id?: string;
 }
 
 export interface Payment {
@@ -45,7 +44,6 @@ export interface Payment {
   daysOverdue: number;
   createdAt: string;
   updatedAt: string;
-  offline_id?: string;
 }
 
 export interface CreditConfig {
@@ -222,9 +220,7 @@ export function useCredit() {
     async (customer: Partial<Customer>) => {
       if (!apiService) return;
 
-      const offlineId = `cust_${Date.now()}`;
-
-      const newCustomer: Customer = {
+      const newCustomer: any = {
         ...customer,
       };
 
@@ -237,18 +233,15 @@ export function useCredit() {
         );
         const serverCustomer = response.data?.data;
 
-        // Update with server ID
-        setCustomers((prev) =>
-          prev.map((c) => (c.offline_id === offlineId ? serverCustomer : c)),
-        );
+        setCustomers((prev) => [serverCustomer, ...prev]);
 
         success(`Customer ${serverCustomer.name} added successfully`);
       } catch (err: any) {
         setCreditError(err.message);
-        info("Customer will be synced when connection is restored.");
+        toastError("Failed to add customer");
       }
     },
-    [apiService, success, toastError, info, online],
+    [apiService, success, toastError],
   );
 
   const updateCustomer = useCallback(
@@ -311,7 +304,37 @@ export function useCredit() {
           user?.token ? user.token : "",
         );
 
-        const paymentData = response.data?.data?.payments || [];
+        const rawPaymentData =
+          response.data?.data?.payments ||
+          response.data?.payments ||
+          (Array.isArray(response.data?.data) ? response.data.data : []);
+
+        const normalizeId = (value: unknown) => {
+          if (value === null || value === undefined) return "";
+          if (typeof value === "string" || typeof value === "number")
+            return String(value);
+          if (typeof value === "object") {
+            const maybe = value as Record<string, unknown>;
+            return String(
+              maybe._id ||
+                maybe.id ||
+                maybe.offline_id ||
+                maybe.customerId ||
+                "",
+            );
+          }
+          return "";
+        };
+
+        const paymentData = (rawPaymentData || []).map((payment: any) => ({
+          ...payment,
+          customerId:
+            normalizeId(payment.customerId) ||
+            normalizeId(payment.customer) ||
+            normalizeId(payment.customerId?.customerId) ||
+            "",
+        }));
+
         setPayments(paymentData);
 
         const state = storage.getState() as any;
@@ -335,7 +358,6 @@ export function useCredit() {
     async (payment: Partial<Payment>) => {
       if (!apiService) return;
 
-      const offlineId = `pay_${Date.now()}`;
       const newPayment: Payment = {
         customerId: payment.customerId || "",
         saleId: payment.saleId || "",
@@ -347,11 +369,9 @@ export function useCredit() {
         daysOverdue: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        offline_id: offlineId,
         ...payment,
       };
 
-      // Optimistic update and persist using latest storage snapshot
       setPayments((prev) => {
         const updated = [...prev, newPayment];
         const state = storage.getState() as any;
@@ -366,16 +386,20 @@ export function useCredit() {
         const serverPayment = response.data?.data;
 
         setPayments((prev) =>
-          prev.map((p) => (p.offline_id === offlineId ? serverPayment : p)),
+          prev.map((p) =>
+            p._id === serverPayment._id || p.id === serverPayment.id
+              ? serverPayment
+              : p,
+          ),
         );
 
         success(`Payment of ${newPayment.amount} recorded successfully`);
       } catch (err: any) {
         setCreditError(err.message);
-        info("Payment saved locally. Will sync when online.");
+        toastError("Failed to record payment");
       }
     },
-    [apiService, success, toastError, info, online],
+    [apiService, success, toastError],
   );
 
   // ============================================================

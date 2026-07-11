@@ -925,39 +925,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const previousProducts = products;
       const previousStockMovements = stockMovements;
 
-      const optimisticSales = [...sales, saleWithBusinessId];
-      const updatedProducts = products.map((product) => {
-        const saleItem = saleWithBusinessId.items.find(
-          (item) =>
-            product.id === item.productId ||
-            (product as any)._id === item.productId,
-        );
-
-        if (!saleItem) return product;
-
-        return {
-          ...product,
-          currentStock: product.currentStock - saleItem.quantity,
-        };
-      });
-
-      const newMovements: StockMovement[] = saleWithBusinessId.items.map(
-        (item) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          productId: item.productId,
-          type: "out",
-          quantity: item.quantity,
-          reason: "Sale",
-          reference: saleWithBusinessId.saleNumber,
-          createdBy: user?.id || user?._id || "system",
-          createdAt: new Date().toISOString(),
-        }),
-      );
-
-      persistProducts(updatedProducts);
-      persistStockMovements([...stockMovements, ...newMovements]);
-      persistSales(optimisticSales);
-
       try {
         const response = await sendApiRequest(
           "POST",
@@ -966,13 +933,74 @@ export function DataProvider({ children }: { children: ReactNode }) {
         );
 
         if (response?.ok) {
+          const updatedProducts = products.map((product) => {
+            const saleItem = saleWithBusinessId.items.find(
+              (item) =>
+                product.id === item.productId ||
+                (product as any)._id === item.productId,
+            );
+
+            if (!saleItem) return product;
+
+            return {
+              ...product,
+              currentStock: product.currentStock - saleItem.quantity,
+            };
+          });
+
+          const newMovements: StockMovement[] = saleWithBusinessId.items.map(
+            (item) => ({
+              id: Math.random().toString(36).substr(2, 9),
+              productId: item.productId,
+              type: "out",
+              quantity: item.quantity,
+              reason: "Sale",
+              reference: saleWithBusinessId.saleNumber,
+              createdBy: user?.id || user?._id || "system",
+              createdAt: new Date().toISOString(),
+            }),
+          );
+
+          persistProducts(updatedProducts);
+          persistStockMovements([...stockMovements, ...newMovements]);
+          persistSales([...sales, saleWithBusinessId]);
+
           await Promise.all([
             refetchSales(),
             refetchProducts(),
             refetchInventory(),
           ]);
         } else {
-          throw new Error("Failed to create sale. Please try again.");
+          const responseData = response?.data as
+            | {
+                message?: string;
+                error?: string;
+                details?: Record<string, unknown>;
+                code?: string;
+              }
+            | undefined;
+
+          const fallbackMessage = "Failed to create sale. Please try again.";
+          const errorMessage =
+            typeof responseData?.message === "string" &&
+            responseData.message.trim()
+              ? responseData.message
+              : typeof responseData?.error === "string" &&
+                  responseData.error.trim()
+                ? responseData.error
+                : fallbackMessage;
+
+          const apiError = new Error(errorMessage) as Error & {
+            details?: Record<string, unknown>;
+            code?: string;
+            status?: number;
+          };
+
+          apiError.details = responseData?.details;
+          apiError.code = responseData?.code;
+          apiError.status = response?.status;
+
+          throw apiError;
         }
       } catch (error) {
         persistSales(previousSales);

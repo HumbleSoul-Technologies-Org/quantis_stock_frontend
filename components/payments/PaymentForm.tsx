@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useCredit, Payment } from "@/hooks/useCredit";
+import { useCredit, Payment, Customer } from "@/hooks/useCredit";
 import { useToast } from "@/hooks/useToast";
 import { useDataContext } from "@/context/DataContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { getNextCreditSaleTxnId } from "@/lib/transactionIdStorage";
 
 interface PaymentFormProps {
   onSuccess?: () => void;
   isLoading?: boolean;
   initialCustomerId?: string;
   initialSaleId?: string;
+  initialCustomer?: Customer | null;
 }
 
 export default function PaymentForm({
@@ -20,10 +22,11 @@ export default function PaymentForm({
   isLoading = false,
   initialCustomerId = "",
   initialSaleId = "",
+  initialCustomer = null,
 }: PaymentFormProps) {
   const { customers, recordPayment } = useCredit();
-  const { sales } = useDataContext();
-  const { success, error: toastError, info } = useToast();
+  const { sales, products } = useDataContext();
+  const { error: toastError } = useToast();
 
   const [formData, setFormData] = useState({
     customerId: "",
@@ -48,24 +51,60 @@ export default function PaymentForm({
 
   const [submitting, setSubmitting] = useState(false);
 
-  const selectedCustomer = customers.find(
-    (c) => c.id === formData.customerId || c._id === formData.customerId,
-  );
+  const selectedCustomer =
+    initialCustomer ||
+    customers.find(
+      (c) => c.id === formData.customerId || c._id === formData.customerId,
+    );
+
+  const resolvedCustomerId =
+    formData.customerId ||
+    initialCustomer?.id ||
+    initialCustomer?._id ||
+    selectedCustomer?.id ||
+    selectedCustomer?._id ||
+    "";
+
+  const saleIdFrom = (sale: { _id?: string; id?: string }) =>
+    String(sale._id || sale.id || "");
+
+  const matchesCustomerId = (saleCustomerId: unknown) => {
+    const id = String(saleCustomerId || "");
+    return (
+      id === resolvedCustomerId ||
+      id === String(initialCustomer?.id || "") ||
+      id === String(initialCustomer?._id || "") ||
+      id === String(selectedCustomer?.id || "") ||
+      id === String(selectedCustomer?._id || "")
+    );
+  };
 
   const availableSales = sales.filter(
     (s) =>
       s.isCreditSale &&
-      (s.customerId === formData.customerId || s._id === formData.customerId) &&
+      matchesCustomerId(s.customerId) &&
       s.paymentStatus !== "paid",
   );
 
   const selectedSale = availableSales.find(
-    (s) => s.id === formData.saleId || s._id === formData.saleId,
+    (s) => String(s._id || s.id) === String(formData.saleId),
   );
 
   const outstandingAmount = selectedSale
     ? selectedSale.totalAmount - (selectedSale.paidAmount || 0)
     : 0;
+
+  const paymentAmount = parseFloat(formData.amount || "0") || 0;
+  const remainingBalance = selectedSale ? outstandingAmount - paymentAmount : 0;
+
+  useEffect(() => {
+    if (!formData.reference) {
+      setFormData((prev) => ({
+        ...prev,
+        reference: getNextCreditSaleTxnId(),
+      }));
+    }
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -132,8 +171,10 @@ export default function PaymentForm({
       });
 
       onSuccess?.();
-    } catch (err: any) {
-      toastError(err.message || "Failed to record payment");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to record payment";
+      toastError(message);
     } finally {
       setSubmitting(false);
     }
@@ -151,57 +192,132 @@ export default function PaymentForm({
           {/* Customer Selection */}
           <div>
             <label className="block text-sm font-medium mb-2">Customer *</label>
-            <select
+            <Input
+              disabled
+              value={selectedCustomer?.name || "Customer selected"}
+              className="w-full bg-slate-100 dark:bg-slate-900"
+            />
+            <input
+              type="hidden"
               name="customerId"
               value={formData.customerId}
-              onChange={handleChange}
-              required
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Select a customer...</option>
-              {customers.map((customer) => (
-                <option
-                  key={customer._id || customer.id}
-                  value={customer._id || customer.id}
-                >
-                  {customer.name} - {customer.email}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
-          {/* Sale Selection */}
+          {/* Outstanding Credit Sales */}
           {formData.customerId && (
             <div>
-              <label className="block text-sm font-medium mb-2">Sale *</label>
+              <label className="block text-sm font-medium mb-2">
+                Outstanding Credit Sales
+              </label>
               {availableSales.length === 0 ? (
                 <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
                   No outstanding credit sales for this customer
                 </div>
               ) : (
-                <select
-                  name="saleId"
-                  value={formData.saleId}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  <option value="">Select a sale...</option>
+                <div className="space-y-4">
                   {availableSales.map((sale) => {
+                    const saleId = saleIdFrom(sale);
                     const outstanding =
                       sale.totalAmount - (sale.paidAmount || 0);
+                    const isSelected = saleId === formData.saleId;
+
                     return (
-                      <option
-                        key={sale._id || sale.id}
-                        value={sale._id || sale.id}
+                      <div
+                        key={saleId}
+                        className={
+                          "rounded-lg border p-4 " +
+                          (isSelected
+                            ? "border-primary bg-slate-50 dark:border-slate-400 dark:bg-slate-800"
+                            : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900")
+                        }
                       >
-                        {sale.saleNumber} - KES{" "}
-                        {sale.totalAmount.toLocaleString()} (Outstanding: KES{" "}
-                        {outstanding.toLocaleString()})
-                      </option>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                              {sale.saleNumber} • Outstanding KES{" "}
+                              {outstanding.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Total: KES {sale.totalAmount.toLocaleString()} •
+                              Paid: KES{" "}
+                              {(sale.paidAmount || 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                saleId,
+                              }))
+                            }
+                            className={
+                              "inline-flex items-center rounded-md px-3 py-2 text-sm font-medium " +
+                              (isSelected
+                                ? "bg-primary text-white"
+                                : "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800")
+                            }
+                          >
+                            {isSelected ? "Selected" : "Select this sale"}
+                          </button>
+                        </div>
+
+                        {sale.items && sale.items.length > 0 && (
+                          <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                            <table className="w-full text-sm">
+                              <thead className="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                  <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">
+                                    Item
+                                  </th>
+                                  <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">
+                                    Qty
+                                  </th>
+                                  <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">
+                                    Unit
+                                  </th>
+                                  <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">
+                                    Total
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sale.items.map((item, index) => {
+                                  const product = products.find(
+                                    (product) =>
+                                      product.id === item.productId ||
+                                      product._id === item.productId,
+                                  );
+
+                                  return (
+                                    <tr
+                                      key={index}
+                                      className="border-t border-slate-200 dark:border-slate-700"
+                                    >
+                                      <td className="px-3 py-2 text-slate-900 dark:text-slate-100">
+                                        {product?.name || item.productId}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                                        {item.quantity}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                                        {item.unitPrice.toLocaleString()}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-slate-900 dark:text-slate-100">
+                                        {item.total.toLocaleString()}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
-                </select>
+                </div>
               )}
             </div>
           )}
@@ -250,10 +366,24 @@ export default function PaymentForm({
               disabled={!formData.saleId}
               className="w-full"
             />
-            {outstandingAmount && (
-              <p className="text-xs text-gray-500 mt-1">
-                Max: KES {outstandingAmount.toLocaleString()}
-              </p>
+            {selectedSale && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  Outstanding Balance: USh {outstandingAmount.toLocaleString()}
+                </p>
+                <p
+                  className={`text-xs ${
+                    paymentAmount > 0 && remainingBalance <= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : remainingBalance < 0
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-gray-500 dark:text-slate-400"
+                  }`}
+                >
+                  Remaining after payment: USh{" "}
+                  {remainingBalance.toLocaleString()}
+                </p>
+              </div>
             )}
           </div>
 

@@ -165,7 +165,7 @@ function SalesPageContent() {
       });
 
       // Only clear editing sale on success
-      setEditingSale(undefined);
+      // setEditingSale(undefined);
     } catch (error) {
       const errorMsg = getApiErrorText(error);
       // Set error state in form instead of closing it

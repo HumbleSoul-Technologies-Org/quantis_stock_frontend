@@ -17,7 +17,7 @@ export interface ExportOptions {
  */
 export function exportActivitiesToCSV(
   activities: Activity[],
-  options: ExportOptions = {}
+  options: ExportOptions = {},
 ): void {
   const {
     filename = `audit-report-${format(new Date(), "yyyy-MM-dd")}.csv`,
@@ -61,9 +61,80 @@ export function exportActivitiesToCSV(
     formatChangeLogValues(activity.changeLog?.after),
   ]);
 
-  const csvContent = includeHeaders
-    ? [headers, ...csvData]
-    : csvData;
+  const csvContent = includeHeaders ? [headers, ...csvData] : csvData;
+
+  const csvString = csvContent
+    .map((row) => row.map((cell) => String(cell)).join(","))
+    .join("\n");
+
+  downloadFile(csvString, filename, "text/csv");
+}
+
+export function exportCustomerPaymentHistoryToCSV(
+  customer: {
+    name: string;
+    email: string;
+    phone?: string;
+    city?: string;
+    district?: string;
+    creditLimit?: number;
+    creditStatus?: string;
+    outstandingBalance?: number;
+    totalPurchases?: number;
+  },
+  payments: Array<{
+    paymentDate: string;
+    amount: number;
+    paymentMethod: string;
+    reference?: string;
+    paymentStatus: string;
+    notes?: string;
+  }>,
+  options: ExportOptions = {},
+): void {
+  const {
+    filename = `customer-${customer.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}-payments-${format(new Date(), "yyyy-MM-dd")}.csv`,
+    includeHeaders = true,
+    dateFormat = "yyyy-MM-dd HH:mm:ss",
+  } = options;
+
+  const headers = [
+    "Customer Name",
+    "Email",
+    "Phone",
+    "City",
+    "District",
+    "Credit Status",
+    "Credit Limit",
+    "Outstanding Balance",
+    "Total Purchases",
+    "Payment Date",
+    "Amount",
+    "Payment Method",
+    "Reference",
+    "Status",
+    "Notes",
+  ];
+
+  const csvData = payments.map((payment) => [
+    customer.name,
+    customer.email || "",
+    customer.phone || "",
+    customer.city || "",
+    customer.district || "",
+    customer.creditStatus || "",
+    customer.creditLimit ?? "",
+    customer.outstandingBalance ?? "",
+    customer.totalPurchases ?? "",
+    format(new Date(payment.paymentDate), dateFormat),
+    payment.amount,
+    payment.paymentMethod,
+    payment.reference || "",
+    payment.paymentStatus,
+    payment.notes ? payment.notes.replace(/"/g, '""') : "",
+  ]);
+
+  const csvContent = includeHeaders ? [headers, ...csvData] : csvData;
 
   const csvString = csvContent
     .map((row) => row.map((cell) => String(cell)).join(","))
@@ -77,21 +148,23 @@ export function exportActivitiesToCSV(
  */
 export function exportActivitiesToJSON(
   activities: Activity[],
-  options: ExportOptions = {}
+  options: ExportOptions = {},
 ): void {
-  const {
-    filename = `audit-report-${format(new Date(), "yyyy-MM-dd")}.json`,
-  } = options;
+  const { filename = `audit-report-${format(new Date(), "yyyy-MM-dd")}.json` } =
+    options;
 
   // Clean and format the activities for export
   const exportData = {
     exportInfo: {
       generatedAt: new Date().toISOString(),
       totalRecords: activities.length,
-      dateRange: activities.length > 0 ? {
-        from: activities[activities.length - 1].createdAt,
-        to: activities[0].createdAt,
-      } : null,
+      dateRange:
+        activities.length > 0
+          ? {
+              from: activities[activities.length - 1].createdAt,
+              to: activities[0].createdAt,
+            }
+          : null,
     },
     activities: activities.map((activity) => ({
       id: activity.id,
@@ -121,14 +194,16 @@ export function exportActivitiesToJSON(
  */
 export function exportActivitiesToPDF(
   activities: Activity[],
-  options: ExportOptions = {}
+  options: ExportOptions = {},
 ): void {
   // PDF export would require additional libraries like jsPDF
   // For now, we'll export as CSV and note that PDF export is not implemented
   console.warn("PDF export not yet implemented. Exporting as CSV instead.");
   exportActivitiesToCSV(activities, {
     ...options,
-    filename: options.filename?.replace('.pdf', '.csv') || `audit-report-${format(new Date(), "yyyy-MM-dd")}.csv`
+    filename:
+      options.filename?.replace(".pdf", ".csv") ||
+      `audit-report-${format(new Date(), "yyyy-MM-dd")}.csv`,
   });
 }
 
@@ -169,7 +244,11 @@ function formatChangeLogValues(values: any): string {
 /**
  * Create and trigger file download
  */
-function downloadFile(content: string, filename: string, mimeType: string): void {
+function downloadFile(
+  content: string,
+  filename: string,
+  mimeType: string,
+): void {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
 
@@ -192,28 +271,51 @@ function downloadFile(content: string, filename: string, mimeType: string): void
 export function generateAuditSummary(activities: Activity[]): string {
   const summary = {
     totalActivities: activities.length,
-    dateRange: activities.length > 0 ? {
-      from: new Date(Math.min(...activities.map(a => new Date(a.createdAt).getTime()))),
-      to: new Date(Math.max(...activities.map(a => new Date(a.createdAt).getTime()))),
-    } : null,
-    byAction: activities.reduce((acc, activity) => {
-      acc[activity.action] = (acc[activity.action] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    byEntityType: activities.reduce((acc, activity) => {
-      const type = activity.entityType || "unknown";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    byStatus: activities.reduce((acc, activity) => {
-      acc[activity.status] = (acc[activity.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    byUser: activities.reduce((acc, activity) => {
-      const userName = getUserDisplayName(activity.createdBy);
-      acc[userName] = (acc[userName] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
+    dateRange:
+      activities.length > 0
+        ? {
+            from: new Date(
+              Math.min(
+                ...activities.map((a) => new Date(a.createdAt).getTime()),
+              ),
+            ),
+            to: new Date(
+              Math.max(
+                ...activities.map((a) => new Date(a.createdAt).getTime()),
+              ),
+            ),
+          }
+        : null,
+    byAction: activities.reduce(
+      (acc, activity) => {
+        acc[activity.action] = (acc[activity.action] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+    byEntityType: activities.reduce(
+      (acc, activity) => {
+        const type = activity.entityType || "unknown";
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+    byStatus: activities.reduce(
+      (acc, activity) => {
+        acc[activity.status] = (acc[activity.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+    byUser: activities.reduce(
+      (acc, activity) => {
+        const userName = getUserDisplayName(activity.createdBy);
+        acc[userName] = (acc[userName] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
   };
 
   return JSON.stringify(summary, null, 2);
