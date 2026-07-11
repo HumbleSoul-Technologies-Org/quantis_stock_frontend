@@ -10,15 +10,7 @@ import {
 import { useCredit, type Customer } from "@/hooks/useCredit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { X, Plus, Trash2, Printer } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
@@ -26,10 +18,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
-import { set } from "date-fns";
 import Select from "react-select";
 import { printService } from "@/lib/printService";
 import { useToast } from "@/components/ui/use-toast";
+import { ReceiptTemplate } from "./ReceiptTemplate";
+import { downloadReceiptPdf } from "@/lib/pdfUtils";
 import {
   getCurrentCreditSaleTxnId,
   getNextCreditSaleTxnId,
@@ -52,7 +45,7 @@ export function SalesForm({
   onSubmit,
   onCancel,
   currentUserId,
-  currentUsername,
+  currentUsername: _currentUsername,
   sale,
   RecieptPreview,
   serverError = "",
@@ -160,7 +153,8 @@ export function SalesForm({
   // Clear general error when form data changes (allow user to retry)
   useEffect(() => {
     if (errors.general && !serverError) {
-      const { general, ...rest } = errors;
+      const { general: _general, ...rest } = errors;
+      void _general;
       setErrors(rest);
     }
   }, [
@@ -231,15 +225,6 @@ export function SalesForm({
       quantity: parseInt(quantity),
       unitPrice: product.unitPrice,
       total: parseInt(quantity) * product.unitPrice,
-    };
-
-    const payLoad = {
-      quantity: parseInt(quantity),
-      unitPrice: product.unitPrice,
-      total: parseInt(quantity) * product.unitPrice,
-      items: [...items, saleItem],
-      createdBy: currentUsername,
-      txnId: txnId || uuidv4(),
     };
 
     setItems([...items, saleItem]);
@@ -780,7 +765,7 @@ export function SalesForm({
                 backgroundColor:
                   theme === "dark" ? "rgb(71 85 105)" : "rgb(229 231 235)",
               }),
-              dropdownIndicator: (provided, state) => ({
+              dropdownIndicator: (provided, _state) => ({
                 ...provided,
                 color:
                   theme === "dark" ? "rgb(148 163 184)" : "rgb(107 114 128)",
@@ -922,25 +907,14 @@ export function SalesForm({
 }
 
 // Immediate receipt for printing
-export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
-  const { user, business } = useAuth();
-  const { formatCurrency } = useSettings();
+export const RecieptPreview = ({
+  payLoad,
+}: {
+  payLoad?: Sale & { products?: Product[] };
+}) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  // Calculate totals
-  const items = payLoad?.items || [];
-  const subtotal = items.reduce(
-    (sum: number, item: any) => sum + item.total,
-    0,
-  );
-  const taxRate = 0.1; // 10% tax (adjust as needed)
-  const tax = subtotal * taxRate;
-  const grandTotal = subtotal + tax;
-
-  const handlePrint = () => {
-    window.print();
-  };
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const handlePrintToPos = async () => {
     try {
@@ -964,24 +938,20 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
         return;
       }
 
+      const items = (payLoad?.items || []) as SaleItem[];
+      const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
+
       const receiptData = {
-        // Transaction info
         saleNumber: payLoad?.saleNumber || "---",
         date: payLoad?.date || new Date().toISOString(),
-
-        // Customer info
         customerName: payLoad?.customerName || "Walk-in",
-        cashier: payLoad?.createdBy || user?.username || "---",
-
-        // Business info
-        businessName: business?.businessName,
-        businessAddress: business?.businessAddress,
-        businessPhone: business?.businessPhone?.contact,
-
-        // Items
-        items: items.map((item: any) => {
+        cashier: payLoad?.createdBy || "---",
+        businessName: payLoad?.businessName,
+        businessAddress: payLoad?.businessAddress,
+        businessPhone: payLoad?.businessPhone?.contact,
+        items: items.map((item) => {
           const product = payLoad?.products?.find(
-            (p: any) => p.id === item.productId || p._id === item.productId,
+            (p) => p.id === item.productId || p._id === item.productId,
           );
           return {
             name: product?.name || "Product",
@@ -990,9 +960,7 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
             total: item.total,
           };
         }),
-        totalAmount: grandTotal,
-
-        // Payment info
+        totalAmount,
         paymentType: payLoad?.paymentType || "cash",
         txnId: payLoad?.txnId,
         notes: payLoad?.notes,
@@ -1015,211 +983,117 @@ export const RecieptPreview = ({ payLoad }: { payLoad?: any }) => {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!receiptRef.current) {
+      toast({
+        title: "Unable to generate PDF",
+        description: "Receipt preview is not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsGeneratingPdf(true);
+    try {
+      const filename = `${payLoad?.saleNumber || "receipt"}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf`;
+
+      const items = (payLoad?.items || []) as SaleItem[];
+      const receiptItems = items.map((item) => {
+        const product = payLoad?.products?.find(
+          (p) => p.id === item.productId || p._id === item.productId,
+        );
+        return {
+          name: product?.name || "Product",
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.total,
+        };
+      });
+
+      const receiptPayload = {
+        businessName: payLoad?.businessName || "BUSINESS NAME",
+        businessAddress: payLoad?.businessAddress || "Address Line 1",
+        businessPhone:
+          payLoad?.businessPhone?.contact || "Phone: XXXX-XXXX-XXXX",
+        saleNumber: payLoad?.saleNumber || "---",
+        date: payLoad?.date || new Date().toISOString(),
+        cashier: payLoad?.createdBy || "---",
+        customerName: payLoad?.customerName || "Walk-in",
+        paymentMethod: payLoad?.paymentType || "cash",
+        txnId: payLoad?.txnId,
+        notes: payLoad?.notes,
+        items: receiptItems,
+      };
+
+      const envBase =
+        typeof process !== "undefined"
+          ? process.env.NEXT_PUBLIC_API_BASE_URL
+          : undefined;
+      const serverBase = (envBase || "http://localhost:5000").replace(
+        /\/$/,
+        "",
+      );
+      const res = await fetch(`${serverBase}/pdf/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receipt: receiptPayload, filename }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "PDF generation failed");
+        throw new Error(errText || "PDF generation failed");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Ready",
+        description: "Your receipt PDF has been downloaded.",
+      });
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({
+        title: "Export Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not generate the receipt PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div
-        ref={receiptRef}
-        className="receipt-container bg-white dark:bg-white text-black p-4 rounded-xl font-mono max-w-[380px] mx-auto border border-gray-300 dark:border-gray-300 shadow-sm"
-        style={{ fontFamily: "monospace" }}
-      >
-        {/* Header */}
-        <div className="receipt-header text-center border-b-2 border-dashed border-black pb-3 mb-3">
-          <div className="receipt-title font-bold text-lg">
-            {business?.businessName || "BUSINESS NAME"}
-          </div>
-          <div className="receipt-subtitle text-xs text-gray-700">
-            {business?.businessAddress || "Address Line 1"}
-          </div>
-          <div className="receipt-subtitle text-xs text-gray-700">
-            {business?.businessPhone?.contact
-              ? business.businessPhone.contact
-              : "Phone: XXXX-XXXX-XXXX"}
-          </div>
-          <div className="receipt-title text-base font-bold mt-2">
-            SALES RECEIPT
-          </div>
-        </div>
+      <ReceiptTemplate payLoad={payLoad} receiptRef={receiptRef} />
 
-        {/* Transaction Details */}
-        <div className="space-y-1 text-xs mb-3">
-          <p className="receipt-info">
-            Date:{" "}
-            <b>{new Date(payLoad?.date || new Date()).toLocaleDateString()}</b>
-          </p>
-          <p className="receipt-info">
-            Receipt #: <b>{payLoad?.saleNumber || "---"}</b>
-          </p>
-          <p className="receipt-info">
-            Cashier: <b>{payLoad?.createdBy || user?.username || "---"}</b>
-          </p>
-          <p className="receipt-info">
-            Customer: <b>{payLoad?.customerName || "Walk-in"}</b>
-          </p>
-        </div>
-
-        {/* Items Table */}
-        <table className="items-table w-full mb-3">
-          <thead>
-            <tr className="border-b-2 border-dashed border-black">
-              <th className="text-left text-xs font-bold pb-2">Item</th>
-              <th className="qty text-right text-xs font-bold pb-2 w-10">
-                Qty
-              </th>
-              <th className="price text-right text-xs font-bold pb-2 w-16">
-                Price
-              </th>
-              <th className="total text-right text-xs font-bold pb-2 w-16">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length > 0 ? (
-              items.map((item: any, index: number) => {
-                const product = payLoad?.products?.find(
-                  (p: any) =>
-                    p.id === item.productId || p._id === item.productId,
-                );
-                return (
-                  <tr key={index} className="border-b border-gray-200">
-                    <td className="text-xs py-1">
-                      {product?.name || "Product"}
-                    </td>
-                    <td className="qty text-right text-xs py-1">
-                      {item.quantity}
-                    </td>
-                    <td className="price text-right text-xs py-1">
-                      {formatCurrency(item.unitPrice)}
-                    </td>
-                    <td className="total text-right text-xs py-1 font-semibold">
-                      {formatCurrency(item.total)}
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="text-center text-xs py-2 text-gray-500"
-                >
-                  No items
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Totals Section */}
-        <div className="totals-section border-t-2 border-b-2 border-dashed border-black py-2 my-3">
-          {/* <div className="total-row">
-            <span>Subtotal:</span>
-            <span className="font-semibold">{formatCurrency(subtotal)}</span>
-          </div>
-          <div className="total-row">
-            <span>Tax (10%):</span>
-            <span className="font-semibold">{formatCurrency(tax)}</span>
-          </div> */}
-          <div className="total-row grand-total border-t border-black pt-2 mt-2">
-            <span>TOTAL:</span>
-            <span>{formatCurrency(grandTotal)}</span>
-          </div>
-        </div>
-
-        {/* Payment Information */}
-        <div className="payment-info bg-gray-50 border border-gray-200 p-2 rounded mb-3 text-xs">
-          <div className="payment-info-row font-semibold">
-            <span>Payment Method:</span>
-            <span className="uppercase">
-              {payLoad?.paymentType
-                ? payLoad.paymentType.charAt(0).toUpperCase() +
-                  payLoad.paymentType.slice(1)
-                : "Cash"}
-            </span>
-          </div>
-          {payLoad?.paymentType !== "cash" && payLoad?.txnId && (
-            <div className="payment-info-row">
-              <span>Transaction ID:</span>
-              <span className="font-mono">{payLoad.txnId}</span>
-            </div>
-          )}
-          {payLoad?.notes && (
-            <div className="mt-2 pt-2 border-t border-gray-300">
-              <span className="text-xs text-gray-600">
-                Notes: {payLoad.notes}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="receipt-number text-xs text-gray-600 mb-3">
-          {payLoad?.txnId
-            ? `Transaction ID: ${payLoad.txnId}`
-            : "please keep this receipt for your records."}
-        </div>
-        <div className="footer-message text-center text-lg font-bold mb-2">
-          THANK YOU!
-        </div>
-        <div className="footer-text text-center text-xs text-gray-600">
-          Please visit us again 😊
-        </div>
-      </div>
-
-      {/* Print Button */}
-      <style>{`
-        @media print {
-          body {
-            margin: 0;
-            padding: 0;
-          }
-          body * {
-            visibility: hidden;
-          }
-          .receipt-container,
-          .receipt-container * {
-            visibility: visible;
-          }
-          .receipt-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 80mm;
-            max-width: 100%;
-            margin: 0;
-            padding: 10px;
-            background: white;
-            box-shadow: none;
-            border: none;
-            border-radius: 0;
-            page-break-after: always;
-          }
-          .receipt-container table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          .receipt-container th,
-          .receipt-container td {
-            border: none;
-            padding: 2px 0;
-          }
-          .receipt-container th {
-            font-weight: 700;
-          }
-          .receipt-container .receipt-header,
-          .receipt-container .totals-section,
-          .receipt-container .payment-info {
-            border-color: #000;
-          }
-        }
-      `}</style>
-      <div className="flex gap-2 justify-center no-print">
+      <div className="flex flex-wrap gap-2 justify-center no-print">
         <Button
           onClick={handlePrintToPos}
+          disabled={!payLoad}
           className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2"
         >
           <Printer className="w-4 h-4" />
           Print Receipt
+        </Button>
+        <Button
+          onClick={handleDownloadPdf}
+          disabled={!payLoad || isGeneratingPdf}
+          className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 gap-2"
+        >
+          {isGeneratingPdf ? "Generating PDF..." : "Download PDF"}
         </Button>
       </div>
     </div>
