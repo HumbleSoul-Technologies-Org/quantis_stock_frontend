@@ -106,14 +106,16 @@ class SessionKeyManager {
               "🔁 [SESSION_KEY] Recovering persistent exported key from localStorage",
             );
             this.currentKey = await encryption.importKey(persistent);
-            this.metadata = JSON.parse(
+            const parsed = JSON.parse(
               localStorage.getItem(SESSION_KEY_METADATA) || "null",
-            ) || {
+            ) as KeyMetadata | null;
+            const meta: KeyMetadata = parsed ?? {
               createdAt: Date.now(),
               rotatedAt: Date.now(),
               rotationCount: 1,
               sessionId: this.generateSessionId(),
             };
+            this.metadata = meta;
 
             // Mirror into sessionStorage for current tab
             sessionStorage.setItem(SESSION_KEY_STORAGE, persistent);
@@ -326,8 +328,8 @@ class SessionKeyManager {
       this.currentKey = newKey;
 
       console.log("✅ [SESSION_KEY] Rotation complete", {
-        sessionId: this.metadata.sessionId,
-        rotationCount: this.metadata.rotationCount,
+        sessionId: this.metadata?.sessionId,
+        rotationCount: this.metadata?.rotationCount,
       });
 
       return newKey;
@@ -392,17 +394,13 @@ class SessionKeyManager {
       // mirror exported key into sessionStorage for current tab
       const exported = await encryption.exportKey(key);
       sessionStorage.setItem(SESSION_KEY_STORAGE, exported);
-      sessionStorage.setItem(
-        SESSION_KEY_METADATA,
-        JSON.stringify(
-          this.metadata ?? {
-            createdAt: Date.now(),
-            rotatedAt: Date.now(),
-            rotationCount: this.metadata?.rotationCount ?? 1,
-            sessionId: this.metadata?.sessionId ?? this.generateSessionId(),
-          },
-        ),
-      );
+      const meta: KeyMetadata = this.metadata ?? {
+        createdAt: Date.now(),
+        rotatedAt: Date.now(),
+        rotationCount: 1,
+        sessionId: this.generateSessionId(),
+      };
+      sessionStorage.setItem(SESSION_KEY_METADATA, JSON.stringify(meta));
 
       // remove any previously persisted exported key to avoid confusion
       try {

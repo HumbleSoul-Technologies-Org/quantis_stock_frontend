@@ -63,8 +63,8 @@ function SalesPageContent() {
   // Sales form state
   const [editingSale, setEditingSale] = useState<Sale | undefined>(undefined);
   const [receiptData, setReceiptData] = useState<
-    (Sale & { products: Product[] }) | null
-  >(null);
+    (Sale & { products: Product[] }) | undefined
+  >(undefined);
   const [saleFormError, setSaleFormError] = useState<string>("");
 
   // Return dialog state

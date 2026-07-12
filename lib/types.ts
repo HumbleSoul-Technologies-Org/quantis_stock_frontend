@@ -138,6 +138,7 @@ export interface User {
   password?: string; // hashed in production
   role: UserRole;
   businessId?: string; // Reference to Business model (optional during transition)
+  branchId?: string | null;
   business?: Business | BusinessSetup; // Updated: can be either Business (with settings) or BusinessSetup
   createdAt?: string;
   token?: string; // For session management
@@ -268,7 +269,7 @@ export interface Sale {
   notes: string;
   businessId?: string; // Business isolation (optional during transition)
   branchId?: string | null; // Branch-level scoping
-  createdBy: string;
+  createdBy: string | User;
   createdAt?: string;
   customerId?: string;
   customerName?: string;
@@ -300,6 +301,7 @@ export interface SaleReturn {
   notes?: string;
   status: "pending" | "completed" | "cancelled";
   businessId?: string; // Business isolation (optional during transition)
+  branchId?: string | null; // Branch-level scoping
   createdBy: string;
   createdAt?: string;
   reference?: string; // Return reference number

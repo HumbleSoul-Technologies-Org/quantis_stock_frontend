@@ -23,7 +23,7 @@ export function ReceiptTemplate({ payLoad, receiptRef }: ReceiptTemplateProps) {
   const cashierName =
     typeof payLoad?.createdBy === "string"
       ? payLoad.createdBy
-      : payLoad?.createdBy?.username || user?.username || "---";
+      : (payLoad?.createdBy as any)?.username || user?.username || "---";
 
   const paymentType = payLoad?.paymentType || "cash";
 

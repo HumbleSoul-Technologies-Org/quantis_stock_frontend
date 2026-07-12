@@ -57,10 +57,7 @@ export async function downloadReceiptPdf(
     // Handle simple pseudo-element content by creating spans if needed
     ["::before", "::after"].forEach((pseudo) => {
       try {
-        const pcs = window.getComputedStyle(
-          el as Element,
-          pseudo as unknown as Element,
-        );
+        const pcs = window.getComputedStyle(el as Element, pseudo as any);
         const content = pcs.getPropertyValue("content");
         if (content && content !== "none" && content !== "normal") {
           const text = content.replace(/^"|"$/g, "");

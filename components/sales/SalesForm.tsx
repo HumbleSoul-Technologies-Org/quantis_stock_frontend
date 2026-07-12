@@ -996,7 +996,7 @@ export const RecieptPreview = ({
 }) => {
   const receiptRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
-  const { business } = useAuth();
+  const { business, user } = useAuth();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const handlePrintToPos = async () => {
@@ -1034,11 +1034,18 @@ export const RecieptPreview = ({
       const businessName = business?.businessName || "BUSINESS NAME";
       const businessEmail = business?.businessEmail?.email || undefined;
 
+      const cashierName =
+        typeof payLoad?.createdBy === "string"
+          ? payLoad!.createdBy
+          : (payLoad?.createdBy as any)?.username ||
+            (user as any)?.username ||
+            "---";
+
       const receiptData = {
         saleNumber: payLoad?.saleNumber || "---",
         date: payLoad?.date || new Date().toISOString(),
         customerName: payLoad?.customerName || "Walk-in",
-        cashier: payLoad?.createdBy || "---",
+        cashier: cashierName,
         businessName,
         businessAddress,
         businessPhone,
@@ -1060,7 +1067,7 @@ export const RecieptPreview = ({
         notes: payLoad?.notes,
       };
 
-      await printService.printReceipt(receiptData);
+      await printService.printReceipt(receiptData as any);
 
       toast({
         title: "Receipt Printed",
