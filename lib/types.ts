@@ -241,6 +241,7 @@ export interface StockMovement {
   reason: string;
   reference: string; // Purchase order, Sales order, etc
   businessId?: string; // Business isolation (optional during transition)
+  branchId?: string | null; // Branch-level scoping
   createdBy: string | User;
   createdAt?: string;
 }
@@ -259,12 +260,14 @@ export interface Sale {
   id?: string;
   _id?: string; // For backward compatibility with older sale objects
   saleNumber: string;
+  reference?: string;
   date: string;
   items: SaleItem[];
   totalAmount: number;
   status: "completed" | "returned";
   notes: string;
   businessId?: string; // Business isolation (optional during transition)
+  branchId?: string | null; // Branch-level scoping
   createdBy: string;
   createdAt?: string;
   customerId?: string;
@@ -484,7 +487,8 @@ export interface TeamUser {
   name: string;
   email: string;
   username?: string; // Added for credentials display
-  role: "sales" | "accountant" | "manager";
+  role: "admin" | "sales" | "accountant" | "manager";
+  branchId?: string | null;
   createdAt: string;
   lastLogin: string | null;
   token?: string;

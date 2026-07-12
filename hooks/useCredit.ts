@@ -9,6 +9,7 @@ export interface Customer {
   district: string;
   id?: string;
   _id?: string;
+  offline_id?: string;
   businessId?: string;
   name: string;
   email: string;
@@ -110,6 +111,29 @@ export interface CreditMetrics {
   activeCustomers: number;
   suspendedCustomers: number;
   averageOutstandingPerCustomer: number;
+}
+
+export interface CreditSummaryMetrics {
+  totalOutstandingBalance: number;
+  outstandingCustomersCount: number;
+}
+
+export function getCreditSummaryMetrics(
+  customers: Array<Pick<Customer, "outstandingBalance">>,
+): CreditSummaryMetrics {
+  const totalOutstandingBalance = customers.reduce(
+    (sum, customer) => sum + Number(customer.outstandingBalance ?? 0),
+    0,
+  );
+
+  const outstandingCustomersCount = customers.filter(
+    (customer) => Number(customer.outstandingBalance ?? 0) > 0,
+  ).length;
+
+  return {
+    totalOutstandingBalance,
+    outstandingCustomersCount,
+  };
 }
 
 export function useCredit() {

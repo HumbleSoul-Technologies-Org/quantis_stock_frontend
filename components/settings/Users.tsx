@@ -59,7 +59,8 @@ export function Users() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "sales" as "sales" | "accountant" | "manager",
+    role: "sales" as "admin" | "sales" | "accountant" | "manager",
+    branchId: "",
   });
   const [createUserErrors, setCreateUserErrors] = useState<
     Record<string, string>
@@ -85,6 +86,9 @@ export function Users() {
     string | null
   >(null);
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
+  const [branches, setBranches] = useState<
+    Array<{ id: string; branchName: string }>
+  >([]);
 
   const isAdmin = user?.role === "admin";
 
@@ -106,6 +110,19 @@ export function Users() {
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes to keep user list up-to-date
   });
 
+  const { data: branchesData } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/branches", {}, user?.token);
+      if (!res.ok) {
+        throw new Error("Failed to fetch branches");
+      }
+      return res.json();
+    },
+    enabled: !!user?.token,
+    refetchInterval: 10 * 60 * 1000,
+  });
+
   useEffect(() => {
     const persistUsers = async () => {
       if (usersData) {
@@ -115,6 +132,14 @@ export function Users() {
         }));
 
         setTeamUsers(normalizedUsers);
+        if (branchesData) {
+          setBranches(
+            branchesData.map((branch: any) => ({
+              id: branch._id || branch.id,
+              branchName: branch.branchName,
+            })),
+          );
+        }
 
         if (typeof window !== "undefined") {
           if (sessionKeyManager.isInitialized()) {
@@ -128,6 +153,15 @@ export function Users() {
         }
 
         return;
+      }
+
+      if (branchesData) {
+        setBranches(
+          branchesData.map((branch: any) => ({
+            id: branch._id || branch.id,
+            branchName: branch.branchName,
+          })),
+        );
       }
 
       if (typeof window !== "undefined") {
@@ -155,7 +189,7 @@ export function Users() {
     };
 
     persistUsers();
-  }, [usersData]);
+  }, [usersData, branchesData]);
 
   const validateCreateUserForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -188,6 +222,10 @@ export function Users() {
       if (createUserForm.password !== createUserForm.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
+    }
+
+    if (createUserForm.role !== "admin" && !createUserForm.branchId) {
+      newErrors.branchId = "Branch is required for non-admin users";
     }
 
     setCreateUserErrors(newErrors);
@@ -226,6 +264,7 @@ export function Users() {
           username: createUserForm.name,
           email: createUserForm.email,
           role: createUserForm.role,
+          branchId: createUserForm.branchId || null,
           businessId: business?._id || user?.businessId,
         };
 
@@ -242,6 +281,7 @@ export function Users() {
           name: createUserForm.name,
           email: createUserForm.email,
           role: createUserForm.role,
+          branchId: createUserForm.branchId || null,
           lastLogin: data.user.lastLogin,
           createdAt: data.user.createdAt,
         };
@@ -259,6 +299,7 @@ export function Users() {
           email: createUserForm.email,
           password: createUserForm.password,
           role: createUserForm.role,
+          branchId: createUserForm.branchId || null,
           businessId: business?._id || user?.businessId,
         };
 
@@ -275,6 +316,7 @@ export function Users() {
           name: data.user.username,
           email: data.user.email,
           role: data.user.role,
+          branchId: data.user.branchId || null,
           createdAt: data.user.createdAt,
           lastLogin: null,
         };
@@ -294,6 +336,7 @@ export function Users() {
         password: "",
         confirmPassword: "",
         role: "sales",
+        branchId: "",
       });
       setCreateUserErrors({});
       setCreateUserFormError(null);
@@ -363,7 +406,8 @@ export function Users() {
       email: teamUser.email,
       password: "",
       confirmPassword: "",
-      role: teamUser.role as "sales" | "accountant" | "manager",
+      role: teamUser.role as "admin" | "sales" | "accountant" | "manager",
+      branchId: teamUser.branchId || "",
     });
     setShowCreateUserForm(true);
   };
@@ -486,6 +530,7 @@ export function Users() {
                 password: "",
                 confirmPassword: "",
                 role: "sales",
+                branchId: "",
               });
               setCreateUserErrors({});
               setCreateUserFormError(null);
@@ -511,6 +556,7 @@ export function Users() {
                   password: "",
                   confirmPassword: "",
                   role: "sales",
+                  branchId: "",
                 });
                 setCreateUserErrors({});
               }
@@ -682,6 +728,7 @@ export function Users() {
                       setCreateUserForm({
                         ...createUserForm,
                         role: e.target.value as
+                          | "admin"
                           | "sales"
                           | "accountant"
                           | "manager",
@@ -692,8 +739,45 @@ export function Users() {
                     <option value="sales">Sales</option>
                     <option value="accountant">Accountant</option>
                     <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
+
+                {createUserForm.role !== "admin" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Branch *
+                    </label>
+                    <select
+                      value={createUserForm.branchId}
+                      onChange={(e) => {
+                        setCreateUserForm({
+                          ...createUserForm,
+                          branchId: e.target.value,
+                        });
+                        if (createUserErrors.branchId) {
+                          setCreateUserErrors({
+                            ...createUserErrors,
+                            branchId: "",
+                          });
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-teal-700 rounded-md focus:outline-none focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-slate-50"
+                    >
+                      <option value="">Select branch</option>
+                      {branches.map((branch) => (
+                        <option key={branch.id} value={branch.id}>
+                          {branch.branchName}
+                        </option>
+                      ))}
+                    </select>
+                    {createUserErrors.branchId && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {createUserErrors.branchId}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-2 justify-end pt-2">
                   <Button
@@ -708,6 +792,7 @@ export function Users() {
                         password: "",
                         confirmPassword: "",
                         role: "sales",
+                        branchId: "",
                       });
                     }}
                     className="dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -905,118 +990,120 @@ export function Users() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                  {teamUsers.map((teamUser: any, index) => (
-                    <tr
-                      key={teamUser.id || index}
-                      className="hover:bg-gray-50 dark:hover:bg-slate-700"
-                    >
-                      <td className="px-4 py-2 dark:text-slate-100">
-                        {teamUser.username || teamUser.name}
-                      </td>
-                      {teamUser?.role !== "admin" && (
-                        <td className="px-4 py-2">{teamUser.email}</td>
-                      )}
-                      <td className="px-4 py-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {teamUser.role}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2 text-xs dark:text-slate-400">
-                        {formatDate(teamUser.createdAt)}
-                      </td>
-                      <td className="px-4 py-2 text-xs dark:text-slate-400">
-                        {teamUser.lastLogin
-                          ? formatDate(teamUser.lastLogin)
-                          : "Never"}
-                      </td>
-                      <td className="px-4 py-2 text-xs dark:text-slate-400">
-                        {teamUser.isActive === false ? (
-                          "Inactive"
-                        ) : teamUser.isBanned ? (
-                          <Badge className="text-xs bg-red-300 text-red-800 dark:bg-red-900/40 dark:text-red-300">
-                            <Ban className="mr-2 h-4 w-4" />
-                            Banned
-                          </Badge>
-                        ) : (
-                          "Active"
-                        )}
-                      </td>
-                      {teamUser?.role !== "admin" && (
-                        <td className="px-4 py-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 dark:hover:bg-slate-600"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="dark:bg-slate-800 dark:border-slate-700"
-                            >
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  handleEditUser(teamUser);
-                                  setEditingUserId(
-                                    teamUser.id || teamUser._id || null,
-                                  );
-                                }}
-                                className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
-                              >
-                                <Edit2 className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleBanUser(
-                                    teamUser.id || teamUser._id || "",
-                                  )
-                                }
-                                className={`dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer ${teamUser.isBanned ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"} `}
-                              >
-                                {teamUser.isBanned ? (
-                                  <>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Unban
-                                  </>
-                                ) : (
-                                  <>
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    Ban
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleOpenResetPassword(
-                                    teamUser.id || teamUser._id || "",
-                                  )
-                                }
-                                className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
-                              >
-                                <Key className="mr-2 h-4 w-4" />
-                                Reset Password
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleDeleteUser(
-                                    teamUser.id || teamUser._id || "",
-                                  )
-                                }
-                                className="text-red-600 dark:text-red-400 dark:focus:bg-red-900/20 cursor-pointer"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                  {teamUsers
+                    .filter((user) => user.role !== "admin")
+                    .map((teamUser: any, index) => (
+                      <tr
+                        key={teamUser.id || index}
+                        className="hover:bg-gray-50 dark:hover:bg-slate-700"
+                      >
+                        <td className="px-4 py-2 dark:text-slate-100">
+                          {teamUser.username || teamUser.name}
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        {teamUser?.role !== "admin" && (
+                          <td className="px-4 py-2">{teamUser.email}</td>
+                        )}
+                        <td className="px-4 py-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {teamUser.role}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-2 text-xs dark:text-slate-400">
+                          {formatDate(teamUser.createdAt)}
+                        </td>
+                        <td className="px-4 py-2 text-xs dark:text-slate-400">
+                          {teamUser.lastLogin
+                            ? formatDate(teamUser.lastLogin)
+                            : "Never"}
+                        </td>
+                        <td className="px-4 py-2 text-xs dark:text-slate-400">
+                          {teamUser.isActive === false ? (
+                            "Inactive"
+                          ) : teamUser.isBanned ? (
+                            <Badge className="text-xs bg-red-300 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                              <Ban className="mr-2 h-4 w-4" />
+                              Banned
+                            </Badge>
+                          ) : (
+                            "Active"
+                          )}
+                        </td>
+                        {teamUser?.role !== "admin" && (
+                          <td className="px-4 py-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 dark:hover:bg-slate-600"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="dark:bg-slate-800 dark:border-slate-700"
+                              >
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    handleEditUser(teamUser);
+                                    setEditingUserId(
+                                      teamUser.id || teamUser._id || null,
+                                    );
+                                  }}
+                                  className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
+                                >
+                                  <Edit2 className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleBanUser(
+                                      teamUser.id || teamUser._id || "",
+                                    )
+                                  }
+                                  className={`dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer ${teamUser.isBanned ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"} `}
+                                >
+                                  {teamUser.isBanned ? (
+                                    <>
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Unban
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Ban className="mr-2 h-4 w-4" />
+                                      Ban
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleOpenResetPassword(
+                                      teamUser.id || teamUser._id || "",
+                                    )
+                                  }
+                                  className="dark:text-slate-100 dark:focus:bg-slate-700 cursor-pointer"
+                                >
+                                  <Key className="mr-2 h-4 w-4" />
+                                  Reset Password
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleDeleteUser(
+                                      teamUser.id || teamUser._id || "",
+                                    )
+                                  }
+                                  className="text-red-600 dark:text-red-400 dark:focus:bg-red-900/20 cursor-pointer"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

@@ -151,6 +151,7 @@ export function StockMovementForm({
         quantity: data.quantity,
         reason: data.reason,
         reference: data.reference,
+        branchId: user?.branchId,
         createdBy: currentUserId,
       };
 

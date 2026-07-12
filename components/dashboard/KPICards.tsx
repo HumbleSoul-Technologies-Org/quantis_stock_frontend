@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +10,7 @@ import {
   ShoppingCart,
   AlertTriangle,
   Package,
+  Banknote,
 } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
@@ -22,6 +24,8 @@ import {
 } from "@/lib/chartUtils";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useAuth } from "@/context/AuthContext";
+import { getCreditSummaryMetrics, useCredit } from "@/hooks/useCredit";
 
 interface KPICardProps {
   title: string;
@@ -139,7 +143,7 @@ function KPICard({
       : value;
 
   return (
-    <Card className="relative flex h-full min-h-[18rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm dark:border-slate-700/80 dark:bg-slate-950/90 transition hover:shadow-xl">
+    <Card className="relative flex h-full min-h-72 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-sm dark:border-slate-700/80 dark:bg-slate-950/90 transition hover:shadow-xl">
       <div
         className={`absolute inset-y-0 left-0 w-1 bg-linear-to-b ${accentClasses}`}
       />
@@ -159,7 +163,7 @@ function KPICard({
       <CardContent className="px-6 pb-6 pt-3">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-3">
-            <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
+            <div className="text-3xl sm:text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
               {displayValue}
             </div>
             {change !== undefined && (
@@ -293,6 +297,34 @@ export function InventoryValueKPICard() {
       trend={kpiData.inventory.change >= 0 ? "up" : "down"}
       theme="purple"
       sparklineData={sparklineData}
+      formatCurrency={formatCurrency}
+    />
+  );
+}
+
+export function OutstandingCreditKPICard() {
+  const { business } = useAuth();
+  const { customers, fetchCustomers } = useCredit();
+  const { formatCurrency } = useSettings();
+  const [hasLoadedCustomers, setHasLoadedCustomers] = useState(false);
+
+  useEffect(() => {
+    if (business && !hasLoadedCustomers) {
+      setHasLoadedCustomers(true);
+      void fetchCustomers();
+    }
+  }, [business, fetchCustomers, hasLoadedCustomers]);
+
+  const creditSummary = getCreditSummaryMetrics(customers);
+
+  return (
+    <KPICard
+      title="Outstanding Credit"
+      value={creditSummary.totalOutstandingBalance}
+      changeLabel={`${creditSummary.outstandingCustomersCount} customers with outstanding payments`}
+      icon={<Banknote className="h-4 w-4" />}
+      trend="neutral"
+      theme="teal"
       formatCurrency={formatCurrency}
     />
   );

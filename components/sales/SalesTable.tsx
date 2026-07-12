@@ -285,7 +285,7 @@ export function SalesTable({
 
                     {/* Actions */}
                     <div className="flex gap-2 mt-3 pt-2 border-t border-gray-200">
-                      <Button
+                      {/* <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleViewReceipt(sale)}
@@ -293,7 +293,7 @@ export function SalesTable({
                       >
                         <Eye className="w-4 h-4" />
                         View Receipt
-                      </Button>
+                      </Button> */}
                       {onEdit &&
                         user &&
                         (user.role === "admin" || user.role === "manager") &&

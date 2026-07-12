@@ -38,7 +38,7 @@ export function buildReceiptData(
   sale: Sale,
   products: Product[],
   business?: any,
-  user?: any
+  user?: any,
 ): ReceiptData {
   const getProductName = (productId?: string) => {
     return (
@@ -49,9 +49,14 @@ export function buildReceiptData(
 
   // Handle cashier field - it might be an object or string
   const getCashierName = () => {
-    if (typeof sale.createdBy === 'string') {
+    if (typeof sale.createdBy === "string") {
       return sale.createdBy;
-    } else if (sale.createdBy && typeof sale.createdBy === 'object' && sale.createdBy && 'username' in sale.createdBy) {
+    } else if (
+      sale.createdBy &&
+      typeof sale.createdBy === "object" &&
+      sale.createdBy &&
+      "username" in sale.createdBy
+    ) {
       return (sale.createdBy as any).username;
     }
     return user?.username || "---";
@@ -59,7 +64,7 @@ export function buildReceiptData(
 
   return {
     // Transaction info
-    saleNumber: sale.saleNumber,
+    saleNumber: sale.reference || sale.saleNumber,
     date: sale.date,
 
     // Customer info

@@ -11,9 +11,9 @@ import { Security } from "@/components/settings/Security";
 import {
   Building2,
   DollarSign,
-  Users as UsersIcon,
   Bell,
   Shield,
+  Users as UsersIcon,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -49,13 +49,6 @@ export default function SettingsPage() {
             <DollarSign className="w-4 h-4" />
             Currency
           </TabsTrigger>
-          {/* <TabsTrigger
-            value="units"
-            className="text-xs md:text-sm flex items-center gap-1"
-          >
-            <Ruler className="w-4 h-4" />
-            Units
-          </TabsTrigger> */}
           <TabsTrigger
             value="users"
             className="inline-flex shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
@@ -63,6 +56,13 @@ export default function SettingsPage() {
             <UsersIcon className="w-4 h-4" />
             Users
           </TabsTrigger>
+          {/* <TabsTrigger
+            value="units"
+            className="text-xs md:text-sm flex items-center gap-1"
+          >
+            <Ruler className="w-4 h-4" />
+            Units
+          </TabsTrigger> */}
           <TabsTrigger
             value="notifications"
             className="inline-flex shrink-0 min-w-max text-xs md:text-sm items-center gap-1"
@@ -87,13 +87,13 @@ export default function SettingsPage() {
           <Currency />
         </TabsContent>
 
-        {/* <TabsContent value="units" className="space-y-4">
-          <UnitsSettings settings={settings} onUpdate={updateSettings} />
-        </TabsContent> */}
-
         <TabsContent value="users" className="space-y-4">
           <Users />
         </TabsContent>
+
+        {/* <TabsContent value="units" className="space-y-4">
+          <UnitsSettings settings={settings} onUpdate={updateSettings} />
+        </TabsContent> */}
 
         <TabsContent value="notifications" className="space-y-4">
           <NotificationSettings />

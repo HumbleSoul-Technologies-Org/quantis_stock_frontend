@@ -17,6 +17,7 @@ import {
   LogOut,
   Menu,
   X,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -72,10 +73,16 @@ export function Sidebar() {
       roles: ["admin", "manager", "accountant"],
     },
     {
+      href: "/dashboard/branches",
+      label: "Branches",
+      icon: MapPin,
+      roles: ["admin"],
+    },
+    {
       href: "/dashboard/settings",
       label: "Settings",
       icon: Settings,
-      roles: ["admin", "manager"],
+      roles: ["admin"],
     },
     // {
     //   href: "/dashboard/help",

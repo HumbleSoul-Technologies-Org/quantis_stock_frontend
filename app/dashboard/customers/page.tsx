@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
-import { useCredit, Customer } from "@/hooks/useCredit";
+import {
+  useCredit,
+  Customer,
+  getCreditSummaryMetrics,
+} from "@/hooks/useCredit";
 import { useDataContext } from "@/context/DataContext";
 import { SalesDialog } from "@/components/sales/SalesDialog";
 import PaymentForm from "@/components/payments/PaymentForm";
@@ -44,6 +48,8 @@ import {
   NotebookPen,
   MoreVertical,
   Download,
+  Banknote,
+  Users,
 } from "lucide-react";
 import { exportCustomerPaymentHistoryToCSV } from "@/lib/exportUtils";
 
@@ -145,6 +151,8 @@ export default function CustomersPage() {
       selectedCustomer?.id ||
       selectedCustomer?.offline_id,
   );
+
+  const creditSummary = getCreditSummaryMetrics(customers);
 
   const paymentHistory = payments.filter((payment) => {
     const paymentCustomerId = normalizeId(
@@ -270,11 +278,11 @@ export default function CustomersPage() {
           <DialogTrigger asChild>
             <Button
               className="inline-flex items-center gap-2"
-              variant="secondary"
+              variant="default"
               onClick={openCreateCustomerDialog}
             >
               <Plus className="w-4 h-4" />
-              Add customer
+              Quick add customer
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl dark:bg-slate-800">
@@ -487,6 +495,55 @@ export default function CustomersPage() {
         </Dialog>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-emerald-200 bg-emerald-50/80 dark:border-emerald-900/60 dark:bg-emerald-950/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  Total in credit
+                </p>
+                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
+                  Outstanding balance across credit customers
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm dark:bg-slate-900 dark:text-emerald-400">
+                <Banknote className="h-5 w-5" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+              {currencySymbol}{" "}
+              {creditSummary.totalOutstandingBalance.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-sky-200 bg-sky-50/80 dark:border-sky-900/60 dark:bg-sky-950/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                  Customers with outstanding payments
+                </p>
+                <p className="text-xs text-sky-600/80 dark:text-sky-400/80">
+                  Customers still carrying unpaid credit balances
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm dark:bg-slate-900 dark:text-sky-400">
+                <Users className="h-5 w-5" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+              {creditSummary.outstandingCustomersCount}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Customer list</CardTitle>
@@ -628,7 +685,7 @@ export default function CustomersPage() {
 
       {/* Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="!sm:max-w-none !max-w-[min(100vw-2rem,90rem)] w-full dark:bg-slate-900 max-h-[calc(100vh-4rem)] overflow-hidden">
+        <DialogContent className="!sm:max-w-none max-w-[min(100vw-2rem,90rem)]! w-full dark:bg-slate-900 max-h-[calc(100vh-4rem)] overflow-hidden">
           <DialogHeader className="px-4 pt-4 sm:px-6">
             <DialogTitle>Customer Details</DialogTitle>
             <DialogDescription>

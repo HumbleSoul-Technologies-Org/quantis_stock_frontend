@@ -7,6 +7,7 @@ import {
   SalesKPICard,
   LossesKPICard,
   InventoryValueKPICard,
+  OutstandingCreditKPICard,
 } from "@/components/dashboard/KPICards";
 import { SalesTrendChart } from "@/components/dashboard/SalesTrendChart";
 import { LossAnalysisChart } from "@/components/dashboard/LossAnalysisChart";
@@ -47,11 +48,12 @@ export default function DashboardPage() {
         user?.role === "manager") && <QuickNav />}
 
       {/* KPI Cards Grid */}
-      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
         <RevenueKPICard />
         <SalesKPICard />
         <LossesKPICard />
         <InventoryValueKPICard />
+        <OutstandingCreditKPICard />
       </div>
 
       {/* Charts Grid */}

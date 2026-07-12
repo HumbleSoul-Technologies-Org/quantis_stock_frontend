@@ -102,7 +102,11 @@ const apiProducts = async (token?: string, businessId?: string) => {
   return null;
 };
 
-const apiInventory = async (token?: string, businessId?: string) => {
+const apiInventory = async (
+  token?: string,
+  businessId?: string,
+  branchId?: string | null,
+) => {
   try {
     const response = await apiRequest(
       "GET",
@@ -111,6 +115,7 @@ const apiInventory = async (token?: string, businessId?: string) => {
         limit: 100,
         status: "active",
         ...(businessId ? { businessId } : {}),
+        ...(branchId ? { branchId } : {}),
       },
       token,
     );
@@ -125,7 +130,11 @@ const apiInventory = async (token?: string, businessId?: string) => {
   return null;
 };
 
-const apiSales = async (token?: string, businessId?: string) => {
+const apiSales = async (
+  token?: string,
+  businessId?: string,
+  branchId?: string | null,
+) => {
   try {
     const response = await apiRequest(
       "GET",
@@ -134,6 +143,7 @@ const apiSales = async (token?: string, businessId?: string) => {
         limit: 100,
         status: "active",
         ...(businessId ? { businessId } : {}),
+        ...(branchId ? { branchId } : {}),
       },
       token,
     );
@@ -148,7 +158,11 @@ const apiSales = async (token?: string, businessId?: string) => {
   return null;
 };
 
-const apiSaleReturns = async (token?: string, businessId?: string) => {
+const apiSaleReturns = async (
+  token?: string,
+  businessId?: string,
+  branchId?: string | null,
+) => {
   try {
     const response = await apiRequest(
       "GET",
@@ -157,6 +171,7 @@ const apiSaleReturns = async (token?: string, businessId?: string) => {
         limit: 100,
         status: "all",
         ...(businessId ? { businessId } : {}),
+        ...(branchId ? { branchId } : {}),
       },
       token,
     );
@@ -261,6 +276,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     (user as any)?.business?.businessId ||
     undefined;
 
+  const defaultBranchId = user?.role === "admin" ? null : user?.branchId;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -340,7 +357,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const state = storage.getState();
       state.sales = updatedSales;
       storage.saveState(state);
-      queryClient.setQueryData(["sales", activeBusinessId], updatedSales);
+      queryClient.setQueryData(
+        ["sales", activeBusinessId, defaultBranchId],
+        updatedSales,
+      );
     },
     [activeBusinessId],
   );
@@ -352,7 +372,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.saleReturns = updatedSaleReturns;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["sales", "returns", activeBusinessId],
+        ["sales", "returns", activeBusinessId, defaultBranchId],
         updatedSaleReturns,
       );
     },
@@ -366,7 +386,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.stockMovements = updatedStockMovements;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["inventory", "movements", activeBusinessId],
+        ["inventory", "movements", activeBusinessId, defaultBranchId],
         updatedStockMovements,
       );
     },
@@ -518,24 +538,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Poll inventory movements from API every 20 seconds (critical for stock accuracy)
   const { data: inventoryData, refetch: refetchInventory } = useQuery({
-    queryKey: ["inventory", "movements", activeBusinessId],
-    queryFn: () => apiInventory(user?.token, activeBusinessId),
+    queryKey: ["inventory", "movements", activeBusinessId, defaultBranchId],
+    queryFn: () => apiInventory(user?.token, activeBusinessId, defaultBranchId),
     enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll sales from API every 15 seconds (business-critical, revenue tracking)
   const { data: salesData, refetch: refetchSales } = useQuery({
-    queryKey: ["sales", activeBusinessId],
-    queryFn: () => apiSales(user?.token, activeBusinessId),
+    queryKey: ["sales", activeBusinessId, defaultBranchId],
+    queryFn: () => apiSales(user?.token, activeBusinessId, defaultBranchId),
     enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
   // Poll sale returns from API every 30 seconds (moderate priority - historical data)
   const { data: saleReturnsData, refetch: refetchSaleReturns } = useQuery({
-    queryKey: ["sales", "returns", activeBusinessId],
-    queryFn: () => apiSaleReturns(user?.token, activeBusinessId),
+    queryKey: ["sales", "returns", activeBusinessId, defaultBranchId],
+    queryFn: () =>
+      apiSaleReturns(user?.token, activeBusinessId, defaultBranchId),
     enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
@@ -905,6 +926,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const saleWithBusinessId = {
         ...sale,
         businessId: user?.businessId ?? sale.businessId,
+        branchId: sale.branchId || user?.branchId,
         id: sale.id || sale._id || uuidv4(),
         createdAt: sale.createdAt || new Date().toISOString(),
         items: sale.items.map((item) => {
@@ -956,6 +978,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               quantity: item.quantity,
               reason: "Sale",
               reference: saleWithBusinessId.saleNumber,
+              branchId: saleWithBusinessId.branchId || user?.branchId,
               createdBy: user?.id || user?._id || "system",
               createdAt: new Date().toISOString(),
             }),
@@ -1102,6 +1125,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const saleWithBusinessId = {
         ...sale,
         businessId: sale.businessId || user?.businessId,
+        branchId: sale.branchId || user?.branchId,
         items:
           sale.items?.map((item, index) => {
             const oldItem = originalSale.items[index];
@@ -1163,6 +1187,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           quantity: delta.quantity,
           reason: delta.reason,
           reference: `SALE-${originalSale.saleNumber}`,
+          branchId: saleWithBusinessId.branchId || user?.branchId,
           createdBy: user?.id || user?._id || "system",
           createdAt: new Date().toISOString(),
         }));
@@ -1271,6 +1296,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const returnWithBusinessId = {
         ...saleReturn,
         businessId: user?.businessId ?? saleReturn.businessId,
+        branchId: saleReturn.branchId || user?.branchId,
         saleId: resolvedSaleId || "",
       };
 
@@ -1310,6 +1336,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               returnWithBusinessId.reference ||
               `SALE-${originalSale?.saleNumber}` ||
               "",
+            branchId: returnWithBusinessId.branchId || user?.branchId,
             createdBy: user?.id || user?._id || "system",
             createdAt: new Date().toISOString(),
           }),
@@ -1338,13 +1365,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
 
         queryClient.invalidateQueries({
-          queryKey: ["products", user?.businessId],
+          queryKey: ["products", activeBusinessId],
         });
         queryClient.invalidateQueries({
-          queryKey: ["inventory", "movements", user?.businessId],
+          queryKey: [
+            "inventory",
+            "movements",
+            activeBusinessId,
+            defaultBranchId,
+          ],
         });
         queryClient.invalidateQueries({
-          queryKey: ["sales", user?.businessId],
+          queryKey: ["sales", activeBusinessId, defaultBranchId],
         });
         if (originalSale) {
           const totalReturnedQuantity = returnWithBusinessId.items.reduce(
@@ -1357,7 +1389,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           );
 
           queryClient.setQueryData(
-            ["sales", user?.businessId],
+            ["sales", activeBusinessId, defaultBranchId],
             (oldData: Sale[] | undefined) =>
               oldData
                 ? oldData.map((sale) =>
@@ -1400,13 +1432,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: ["products", user?.businessId],
+          queryKey: ["products", activeBusinessId],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["sales", user?.businessId],
+          queryKey: ["sales", activeBusinessId, defaultBranchId],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["inventory", "movements", user?.businessId],
+          queryKey: [
+            "inventory",
+            "movements",
+            activeBusinessId,
+            defaultBranchId,
+          ],
         }),
       ]).catch(() => {
         // Continue even if invalidation fails
@@ -1443,6 +1480,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const movementWithBusinessId = {
         ...movement,
         businessId: user?.businessId ?? movement.businessId,
+        branchId: movement.branchId || user?.branchId,
         productId: resolvedProductId,
         id: movement.id || movement._id || uuidv4(),
         createdAt: movement.createdAt || new Date().toISOString(),

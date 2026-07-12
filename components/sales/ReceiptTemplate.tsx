@@ -7,7 +7,7 @@ import { useSettings } from "@/context/SettingsContext";
 
 interface ReceiptTemplateProps {
   payLoad?: Sale & { products?: Product[] };
-  receiptRef?: RefObject<HTMLDivElement>;
+  receiptRef?: RefObject<HTMLDivElement | null>;
 }
 
 export function ReceiptTemplate({ payLoad, receiptRef }: ReceiptTemplateProps) {
@@ -30,7 +30,7 @@ export function ReceiptTemplate({ payLoad, receiptRef }: ReceiptTemplateProps) {
   return (
     <div
       ref={receiptRef}
-      className="receipt-container bg-white dark:bg-white text-black p-4 rounded-xl font-mono max-w-[380px] mx-auto border border-gray-300 dark:border-gray-300 shadow-sm"
+      className="receipt-container bg-white dark:bg-white text-black p-4 rounded-xl font-mono max-w-95 mx-auto border border-gray-300 dark:border-gray-300 shadow-sm"
       style={{ fontFamily: "monospace" }}
     >
       <div className="receipt-header text-center border-b-2 border-dashed border-black pb-3 mb-3">
@@ -56,7 +56,7 @@ export function ReceiptTemplate({ payLoad, receiptRef }: ReceiptTemplateProps) {
           <b>{new Date(payLoad?.date || new Date()).toLocaleDateString()}</b>
         </p>
         <p className="receipt-info">
-          Receipt #: <b>{payLoad?.saleNumber || "---"}</b>
+          Receipt #: <b>{payLoad?.reference || payLoad?.saleNumber || "---"}</b>
         </p>
         <p className="receipt-info">
           Cashier: <b>{cashierName}</b>
