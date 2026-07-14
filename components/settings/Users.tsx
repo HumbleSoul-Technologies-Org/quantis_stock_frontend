@@ -35,7 +35,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { TeamUser } from "@/lib/types";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "../ui/badge";
 import { format, set } from "date-fns";
@@ -274,6 +274,10 @@ export function Users() {
           payLoad,
           user?.token,
         );
+        if (!res.ok) {
+          const errorText = extractApiErrorMessage(res);
+          throw new Error(errorText);
+        }
         const data = await res.json();
 
         const updatedUser: TeamUser = {
@@ -309,6 +313,10 @@ export function Users() {
           payLoad,
           user?.token,
         );
+        if (!res.ok) {
+          const errorText = extractApiErrorMessage(res);
+          throw new Error(errorText);
+        }
         const data = await res.json();
 
         const newUser: TeamUser = {
@@ -346,9 +354,9 @@ export function Users() {
 
       if (Object.keys(parsedErrors).length > 0) {
         setCreateUserErrors(parsedErrors);
-      } else {
-        setCreateUserFormError(errorText || "Failed to save user");
       }
+
+      setCreateUserFormError(errorText || "Failed to save user");
 
       toast.error(
         `Failed to ${editingUserId ? "update" : "create"} user: ${errorText}`,

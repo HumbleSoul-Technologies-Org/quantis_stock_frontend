@@ -99,6 +99,7 @@ export function StockMovementForm({
       quantity: initialMovement?.quantity || undefined,
       reason: initialMovement?.reason || "",
       reference: initialMovement?.reference || "",
+      notes: initialMovement?.notes || "", // Optional notes field
     },
   });
 
@@ -136,7 +137,7 @@ export function StockMovementForm({
 
   const movementReasons = {
     in: ["Purchase Order", "Return", "Correction", "Stock Transfer"],
-    out: ["Sale", "Damage", "Expiry", "Stock Transfer"],
+    out: ["Sale", "Damage", "Expiry", "Theft", "Stock Transfer", "Others"],
     adjustment: ["Inventory Count", "Correction", "Write-off"],
   };
 
@@ -153,6 +154,7 @@ export function StockMovementForm({
         reference: data.reference,
         branchId: user?.branchId,
         createdBy: currentUserId,
+        notes: data?.notes || "", // Optional notes field
       };
 
       await onSubmit(movement);
@@ -164,6 +166,7 @@ export function StockMovementForm({
         setValue("quantity", 0);
         setValue("reason", "");
         setValue("reference", "");
+        setValue("notes", "");
       }
     } catch (error) {
       console.error("Error recording movement:", error);
@@ -418,6 +421,28 @@ export function StockMovementForm({
             <p className="text-red-500 text-xs mt-1">
               {errors.reference.message}
             </p>
+          )}
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium dark:text-slate-300 mb-1">
+            Notes
+          </label>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              {...register("notes")}
+              readOnly={!isEditMode}
+              placeholder={`describe reason for "Other" movement reason`}
+              className={`${
+                isEditMode
+                  ? "border-green-200"
+                  : "border-green-200 bg-green-50 cursor-not-allowed"
+              } dark:bg-slate-900 border rounded-md text-sm flex-1 ${errors.notes ? "border-red-500" : ""}`}
+            />
+          </div>
+
+          {errors.notes && (
+            <p className="text-red-500 text-xs mt-1">{errors.notes.message}</p>
           )}
         </div>
       </div>

@@ -23,6 +23,10 @@ export const stockMovementSchema = z.object({
     .string()
     .min(1, "Reference is required")
     .max(50, "Reference must be less than 50 characters"),
+  notes: z
+    .string()
+    .max(500, "Notes must be less than 500 characters")
+    .optional(),
 });
 
 export type StockMovementFormData = z.infer<typeof stockMovementSchema>;

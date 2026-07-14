@@ -1,6 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios from "axios";
 import { API_BASE_URL } from "@/lib/config";
+import { parseApiError } from "@/lib/errorParsers";
 
 // ✅ Axios instance for GET only
 const axiosClient = axios.create({
@@ -42,28 +43,129 @@ async function createApiResponse<T = any>(
   };
 }
 
+function isGenericErrorMessage(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "validation failed" ||
+    lower === "validation_error" ||
+    lower === "error" ||
+    lower === "bad request"
+  ) {
+    return true;
+  }
+
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      trimmed,
+    )
+  ) {
+    return true;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(\.\d+)?z$/i.test(trimmed)) {
+    return true;
+  }
+
+  if (/^[A-Z0-9_]+$/.test(trimmed) && trimmed.length > 3) {
+    return true;
+  }
+
+  return false;
+}
+
+function splitErrorString(text: string): string[] {
+  return text
+    .split(/\r?\n|\.\s*/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function normalizeErrorMessages(messages: string[]): string[] {
+  return Array.from(new Set(messages.map((message) => message.trim())))
+    .filter(Boolean)
+    .filter((message) => !isGenericErrorMessage(message));
+}
+
+function flattenApiErrorMessages(data: unknown): string[] {
+  if (typeof data === "string") {
+    return normalizeErrorMessages(splitErrorString(data));
+  }
+
+  if (Array.isArray(data)) {
+    return data.flatMap(flattenApiErrorMessages);
+  }
+
+  if (data && typeof data === "object") {
+    const objectData = data as Record<string, unknown>;
+    const results: string[] = [];
+
+    if (typeof objectData.message === "string" && objectData.message.trim()) {
+      results.push(...splitErrorString(objectData.message));
+    }
+
+    if (typeof objectData.error === "string" && objectData.error.trim()) {
+      results.push(...splitErrorString(objectData.error));
+    }
+
+    if (typeof objectData.details === "string" && objectData.details.trim()) {
+      results.push(...splitErrorString(objectData.details));
+    }
+
+    if (Array.isArray(objectData.messages)) {
+      results.push(
+        ...objectData.messages
+          .filter((message): message is string => typeof message === "string")
+          .flatMap(splitErrorString),
+      );
+    }
+
+    for (const value of Object.values(objectData)) {
+      if (value !== objectData.message && value !== objectData.error) {
+        results.push(...flattenApiErrorMessages(value));
+      }
+    }
+
+    return normalizeErrorMessages(results);
+  }
+
+  return [];
+}
+
 export function extractApiErrorMessage<T = any>(
   response: ApiRequestResponse<T>,
 ): string {
   const responseData = response.data;
-  if (typeof responseData === "string" && responseData.trim()) {
-    return responseData;
-  }
 
   if (responseData && typeof responseData === "object") {
-    const dataAny = responseData as Record<string, unknown>;
-    if (typeof dataAny.message === "string" && dataAny.message.trim()) {
-      return dataAny.message;
+    const parsed = parseApiError(responseData);
+    const fieldMessages = Object.values(parsed.fields)
+      .flatMap((field) => field.messages)
+      .filter(Boolean)
+      .map((message) => message.trim());
+
+    if (fieldMessages.length > 0) {
+      return normalizeErrorMessages(fieldMessages).join(". ");
     }
-    if (typeof dataAny.error === "string" && dataAny.error.trim()) {
-      return dataAny.error;
+
+    const generalMessage = parsed.general?.trim();
+    if (generalMessage && !isGenericErrorMessage(generalMessage)) {
+      return generalMessage;
     }
-    if (typeof dataAny.details === "string" && dataAny.details.trim()) {
-      return dataAny.details;
-    }
-    if (dataAny.details && typeof dataAny.details === "object") {
-      return JSON.stringify(dataAny.details);
-    }
+  }
+
+  if (typeof responseData === "string" && responseData.trim()) {
+    const trimmed = responseData.trim();
+    return isGenericErrorMessage(trimmed)
+      ? response.originalResponse.statusText || trimmed
+      : trimmed;
+  }
+
+  const messages = flattenApiErrorMessages(responseData);
+  if (messages.length > 0) {
+    return messages.join(". ");
   }
 
   return response.originalResponse.statusText || "An unexpected error occurred";

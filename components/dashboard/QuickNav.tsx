@@ -44,7 +44,7 @@ const navItems = [
     href: "/dashboard/reports",
     label: "Reports",
     icon: BarChart3,
-    roles: ["admin", "manager", "sales", "accountant"],
+    roles: ["admin", "manager", "accountant"],
   },
   {
     href: "/dashboard/settings",

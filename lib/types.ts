@@ -245,6 +245,7 @@ export interface StockMovement {
   branchId?: string | null; // Branch-level scoping
   createdBy: string | User;
   createdAt?: string;
+  notes?: string;
 }
 
 export interface Category {

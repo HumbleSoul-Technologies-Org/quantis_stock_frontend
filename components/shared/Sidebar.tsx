@@ -76,7 +76,7 @@ export function Sidebar() {
       href: "/dashboard/branches",
       label: "Branches",
       icon: MapPin,
-      roles: ["admin"],
+      roles: ["admin", "manager", "accountant"],
     },
     {
       href: "/dashboard/settings",

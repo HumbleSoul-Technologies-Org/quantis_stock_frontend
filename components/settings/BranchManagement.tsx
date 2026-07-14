@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,9 @@ import {
 } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/AuthContext";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, MapPinned, Search } from "lucide-react";
 import { toast } from "sonner";
+import BranchMap from "@/components/settings/BranchMap";
 
 interface BranchForm {
   branchName: string;
@@ -38,8 +38,16 @@ interface BranchSummary {
   branchName: string;
   branchCode?: string;
   address?: string;
+  district?: string;
+  city?: string;
+  country?: string;
+  region?: string;
   status?: string;
   users?: any[];
+  salesCount?: number | string | null;
+  lossCount?: number | string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
 }
 
 export default function BranchManagement() {
@@ -63,6 +71,10 @@ export default function BranchManagement() {
     notes: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "sales" | "losses" | "users"
+  >("all");
 
   const { data: branchesData, refetch } = useQuery({
     queryKey: ["branches"],
@@ -83,10 +95,70 @@ export default function BranchManagement() {
         branchName: branch.branchName,
         branchCode: branch.branchCode,
         address: branch.address,
+        district: branch.district,
+        city: branch.city || branch.branchCity,
+        country: branch.country,
+        region: branch.region,
         status: branch.status,
         users: branch.users,
+        salesCount: branch.sales?.length ?? 0,
+        lossCount:
+          branch.stockMovements?.filter(
+            (m: any) =>
+              (m.type === "out" && m.reason !== "Sale") ||
+              m.reason !== "Stock Transfer",
+          ).length ?? 0,
+        latitude: branch.latitude,
+        longitude: branch.longitude,
       }))
     : [];
+
+  const filteredBranches = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    const matchesSearch = (branch: BranchSummary) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const searchableText = [
+        branch.branchName,
+        branch.branchCode,
+        branch.district,
+        branch.city,
+        branch.country,
+        branch.region,
+        branch.address,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedQuery);
+    };
+
+    const result = branches.filter(matchesSearch);
+
+    if (activeFilter === "sales") {
+      return [...result].sort(
+        (a, b) => Number(b.salesCount ?? 0) - Number(a.salesCount ?? 0),
+      );
+    }
+
+    if (activeFilter === "losses") {
+      return [...result].sort(
+        (a, b) => Number(b.lossCount ?? 0) - Number(a.lossCount ?? 0),
+      );
+    }
+
+    if (activeFilter === "users") {
+      return [...result].sort(
+        (a, b) => (b.users?.length || 0) - (a.users?.length || 0),
+      );
+    }
+
+    return result;
+  }, [activeFilter, branches, searchQuery]);
 
   const resetForm = () => {
     setBranchForm({
@@ -219,13 +291,76 @@ export default function BranchManagement() {
 
       <Card className="dark:bg-slate-800">
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPinned className="h-5 w-5" /> Branch map
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Branches with saved coordinates appear on the map below. Click a
+              marker to view branch details.
+            </p>
+          </div>
+          <BranchMap branches={branches} />
+        </CardContent>
+      </Card>
+
+      <Card className="dark:bg-slate-800">
+        <CardHeader>
           <CardTitle>Branch list</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/60 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by name, code, district, city, country..."
+                className="h-9 pl-9 border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={activeFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveFilter("all")}
+              >
+                All branches
+              </Button>
+              <Button
+                variant={activeFilter === "sales" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveFilter("sales")}
+              >
+                Most sales
+              </Button>
+              <Button
+                variant={activeFilter === "losses" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveFilter("losses")}
+              >
+                Most losses
+              </Button>
+              <Button
+                variant={activeFilter === "users" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveFilter("users")}
+              >
+                Most users
+              </Button>
+            </div>
+          </div>
+
           {branches.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-600 dark:border-slate-700 dark:text-slate-300">
               No branches found yet. Create one to begin assigning users and
               tracking branch activity.
+            </div>
+          ) : filteredBranches.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-600 dark:border-slate-700 dark:text-slate-300">
+              No branches match your current search or filter.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -253,7 +388,7 @@ export default function BranchManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                  {branches.map((branch) => (
+                  {filteredBranches.map((branch) => (
                     <tr
                       key={branch.id}
                       className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900"
@@ -317,7 +452,7 @@ export default function BranchManagement() {
         open={showBranchForm}
         onOpenChange={(open) => setShowBranchForm(open)}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl z-[9999]">
           <DialogHeader>
             <DialogTitle>
               {editingBranch ? "Edit Branch" : "Create Branch"}
