@@ -270,6 +270,7 @@ export function SalesForm({
 
     const saleItem: SaleItem = {
       productId: product.id || product._id || selectedProductId,
+      name: product.name,
       quantity: parseInt(quantity),
       unitPrice: product.unitPrice,
       total: parseInt(quantity) * product.unitPrice,
