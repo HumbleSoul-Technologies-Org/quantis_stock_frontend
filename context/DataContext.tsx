@@ -1464,72 +1464,79 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Stock Movements
   const addStockMovement = useCallback(
     async (movement: StockMovement) => {
-      const selectedProduct = products.find(
-        (p) => p.id === movement.productId || p._id === movement.productId,
-      );
-
-      const resolvedProductId = resolveReferenceId(selectedProduct);
-      if (!resolvedProductId) {
-        toastError(
-          "Unable to resolve the selected product for this stock movement.",
-          5000,
+      try {
+        const selectedProduct = products.find(
+          (p) => p.id === movement.productId || p._id === movement.productId,
         );
-        throw new Error("Selected product could not be resolved.");
-      }
 
-      const movementWithBusinessId = {
-        ...movement,
-        businessId: user?.businessId ?? movement.businessId,
-        branchId: movement.branchId || user?.branchId,
-        productId: resolvedProductId,
-        id: movement.id || movement._id || uuidv4(),
-        createdAt: movement.createdAt || new Date().toISOString(),
-      };
-
-      const previousProducts = products;
-      const previousStockMovements = stockMovements;
-
-      const updatedProducts = products.map((product) => {
-        if (
-          product.id === movementWithBusinessId.productId ||
-          (product as any)._id === movementWithBusinessId.productId
-        ) {
-          if (movementWithBusinessId.type === "in") {
-            return {
-              ...product,
-              currentStock:
-                product.currentStock + movementWithBusinessId.quantity,
-            };
-          }
-          if (movementWithBusinessId.type === "out") {
-            return {
-              ...product,
-              currentStock:
-                product.currentStock - movementWithBusinessId.quantity,
-            };
-          }
-          return { ...product, currentStock: movementWithBusinessId.quantity };
+        const resolvedProductId = resolveReferenceId(selectedProduct);
+        if (!resolvedProductId) {
+          toastError(
+            "Unable to resolve the selected product for this stock movement.",
+            5000,
+          );
+          throw new Error("Selected product could not be resolved.");
         }
-        return product;
-      });
 
-      persistProducts(updatedProducts);
-      persistStockMovements([...stockMovements, movementWithBusinessId]);
+        const movementWithBusinessId = {
+          ...movement,
+          businessId: user?.businessId ?? movement.businessId,
+          branchId: movement.branchId || user?.branchId,
+          productId: resolvedProductId,
+          id: movement.id || movement._id || uuidv4(),
+          createdAt: movement.createdAt || new Date().toISOString(),
+        };
 
-      const response = await sendApiRequest(
-        "POST",
-        "/inventory/movements/add",
-        movementWithBusinessId,
-      );
+        const previousProducts = products;
+        const previousStockMovements = stockMovements;
 
-      if (response?.ok) {
-        await Promise.all([refetchInventory(), refetchProducts()]);
-      } else {
-        persistProducts(previousProducts);
-        persistStockMovements(previousStockMovements);
-        throw new Error(
-          "Unable to save stock movement. Please check your connection and try again.",
+        const updatedProducts = products.map((product) => {
+          if (
+            product.id === movementWithBusinessId.productId ||
+            (product as any)._id === movementWithBusinessId.productId
+          ) {
+            if (movementWithBusinessId.type === "in") {
+              return {
+                ...product,
+                currentStock:
+                  product.currentStock + movementWithBusinessId.quantity,
+              };
+            }
+            if (movementWithBusinessId.type === "out") {
+              return {
+                ...product,
+                currentStock:
+                  product.currentStock - movementWithBusinessId.quantity,
+              };
+            }
+            return {
+              ...product,
+              currentStock: movementWithBusinessId.quantity,
+            };
+          }
+          return product;
+        });
+
+        persistProducts(updatedProducts);
+        persistStockMovements([...stockMovements, movementWithBusinessId]);
+
+        const response = await sendApiRequest(
+          "POST",
+          "/inventory/movements/add",
+          movementWithBusinessId,
         );
+
+        if (response?.ok) {
+          await Promise.all([refetchInventory(), refetchProducts()]);
+        } else {
+          persistProducts(previousProducts);
+          persistStockMovements(previousStockMovements);
+          throw new Error(
+            "Unable to save stock movement. Please check your connection and try again.",
+          );
+        }
+      } catch (error) {
+        console.error("[DATACONTEXT] Error adding stock movement:", error);
       }
     },
     [

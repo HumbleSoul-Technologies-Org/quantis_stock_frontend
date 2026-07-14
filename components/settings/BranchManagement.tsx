@@ -281,12 +281,14 @@ export default function BranchManagement() {
             branch-level activity.
           </p>
         </div>
-        <Button
-          onClick={openNewBranch}
-          className="bg-blue-600 hover:bg-blue-700 dark:bg-teal-600"
-        >
-          <Plus className="w-4 h-4 mr-2" /> New Branch
-        </Button>
+        {user?.role === "admin" && (
+          <Button
+            onClick={openNewBranch}
+            className="bg-blue-600 hover:bg-blue-700 dark:bg-teal-600"
+          >
+            <Plus className="w-4 h-4 mr-2" /> New Branch
+          </Button>
+        )}
       </div>
 
       <Card className="dark:bg-slate-800">
@@ -382,9 +384,11 @@ export default function BranchManagement() {
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-300">
                       Users
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-300">
-                      Actions
-                    </th>
+                    {user?.role === "admin" && (
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-300">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -417,28 +421,30 @@ export default function BranchManagement() {
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
                         {branch.users?.length || 0}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-medium space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openEditBranch(branch);
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDeleteBranch(branch.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </td>
+                      {user?.role === "admin" && (
+                        <td className="px-4 py-3 text-right text-sm font-medium space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openEditBranch(branch);
+                            }}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteBranch(branch.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

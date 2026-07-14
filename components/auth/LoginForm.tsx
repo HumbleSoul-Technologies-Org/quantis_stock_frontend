@@ -57,6 +57,7 @@ export function LoginForm() {
         businessId: responseData.user.businessId, // Critical: get businessId from response
         business: responseData.user.business, // For backward compatibility
         token: responseData.token,
+        branchId: responseData.user.branchId, // Optional: if your backend provides branchId
       };
 
       // Update auth context with API user data

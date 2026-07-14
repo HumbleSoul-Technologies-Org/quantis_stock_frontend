@@ -150,8 +150,7 @@ export function ProductInventoryCard({
               Unit Price:
             </span>
             <span className="font-medium text-gray-900 dark:text-teal-300">
-              {settings?.currency?.symbol}
-              {product.unitPrice.toFixed(getDecimalPlaces())}
+              {settings?.currency?.symbol} {product.unitPrice.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between">

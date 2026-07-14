@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader } from "lucide-react";
+import { Plus, Loader, Calendar } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
 import { getApiErrorText, parseUserFormError } from "@/lib/errorParsers";
@@ -55,6 +56,21 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
   const [createUserFormError, setCreateUserFormError] = useState<string | null>(
     null,
   );
+  const [salesSearchQuery, setSalesSearchQuery] = useState("");
+  const [salesSortOrder, setSalesSortOrder] = useState<"newest" | "oldest">(
+    "newest",
+  );
+  const [salesDateFilter, setSalesDateFilter] = useState("");
+  const [showSalesDatePicker, setShowSalesDatePicker] = useState(false);
+  const [stockSearchQuery, setStockSearchQuery] = useState("");
+  const [stockCategoryFilter, setStockCategoryFilter] = useState<
+    "all" | "sales" | "losses"
+  >("all");
+  const [stockTypeFilter, setStockTypeFilter] = useState<
+    "all" | "in" | "out" | "adjustment"
+  >("all");
+  const [stockDateFilter, setStockDateFilter] = useState("");
+  const [showStockDatePicker, setShowStockDatePicker] = useState(false);
 
   const validateCreateUserForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -190,6 +206,114 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
     }
   }, [branchId, user?.token]);
 
+  const branchUsers = Array.isArray(branch?.users) ? branch.users : [];
+
+  const salesSearchTerm = salesSearchQuery.trim().toLowerCase();
+  const stockSearchTerm = stockSearchQuery.trim().toLowerCase();
+  const selectedSalesDate = salesDateFilter ? new Date(salesDateFilter) : null;
+  const selectedStockDate = stockDateFilter ? new Date(stockDateFilter) : null;
+
+  const isSameDate = (
+    dateValue: string | Date | undefined,
+    compareDate: Date,
+  ) => {
+    if (!dateValue) return false;
+    const date = new Date(dateValue);
+    return (
+      date.getFullYear() === compareDate.getFullYear() &&
+      date.getMonth() === compareDate.getMonth() &&
+      date.getDate() === compareDate.getDate()
+    );
+  };
+
+  const filteredSales = useMemo(() => {
+    if (!Array.isArray(branch?.sales)) return [];
+
+    return [...branch.sales]
+      .filter((sale: any) => {
+        const reference = (sale.reference || sale.saleNumber || "")
+          .toString()
+          .toLowerCase();
+        const customer = (sale.customerName || sale.customer?.name || "")
+          .toString()
+          .toLowerCase();
+        const createdByName = (sale.createdBy?.username || "")
+          .toString()
+          .toLowerCase();
+        const productNames = Array.isArray(sale.items)
+          ? sale.items
+              .map((item: any) =>
+                (item?.productId?.name || item?.productName || "")
+                  .toString()
+                  .toLowerCase(),
+              )
+              .join(" ")
+          : "";
+
+        const matchesSearch =
+          !salesSearchTerm ||
+          reference.includes(salesSearchTerm) ||
+          customer.includes(salesSearchTerm) ||
+          createdByName.includes(salesSearchTerm) ||
+          productNames.includes(salesSearchTerm);
+
+        const matchesDate =
+          !selectedSalesDate ||
+          isSameDate(sale.date || sale.createdAt, selectedSalesDate);
+
+        return matchesSearch && matchesDate;
+      })
+      .sort((a: any, b: any) => {
+        const aDate = new Date(a.date || a.createdAt).getTime();
+        const bDate = new Date(b.date || b.createdAt).getTime();
+        return salesSortOrder === "newest" ? bDate - aDate : aDate - bDate;
+      });
+  }, [branch?.sales, salesSearchTerm, salesSortOrder, selectedSalesDate]);
+
+  const filteredStockMovements = useMemo(() => {
+    if (!Array.isArray(branch?.stockMovements)) return [];
+
+    return branch.stockMovements.filter((movement: any) => {
+      const reference = (movement.reference || "").toString().toLowerCase();
+      const product = (
+        movement.productName ||
+        movement.productId?.name ||
+        movement.product?.name ||
+        ""
+      )
+        .toString()
+        .toLowerCase();
+      const reason = (movement.reason || "").toString().toLowerCase();
+
+      const matchesSearch =
+        !stockSearchTerm ||
+        reference.includes(stockSearchTerm) ||
+        product.includes(stockSearchTerm) ||
+        reason.includes(stockSearchTerm);
+
+      let matchesCategory = true;
+      if (stockCategoryFilter === "sales") {
+        matchesCategory = movement.reason === "Sale";
+      } else if (stockCategoryFilter === "losses") {
+        matchesCategory =
+          movement.reason !== "Sale" && movement.reason !== "Stock Transfer";
+      }
+
+      const matchesType =
+        stockTypeFilter === "all" || movement.type === stockTypeFilter;
+      const matchesDate =
+        !selectedStockDate || isSameDate(movement.createdAt, selectedStockDate);
+
+      return matchesSearch && matchesCategory && matchesType && matchesDate;
+    });
+  }, [
+    branch?.stockMovements,
+    stockSearchTerm,
+    stockCategoryFilter,
+    stockTypeFilter,
+    selectedStockDate,
+  ]);
+
   if (loading) {
     return (
       <div className="text-sm text-slate-500">Loading branch details...</div>
@@ -205,8 +329,6 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
   if (!branch) {
     return <div className="text-sm text-slate-500">Branch not found.</div>;
   }
-
-  const branchUsers = Array.isArray(branch?.users) ? branch.users : [];
 
   return (
     <div className="space-y-6">
@@ -278,9 +400,133 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
               <CardTitle>Branch sales</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Sales audits and branch-specific sales list will appear here.
-              </p>
+              <div className="space-y-4 pb-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] items-end">
+                  <Input
+                    value={salesSearchQuery}
+                    onChange={(e) => setSalesSearchQuery(e.target.value)}
+                    placeholder="Search reference, customer, created by, product"
+                    className="w-full"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant={
+                        salesSortOrder === "newest" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setSalesSortOrder("newest")}
+                    >
+                      Newest
+                    </Button>
+                    <Button
+                      variant={
+                        salesSortOrder === "oldest" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setSalesSortOrder("oldest")}
+                    >
+                      Oldest
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSalesDatePicker((value) => !value)}
+                      className="gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Date
+                    </Button>
+                  </div>
+                </div>
+                {showSalesDatePicker && (
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                    <label className="sr-only" htmlFor="salesDateFilter">
+                      Sales date filter
+                    </label>
+                    <Input
+                      id="salesDateFilter"
+                      type="date"
+                      value={salesDateFilter}
+                      onChange={(e) => setSalesDateFilter(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSalesDateFilter("")}
+                    >
+                      Clear date
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {Array.isArray(filteredSales) && filteredSales.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-slate-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Reference
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Customer
+                        </th>
+                        <th className="px-4 py-2 text-right font-medium text-gray-700 dark:text-slate-300">
+                          Amount
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300 hidden md:table-cell">
+                          Status
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                      {filteredSales.map((sale: any, index: number) => (
+                        <tr
+                          key={sale._id || sale.id || index}
+                          className="hover:bg-gray-50 dark:hover:bg-slate-700"
+                        >
+                          <td className="px-4 py-2 text-gray-900 dark:text-teal-100">
+                            {sale.reference || sale.saleNumber || "—"}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600 dark:text-slate-300">
+                            {sale.customerName ||
+                              sale.customer?.name ||
+                              "Walk-in"}
+                          </td>
+                          <td className="px-4 py-2 text-right font-semibold text-gray-900 dark:text-teal-100">
+                            {typeof sale.totalAmount === "number"
+                              ? new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: "USD",
+                                }).format(sale.totalAmount)
+                              : sale.totalAmount || "—"}
+                          </td>
+                          <td className="px-4 py-2 hidden md:table-cell">
+                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                              {sale.status || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-gray-600 dark:text-slate-400">
+                            {sale.date || sale.createdAt
+                              ? format(
+                                  new Date(sale.date || sale.createdAt),
+                                  "MMM d, yyyy",
+                                )
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No sales match the current sales filters.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -291,9 +537,167 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
               <CardTitle>Stock movement</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Branch stock movement history and losses will appear here.
-              </p>
+              <div className="space-y-4 pb-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] items-end">
+                  <Input
+                    value={stockSearchQuery}
+                    onChange={(e) => setStockSearchQuery(e.target.value)}
+                    placeholder="Search reference, product, reason"
+                    className="w-full"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant={
+                        stockCategoryFilter === "all" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setStockCategoryFilter("all")}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      variant={
+                        stockCategoryFilter === "sales" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setStockCategoryFilter("sales")}
+                    >
+                      Sales
+                    </Button>
+                    <Button
+                      variant={
+                        stockCategoryFilter === "losses" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setStockCategoryFilter("losses")}
+                    >
+                      Losses
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowStockDatePicker((value) => !value)}
+                      className="gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Date
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 items-end">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="stockTypeFilter">Type</Label>
+                    <Select
+                      value={stockTypeFilter}
+                      onValueChange={(value) =>
+                        setStockTypeFilter(
+                          value as "all" | "in" | "out" | "adjustment",
+                        )
+                      }
+                    >
+                      <SelectTrigger id="stockTypeFilter" className="w-full">
+                        <SelectValue placeholder="All types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="in">In</SelectItem>
+                        <SelectItem value="out">Out</SelectItem>
+                        <SelectItem value="adjustment">Adjustment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {showStockDatePicker && (
+                    <div className="flex flex-row gap-2 items-center">
+                      <Input
+                        id="stockDateFilter"
+                        type="date"
+                        value={stockDateFilter}
+                        onChange={(e) => setStockDateFilter(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setStockDateFilter("")}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {Array.isArray(filteredStockMovements) &&
+              filteredStockMovements.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-slate-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Reference
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Product
+                        </th>
+                        <th className="px-4 py-2 text-right font-medium text-gray-700 dark:text-slate-300">
+                          Qty
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300 hidden md:table-cell">
+                          Type
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300 hidden lg:table-cell">
+                          Reason
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-slate-300">
+                          Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                      {filteredStockMovements.map(
+                        (movement: any, index: number) => (
+                          <tr
+                            key={movement._id || movement.id || index}
+                            className="hover:bg-gray-50 dark:hover:bg-slate-700"
+                          >
+                            <td className="px-4 py-2 text-gray-900 dark:text-teal-100">
+                              {movement.reference || "—"}
+                            </td>
+                            <td className="px-4 py-2 text-gray-600 dark:text-slate-300">
+                              {movement.productName ||
+                                movement.productId?.name ||
+                                movement.product?.name ||
+                                "Unknown Product"}
+                            </td>
+                            <td className="px-4 py-2 text-right font-semibold text-gray-900 dark:text-teal-100">
+                              {movement.quantity ?? "—"}
+                            </td>
+                            <td className="px-4 py-2 hidden md:table-cell">
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                                {movement.type || "—"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 hidden lg:table-cell text-gray-600 dark:text-slate-400">
+                              {movement.reason || "—"}
+                            </td>
+                            <td className="px-4 py-2 text-gray-600 dark:text-slate-400">
+                              {movement.createdAt
+                                ? format(
+                                    new Date(movement.createdAt),
+                                    "MMM d, yyyy",
+                                  )
+                                : "—"}
+                            </td>
+                          </tr>
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No stock movements match the current filters.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -302,14 +706,17 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Branch users</CardTitle>
-              <Button
-                onClick={() => setShowCreateUserDialog(true)}
-                size="sm"
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create User
-              </Button>
+              {user?.role === "admin" ||
+                (user?.role === "manager" && (
+                  <Button
+                    onClick={() => setShowCreateUserDialog(true)}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create User
+                  </Button>
+                ))}
             </CardHeader>
             <CardContent>
               {branchUsers.length > 0 ? (

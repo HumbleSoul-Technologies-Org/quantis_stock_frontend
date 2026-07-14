@@ -19,7 +19,6 @@ import { useAuth } from "@/context/AuthContext";
 import { printService } from "@/lib/printService";
 import { useToast } from "@/components/ui/use-toast";
 import { ReceiptPreviewDialog } from "./ReceiptPreviewDialog";
-import { buildReceiptData } from "@/lib/receiptDataBuilder";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -37,12 +36,119 @@ export function SalesTable({
   onEdit,
 }: SalesTableProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, business } = useAuth();
   const { formatCurrency } = useSettings();
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
   const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
   const [selectedSaleForReceipt, setSelectedSaleForReceipt] =
     useState<Sale | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const formatBusinessPhone = () => {
+    return (
+      business?.businessPhone?.contact ||
+      (business as { phone?: string } | undefined)?.phone ||
+      undefined
+    );
+  };
+
+  const buildBatchReceiptPayload = (sale: Sale) => {
+    const items = sale.items.map((item) => {
+      const product = products.find(
+        (p) => p.id === item.productId || p._id === item.productId,
+      );
+      return {
+        name: product?.name || item.name || "Product",
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      };
+    });
+
+    return {
+      businessName: business?.businessName || "BUSINESS NAME",
+      businessAddress:
+        business?.businessAddress ||
+        (business as { address?: string } | undefined)?.address ||
+        "Address Line 1",
+      businessPhone: formatBusinessPhone(),
+      businessEmail: business?.businessEmail?.email,
+      saleNumber: sale.reference || sale.saleNumber || "---",
+      date: sale.date || sale.createdAt || new Date().toISOString(),
+      cashier:
+        typeof sale.createdBy === "string"
+          ? sale.createdBy
+          : (sale.createdBy as any)?.username || "---",
+      customerName: sale.customerName || "Walk-in",
+      paymentMethod: sale.paymentType || "cash",
+      txnId: sale.txnId,
+      notes: sale.notes,
+      items,
+    };
+  };
+
+  const handleDownloadAll = async () => {
+    if (sales.length === 0) {
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+
+      const receiptPayloads = sorted.map(buildBatchReceiptPayload);
+      const envBase =
+        typeof process !== "undefined"
+          ? process.env.NEXT_PUBLIC_API_BASE_URL
+          : undefined;
+      const serverBase = (envBase || "").replace(/\/$/, "");
+      const pdfEndpoint = serverBase
+        ? serverBase.endsWith("/api")
+          ? `${serverBase}/pdf/generate`
+          : `${serverBase}/api/pdf/generate`
+        : "/api/pdf/generate";
+
+      const response = await fetch(pdfEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          receipts: receiptPayloads,
+          filename: "sales-receipts.pdf",
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errText = await response
+          .text()
+          .catch(() => "Failed to generate PDF");
+        throw new Error(errText || "Failed to generate PDF");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "sales-receipts.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Ready",
+        description: "Your receipts PDF has been downloaded.",
+      });
+    } catch (error) {
+      console.error("Download all receipts failed:", error);
+      toast({
+        title: "Download Failed",
+        description: "Unable to generate the receipts PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const toggleExpand = (saleId: string) => {
     const newExpanded = new Set(expandedSales);
@@ -122,6 +228,17 @@ export function SalesTable({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="flex justify-end mb-4">
+          <Button
+            size="sm"
+            onClick={handleDownloadAll}
+            disabled={isDownloading || sorted.length === 0}
+            className="gap-2"
+          >
+            {isDownloading ? "Preparing PDF..." : "Download All"}
+          </Button>
+        </div>
+
         {sorted.length === 0 ? (
           <p className="text-gray-500 dark:text-slate-400 text-center py-8">
             No sales recorded
