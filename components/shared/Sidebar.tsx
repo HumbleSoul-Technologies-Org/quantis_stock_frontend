@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   MapPin,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -77,6 +78,12 @@ export function Sidebar() {
       label: "Branches",
       icon: MapPin,
       roles: ["admin", "manager", "accountant"],
+    },
+    {
+      href: "/subscriptions",
+      label: "Subscriptions",
+      icon: CreditCard,
+      roles: ["admin", "manager", "accountant", "sales"],
     },
     {
       href: "/dashboard/settings",

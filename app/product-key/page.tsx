@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ProductKeyForm } from "@/components/auth/ProductKeyForm";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,25 @@ export default function ProductKeyPage() {
             <p className="text-slate-500 dark:text-slate-400 text-sm italic">
               "Streamline your inventory, boost your business"
             </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                Compare subscription tiers
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Retail, Wholesale, and Manufacturer plans
+              </p>
+            </div>
+            <Link
+              href="/subscriptions"
+              className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+            >
+              View plans
+            </Link>
           </div>
         </div>
 
