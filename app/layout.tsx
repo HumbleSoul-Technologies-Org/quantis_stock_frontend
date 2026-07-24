@@ -9,6 +9,23 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Quantis stock - Stock Management System",
   description: "Comprehensive inventory and stock management solution",
+  icons: {
+    icon: [
+      {
+        url: "/logo 2.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/logo 2.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/logo 2.png",
+        type: "image/svg+xml",
+      },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

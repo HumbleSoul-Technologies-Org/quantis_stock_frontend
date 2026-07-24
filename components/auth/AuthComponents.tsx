@@ -15,35 +15,7 @@ export function AuthLayout({ children, logoColor = "green" }: AuthLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Logo and Branding */}
-        <div className="text-center space-y-4">
-          <div
-            className={`mx-auto w-20 h-20 bg-gradient-to-br ${logoGradient} rounded-2xl flex items-center justify-center shadow-lg`}
-          >
-            <svg
-              className="w-10 h-10 text-white"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-              Quantis stock
-            </h1>
-            <p className="text-slate-600 dark:text-slate-300 text-lg">
-              Stock Management System
-            </p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm italic">
-              "Streamline your inventory, boost your business"
-            </p>
-          </div>
-        </div>
-
-        {children}
-      </div>
+      <div className="w-full max-w-md space-y-8">{children}</div>
     </div>
   );
 }
@@ -56,9 +28,23 @@ interface AuthCardProps {
 
 export function AuthCard({ children, title, subtitle }: AuthCardProps) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+    <div className="bg-white relative dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 space-y-6">
+      <div className="text-center relative space-y-2">
+        <span
+          className={`w-full h-40 mx-auto  flex items-center justify-center`}
+        >
+          <img
+            src="/logo_light.png"
+            alt="Logo"
+            className="w-full h-96 -mb-10 object-contain block dark:hidden"
+          />
+          <img
+            src="/logo_dark.png"
+            alt="Logo"
+            className="w-full h-96 -mb-10 object-contain hidden dark:block"
+          />
+        </span>
+        <h2 className="text-2xl mx-auto font-bold text-slate-900 dark:text-white">
           {title}
         </h2>
         <p className="text-slate-600 dark:text-slate-400">{subtitle}</p>

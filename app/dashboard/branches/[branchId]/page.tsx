@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
 import { getApiErrorText, parseUserFormError } from "@/lib/errorParsers";
 import { useResourceNotifications } from "@/hooks/useResourceNotifications";
+import { buildBranchOverviewData } from "@/lib/branchOverview";
+import { useSettings } from "@/context/SettingsContext";
 
 interface BranchPageProps {
   params: Promise<{
@@ -38,6 +40,7 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
   const { branchId } = use(params);
   const { user, business } = useAuth();
   const { userCreated } = useResourceNotifications();
+  const { formatCurrency } = useSettings();
   const [branch, setBranch] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +74,8 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
   >("all");
   const [stockDateFilter, setStockDateFilter] = useState("");
   const [showStockDatePicker, setShowStockDatePicker] = useState(false);
+  const [branchActivities, setBranchActivities] = useState<any[]>([]);
+  const [branchCustomers, setBranchCustomers] = useState<any[]>([]);
 
   const validateCreateUserForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -201,12 +206,81 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
       }
     }
 
+    async function loadBranchActivities() {
+      if (!branchId || !user?.token) {
+        setBranchActivities([]);
+        return;
+      }
+
+      try {
+        const response = await apiRequest(
+          "GET",
+          `/activities/branch/${branchId}/recent`,
+          { limit: 5 },
+          user.token,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setBranchActivities(
+            Array.isArray(data?.activities) ? data.activities : [],
+          );
+        }
+      } catch (error) {
+        console.warn("Failed to fetch branch activities:", error);
+      }
+    }
+
+    async function loadBranchCustomers() {
+      if (!branchId || !user?.token) {
+        setBranchCustomers([]);
+        return;
+      }
+
+      try {
+        const response = await apiRequest(
+          "GET",
+          `/branches/${branchId}/customers`,
+          undefined,
+          user.token,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setBranchCustomers(
+            Array.isArray(data?.customers) ? data.customers : [],
+          );
+        }
+      } catch (error) {
+        console.warn("Failed to fetch branch customers:", error);
+      }
+    }
+
     if (branchId) {
       loadBranch();
+      loadBranchActivities();
+      loadBranchCustomers();
     }
   }, [branchId, user?.token]);
 
   const branchUsers = Array.isArray(branch?.users) ? branch.users : [];
+  const overviewData = useMemo(() => {
+    const fallbackActivity = (
+      branchActivities.length > 0 ? branchActivities : []
+    ).map((activity: any) => ({
+      title: activity?.title || "Branch activity",
+      detail: activity?.description || "Activity recorded",
+      timestamp: activity?.createdAt || activity?.updatedAt || "",
+    }));
+
+    return {
+      ...buildBranchOverviewData(branch, branchUsers),
+      recentActivity:
+        fallbackActivity.length > 0
+          ? fallbackActivity
+          : buildBranchOverviewData(branch, branchUsers).recentActivity,
+    };
+  }, [branch, branchUsers, branchActivities]);
 
   const salesSearchTerm = salesSearchQuery.trim().toLowerCase();
   const stockSearchTerm = stockSearchQuery.trim().toLowerCase();
@@ -332,10 +406,15 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-teal-100">
-          {branch.branchName || "Branch details"}
-        </h1>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-teal-100">
+            {branch.branchName || "Branch details"}
+          </h1>
+          <span className="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-sm font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+            Customers: {branchCustomers.length}
+          </span>
+        </div>
         <p className="text-sm text-gray-600 dark:text-slate-400">
           Review branch audit data, users, sales, stock movement, and activity.
         </p>
@@ -344,52 +423,315 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex flex-wrap gap-2 bg-gray-100 dark:bg-slate-700 p-2 rounded-2xl">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="stock">Stock Movement</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+          {/* <TabsTrigger value="activity">Activity</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="overview">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Branch overview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Branch profile
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900 dark:text-teal-100">
+                      {branch.branchName || "Branch details"}
+                    </h2>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Branch code
+                        </p>
+                        <p className="text-base font-medium text-slate-900 dark:text-slate-100">
+                          {branch.branchCode || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Status
+                        </p>
+                        <p className="text-base font-medium text-slate-900 dark:text-slate-100">
+                          {branch.status || "—"}
+                        </p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Address
+                        </p>
+                        <p className="text-base font-medium text-slate-900 dark:text-slate-100">
+                          {branch.address || "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Quick summary
+                    </p>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Sales
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {overviewData.metrics.salesCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Total value
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {formatCurrency(overviewData.metrics.totalSalesValue)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Stock movements
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {overviewData.metrics.stockMovementCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Assigned users
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {overviewData.metrics.userCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Tracked customers
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {branchCustomers.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-950/40">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Credit sales
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {overviewData.metrics.creditSalesCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-950/40">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Credit sales value
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {formatCurrency(
+                            overviewData.metrics.creditSalesValue,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 dark:bg-rose-950/40">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          Unpaid credit sales
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-teal-100">
+                          {overviewData.metrics.unpaidCreditSalesCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                  <Card className="border-slate-200 dark:border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-base">
+                        Recent activity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {overviewData.recentActivity.length > 0 ? (
+                        <ul className="space-y-3">
+                          {overviewData.recentActivity.map((item, index) => (
+                            <li
+                              key={`${item.title}-${index}`}
+                              className="rounded-lg border border-slate-200 p-3 dark:border-slate-700"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="font-medium text-slate-900 dark:text-slate-100">
+                                  {item.title}
+                                </p>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  {item.timestamp
+                                    ? format(
+                                        new Date(item.timestamp),
+                                        "MMM d, yyyy",
+                                      )
+                                    : "—"}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                {item.detail}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          No recent activity has been recorded for this branch
+                          yet.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-slate-200 dark:border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-base">Quick access</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const trigger = document.querySelector(
+                            '[data-slot="tabs-trigger"][value="customers"]',
+                          ) as HTMLButtonElement | null;
+                          trigger?.click();
+                        }}
+                      >
+                        View customers
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const trigger = document.querySelector(
+                            '[data-slot="tabs-trigger"][value="sales"]',
+                          ) as HTMLButtonElement | null;
+                          trigger?.click();
+                        }}
+                      >
+                        View sales
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const trigger = document.querySelector(
+                            '[data-slot="tabs-trigger"][value="stock"]',
+                          ) as HTMLButtonElement | null;
+                          trigger?.click();
+                        }}
+                      >
+                        View stock movement
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const trigger = document.querySelector(
+                            '[data-slot="tabs-trigger"][value="users"]',
+                          ) as HTMLButtonElement | null;
+                          trigger?.click();
+                        }}
+                      >
+                        View users
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const trigger = document.querySelector(
+                            '[data-slot="tabs-trigger"][value="activity"]',
+                          ) as HTMLButtonElement | null;
+                          trigger?.click();
+                        }}
+                      >
+                        View activity
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="customers">
           <Card>
             <CardHeader>
-              <CardTitle>Branch profile</CardTitle>
+              <CardTitle>Branch customers</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Branch name
-                  </p>
-                  <p className="text-base font-medium text-slate-900 dark:text-slate-100">
-                    {branch.branchName}
-                  </p>
+              {branchCustomers.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                    <thead>
+                      <tr className="text-left text-slate-500 dark:text-slate-400">
+                        <th className="px-3 py-2 font-medium">
+                          Customer profile
+                        </th>
+                        <th className="px-3 py-2 font-medium">
+                          Outstanding credit
+                        </th>
+                        <th className="px-3 py-2 font-medium">Sales count</th>
+                        <th className="px-3 py-2 font-medium">Amount paid</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                      {branchCustomers.map((customer: any) => (
+                        <tr key={customer._id} className="align-top">
+                          <td className="px-3 py-3">
+                            <div className="font-medium text-slate-900 dark:text-slate-100">
+                              {customer.name || "Unnamed customer"}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              {customer.phone || "—"}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {customer.email || "—"}
+                            </div>
+                            {customer.address ? (
+                              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {customer.address}
+                              </div>
+                            ) : null}
+                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              Last purchase:{" "}
+                              {customer.lastPurchaseAt
+                                ? format(
+                                    new Date(customer.lastPurchaseAt),
+                                    "MMM d, yyyy",
+                                  )
+                                : "—"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                            {formatCurrency(customer.outstandingBalance || 0)}
+                          </td>
+                          <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                            {customer.totalPurchases || 0}
+                          </td>
+                          <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
+                            {formatCurrency(customer.totalPaid || 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Branch code
-                  </p>
-                  <p className="text-base font-medium text-slate-900 dark:text-slate-100">
-                    {branch.branchCode || "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Status
-                  </p>
-                  <p className="text-base font-medium text-slate-900 dark:text-slate-100">
-                    {branch.status}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Address
-                  </p>
-                  <p className="text-base font-medium text-slate-900 dark:text-slate-100">
-                    {branch.address || "—"}
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No branch customers have been traced yet.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
