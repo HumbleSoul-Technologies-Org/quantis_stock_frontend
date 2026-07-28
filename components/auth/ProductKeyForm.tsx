@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
@@ -15,7 +15,11 @@ import {
   ProductKeyFormData,
 } from "@/lib/validations/authSchemas";
 
-export function ProductKeyForm() {
+interface ProductKeyFormProps {
+  defaultProductKey?: string;
+}
+
+export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [restartLoading, setRestartLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -30,9 +34,19 @@ export function ProductKeyForm() {
     handleSubmit,
     formState: { errors },
     setError,
+    setValue,
   } = useForm<ProductKeyFormData>({
     resolver: zodResolver(productKeySchema),
+    defaultValues: {
+      productKey: defaultProductKey ?? "",
+    },
   });
+
+  useEffect(() => {
+    if (defaultProductKey) {
+      setValue("productKey", defaultProductKey);
+    }
+  }, [defaultProductKey, setValue]);
 
   const onSubmit = async (data: ProductKeyFormData) => {
     setSuccess("");
@@ -165,6 +179,7 @@ export function ProductKeyForm() {
           <AuthInput
             label="Product Key"
             type="text"
+            defaultValue={defaultProductKey}
             {...register("productKey")}
             placeholder="Enter your 16-character product key"
             error={errors.productKey?.message}

@@ -111,6 +111,7 @@ interface AuthInputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   value?: string;
+  defaultValue?: string;
   ref?: React.Ref<HTMLInputElement>;
   name?: string;
 }
@@ -127,6 +128,7 @@ export function AuthInput({
   onChange,
   onBlur,
   value,
+  defaultValue,
   ref,
   name,
 }: AuthInputProps) {
@@ -144,6 +146,7 @@ export function AuthInput({
         <input
           type={type}
           value={value}
+          defaultValue={defaultValue}
           onChange={onChange}
           onBlur={onBlur}
           ref={ref}

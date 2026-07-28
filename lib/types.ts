@@ -144,6 +144,7 @@ export interface User {
   token?: string; // For session management
   trial_expires?: string; // ISO date string when trial expires
   trial_days?: number; // Configured trial duration from server
+  productKey?: string; // Product key stored after activation
   product_key_verified?: boolean; // Whether product key has been verified
 }
 

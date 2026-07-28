@@ -40,6 +40,10 @@ export default function RootLayout({
           src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.2/qz-tray.js"
           strategy="beforeInteractive"
         />
+        <Script
+          src="https://js.paystack.co/v2/inline.js"
+          strategy="afterInteractive"
+        />
         <EncryptionErrorBoundary>
           <Providers>
             {children}

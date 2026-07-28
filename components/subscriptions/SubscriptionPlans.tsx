@@ -19,7 +19,10 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "../ui/button";
+import { useAuth } from "@/context/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
 
 const plans = [
   {
@@ -165,17 +168,142 @@ function FeatureCheck({ label }: { label: string }) {
 
 export function SubscriptionPlans() {
   const router = useRouter();
+  const { user, business, loginWithApiData } = useAuth();
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const isProcessing = Boolean(processingPlan);
 
-  const handleSelectPlan = (planId: string) => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("selectedSubscriptionPlan", planId);
+  const handleSelectPlan = async (planId: string) => {
+    setPaymentError(null);
+    if (!user?.token) {
+      setPaymentError("Please log in before continuing with the checkout.");
+      return;
     }
 
-    router.push(`/product-key?plan=${planId}`);
+    const plan = plans.find((item) => item.id === planId);
+    if (!plan) {
+      setPaymentError("Selected plan is invalid.");
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      setPaymentError("Unable to perform checkout in the current environment.");
+      return;
+    }
+
+    if (!(window as any).PaystackPop) {
+      setPaymentError(
+        "Paystack is not yet loaded. Please refresh the page and try again.",
+      );
+      return;
+    }
+
+    setProcessingPlan(planId);
+
+    try {
+      const response = await apiRequest(
+        "POST",
+        "/payments/paystack/init",
+        { planId },
+        user.token,
+      );
+
+      if (!response.ok) {
+        const errorMessage =
+          response.data?.message || "Failed to initialize payment.";
+        throw new Error(errorMessage);
+      }
+
+      const responseData = response.data as any;
+      const accessCode = responseData.data?.accessCode;
+      const reference = responseData.data?.reference;
+
+      if (!accessCode || !reference) {
+        throw new Error("Unable to initialize Paystack checkout.");
+      }
+
+      const verifyTransaction = async () => {
+        const verifyResponse = await apiRequest(
+          "POST",
+          "/payments/paystack/verify",
+          { reference },
+          user.token,
+        );
+
+        if (!verifyResponse.ok) {
+          const errorMessage =
+            verifyResponse.data?.message || "Payment verification failed.";
+          throw new Error(errorMessage);
+        }
+
+        const verificationData = verifyResponse.data?.data;
+        const activationKey = verificationData?.activationKey;
+
+        if (!activationKey) {
+          throw new Error(
+            "Activation key was not returned from the verification response.",
+          );
+        }
+
+        const updatedUser = {
+          ...user,
+          product_key_verified: true,
+          productKey: activationKey,
+          business: {
+            ...(business || {}),
+            activated: true,
+            activationKey,
+          },
+        };
+
+        loginWithApiData(updatedUser as any);
+        router.push(
+          `/product-key?prefill=${encodeURIComponent(activationKey)}`,
+        );
+      };
+
+      const popup = new (window as any).PaystackPop();
+      popup.resumeTransaction(accessCode, {
+        onSuccess: async () => {
+          try {
+            await verifyTransaction();
+          } catch (verifyError) {
+            setPaymentError(
+              verifyError instanceof Error
+                ? verifyError.message
+                : "Payment verification failed.",
+            );
+          } finally {
+            setProcessingPlan(null);
+          }
+        },
+        onCancel: () => {
+          setPaymentError(
+            "Payment was cancelled. Please try again if you want to continue.",
+          );
+          setProcessingPlan(null);
+        },
+        onError: (paystackError: unknown) => {
+          const message =
+            paystackError instanceof Error
+              ? paystackError.message
+              : "An error occurred while processing the payment.";
+          setPaymentError(message);
+          setProcessingPlan(null);
+        },
+      });
+    } catch (error) {
+      setPaymentError(
+        error instanceof Error
+          ? error.message
+          : "Payment initialization failed.",
+      );
+      setProcessingPlan(null);
+    }
   };
 
   return (
-    <div className="min-h-screen relative bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_40%),linear-gradient(135deg,_#f8fafc_0%,_#eef2ff_100%)] px-4 py-12 text-slate-900 dark:bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.16),_transparent_35%),linear-gradient(135deg,_#020617_0%,_#111827_100%)] dark:text-slate-50 sm:px-6 lg:px-8">
+    <div className="min-h-screen relative bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),transparent_40%),linear-gradient(135deg,#f8fafc_0%,#eef2ff_100%)] px-4 py-12 text-slate-900 dark:bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.16),transparent_35%),linear-gradient(135deg,#020617_0%,#111827_100%)] dark:text-slate-50 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-10">
         <header className="mx-auto max-w-3xl text-center">
           <div className="mb-4 inline-flex items-center rounded-full border border-emerald-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-emerald-700 shadow-sm backdrop-blur dark:border-emerald-800 dark:bg-slate-900/70 dark:text-emerald-300">
@@ -200,6 +328,12 @@ export function SubscriptionPlans() {
           </p>
         </header>
 
+        {paymentError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+            {paymentError}
+          </div>
+        ) : null}
+
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => {
             const Icon = plan.icon;
@@ -214,7 +348,7 @@ export function SubscriptionPlans() {
               >
                 <div className="flex items-center justify-between">
                   <div
-                    className={`rounded-2xl bg-gradient-to-br ${plan.accent} p-3 text-white`}
+                    className={`rounded-2xl bg-linear-to-br ${plan.accent} p-3 text-white`}
                   >
                     <Icon className="h-6 w-6" />
                   </div>
@@ -247,13 +381,16 @@ export function SubscriptionPlans() {
                 <button
                   type="button"
                   onClick={() => handleSelectPlan(plan.id)}
+                  disabled={isProcessing}
                   className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${
                     plan.recommended
                       ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500"
                       : "bg-emerald-600 text-white hover:bg-emerald-500"
-                  }`}
+                  } ${isProcessing ? "cursor-not-allowed opacity-70" : ""}`}
                 >
-                  Choose {plan.name}
+                  {processingPlan === plan.id
+                    ? "Processing…"
+                    : `Choose ${plan.name}`}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
               </article>

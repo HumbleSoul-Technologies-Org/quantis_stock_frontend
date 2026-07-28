@@ -3,7 +3,26 @@ import { ProductKeyForm } from "@/components/auth/ProductKeyForm";
 
 export const dynamic = "force-dynamic";
 
-export default function ProductKeyPage() {
+interface ProductKeyPageProps {
+  searchParams?:
+    | Promise<{
+        prefill?: string | string[];
+      }>
+    | {
+        prefill?: string | string[];
+      };
+}
+
+export default async function ProductKeyPage({
+  searchParams,
+}: ProductKeyPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const prefillKey = Array.isArray(resolvedSearchParams?.prefill)
+    ? resolvedSearchParams.prefill[0]
+    : resolvedSearchParams?.prefill;
+
+  console.log("[ProductKeyPage] Prefill key:", prefillKey);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
@@ -50,7 +69,7 @@ export default function ProductKeyPage() {
           </div>
         </div>
 
-        <ProductKeyForm />
+        <ProductKeyForm defaultProductKey={prefillKey} />
       </div>
     </div>
   );
