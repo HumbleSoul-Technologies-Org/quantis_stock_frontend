@@ -1,6 +1,7 @@
 // Auth Types
 export type UserRole = "admin" | "manager" | "sales" | "accountant";
 export type BusinessType = "retail" | "other" | "wholesaler" | "manufacturer";
+export type SubscriptionPlan = "retail" | "wholesale" | "manufacturer";
 export type RetailSubType =
   | "electronics"
   | "clothing"
@@ -122,6 +123,7 @@ export interface Business {
   setupCompletedAt: string;
   settings: BusinessSettings; // New: embedded business settings
   user?: any; // Array of user IDs associated with this business
+  currentPlan?: SubscriptionPlan; // Paid subscription tier
   activated?: boolean; // New: whether the business is activated via product key
   activationKey?: string; // New: the product key used for activation
   isDemoActivation?: boolean; // New: demo activation flag

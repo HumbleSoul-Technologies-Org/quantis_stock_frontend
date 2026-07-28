@@ -24,6 +24,16 @@ import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 
+const PLAN_RANK: Record<string, number> = {
+  retail: 1,
+  wholesale: 2,
+  manufacturer: 3,
+};
+
+function getPlanRank(planId: string) {
+  return PLAN_RANK[planId] || 0;
+}
+
 const plans = [
   {
     id: "retail",
@@ -172,6 +182,8 @@ export function SubscriptionPlans() {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const isProcessing = Boolean(processingPlan);
+  const currentPlan = business?.currentPlan as string | undefined;
+  const currentPlanRank = currentPlan ? getPlanRank(currentPlan) : 0;
 
   const handleSelectPlan = async (planId: string) => {
     setPaymentError(null);
@@ -253,6 +265,7 @@ export function SubscriptionPlans() {
             ...(business || {}),
             activated: true,
             activationKey,
+            currentPlan: planId,
           },
         };
 
@@ -378,21 +391,31 @@ export function SubscriptionPlans() {
                   ))}
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan(plan.id)}
-                  disabled={isProcessing}
-                  className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${
-                    plan.recommended
-                      ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500"
-                      : "bg-emerald-600 text-white hover:bg-emerald-500"
-                  } ${isProcessing ? "cursor-not-allowed opacity-70" : ""}`}
-                >
-                  {processingPlan === plan.id
-                    ? "Processing…"
-                    : `Choose ${plan.name}`}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
+                {plan.id === currentPlan ? (
+                  <div className="mt-8 inline-flex w-full items-center justify-center rounded-2xl border border-emerald-500 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-400 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    Current plan
+                  </div>
+                ) : getPlanRank(plan.id) <= currentPlanRank ? (
+                  <div className="mt-8 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
+                    Already subscribed
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPlan(plan.id)}
+                    disabled={isProcessing}
+                    className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${
+                      plan.recommended
+                        ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500"
+                        : "bg-emerald-600 text-white hover:bg-emerald-500"
+                    } ${isProcessing ? "cursor-not-allowed opacity-70" : ""}`}
+                  >
+                    {processingPlan === plan.id
+                      ? "Processing…"
+                      : `Choose ${plan.name}`}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </button>
+                )}
               </article>
             );
           })}

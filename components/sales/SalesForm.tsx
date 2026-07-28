@@ -57,7 +57,11 @@ export function SalesForm({
   const { customers, fetchCustomers } = useCredit();
   const { sales } = useData();
 
-  const isWholesaler = business?.businessType === "wholesaler";
+  const effectivePlan = (business?.currentPlan || business?.businessType) as
+    | string
+    | undefined;
+  const isWholesaler =
+    effectivePlan === "wholesale" || effectivePlan === "wholesaler";
   const allowCreditSales = isWholesaler || Boolean(sale?.isCreditSale);
   const isEditing = !!sale; // Determine if we're in edit mode
 
@@ -485,7 +489,8 @@ export function SalesForm({
           </p>
         </div>
 
-        {business?.businessType !== "retail" && (
+        {((business?.currentPlan && business.currentPlan !== "retail") ||
+          sale?.isCreditSale) && (
           <div className="md:col-span-2">
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-2">

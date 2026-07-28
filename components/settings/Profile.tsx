@@ -31,6 +31,29 @@ export function Profile() {
     businessPhone: business?.businessPhone?.contact || "",
     businessAddress: business?.businessAddress || "",
   });
+
+  const PLAN_RANK: Record<string, number> = {
+    retail: 1,
+    other: 1,
+    wholesaler: 2,
+    wholesale: 2,
+    manufacturer: 3,
+  };
+
+  const currentPlan = business?.currentPlan as string | undefined;
+  const effectivePlan = currentPlan || business?.businessType;
+  const effectivePlanRank = effectivePlan ? PLAN_RANK[effectivePlan] : 0;
+  const canEditProfile = user?.role === "admin";
+  const canEditBusinessType =
+    canEditProfile && !currentPlan && !business?.activated;
+  const tierOptions = [
+    { value: "retail", label: "Retail" },
+    { value: "wholesaler", label: "Wholesaler" },
+    { value: "manufacturer", label: "Manufacturer" },
+    { value: "other", label: "Other" },
+  ];
+  const isTierAvailable = (tier: string) =>
+    !effectivePlan || PLAN_RANK[tier] <= effectivePlanRank;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleEditSave = async () => {
@@ -222,7 +245,11 @@ export function Profile() {
           <div className="pt-4 border-t border-gray-200 dark:border-teal-700">
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  disabled={!canEditProfile}
+                >
                   <Edit2 className="w-4 h-4" />
                   Edit Business Profile
                 </Button>
@@ -269,13 +296,35 @@ export function Profile() {
                             | "manufacturer",
                         })
                       }
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50"
+                      disabled={!canEditBusinessType}
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-900 dark:text-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="retail">Retail</option>
-                      <option value="wholesaler">Wholesaler</option>
-                      <option value="manufacturer">Manufacturer</option>
-                      <option value="other">Other</option>
+                      {tierOptions.map((option) => {
+                        const optionAvailable = isTierAvailable(option.value);
+                        return (
+                          <option
+                            key={option.value}
+                            value={option.value}
+                            disabled={!optionAvailable}
+                          >
+                            {option.label}
+                            {!optionAvailable ? " — Upgrade" : ""}
+                          </option>
+                        );
+                      })}
                     </select>
+                    {currentPlan && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Business type changes are locked to your current paid
+                        tier: {currentPlan}. Upgrade on the subscription page to
+                        change tiers.
+                      </p>
+                    )}
+                    {!canEditProfile && (
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                        Only admins can edit business profile details.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="businessEmail">Business Email</Label>
