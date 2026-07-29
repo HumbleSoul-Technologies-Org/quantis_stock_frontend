@@ -241,8 +241,28 @@ const getActiveMonthForData = <T>(
     return { month: currentMonth, year: currentYear };
   }
 
-  // Fall back to previous month
-  return { month: prevMonth, year: prevYear };
+  // Fall back to previous month if it has any data
+  const previousMonthHasData = items.some((item) => {
+    const itemDate = getDate(item);
+    if (!itemDate) return false;
+    const parsedDate = parseDateValue(itemDate);
+    return (
+      parsedDate.getMonth() === prevMonth &&
+      parsedDate.getFullYear() === prevYear
+    );
+  });
+
+  if (previousMonthHasData) {
+    return { month: prevMonth, year: prevYear };
+  }
+
+  // Otherwise choose the latest available month in the data set
+  const latestDate = getLatestDateValue(items, getDate);
+  if (latestDate) {
+    return { month: latestDate.getMonth(), year: latestDate.getFullYear() };
+  }
+
+  return { month: currentMonth, year: currentYear };
 };
 
 // Helper to get last day of a specific month
@@ -267,11 +287,6 @@ export const getDailyRevenueTrend = (
 
   // Use the last day of the active month as the end date for the trend
   const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-  const latestDate =
-    Math.min(monthEndDate.getTime(), new Date().getTime()) >
-    monthEndDate.getTime()
-      ? monthEndDate
-      : new Date();
 
   // Filter sales to only the active month
   const monthSales = sales.filter((sale) => {
@@ -284,9 +299,22 @@ export const getDailyRevenueTrend = (
     );
   });
 
+  const latestMonthDate = getLatestDateValue(
+    monthSales,
+    (sale) => sale.date || sale.createdAt,
+  );
+
+  const latestDate = latestMonthDate
+    ? latestMonthDate.getTime() <= endDate.getTime()
+      ? latestMonthDate
+      : endDate
+    : monthEndDate.getTime() <= endDate.getTime()
+      ? monthEndDate
+      : endDate;
+
   const dateKeys = getRecentDateKeys(days, latestDate);
 
-  return dateKeys.map((key) =>
+  const result = dateKeys.map((key) =>
     monthSales
       .filter((sale) => {
         const dateValue = sale.date || sale.createdAt;
@@ -294,6 +322,8 @@ export const getDailyRevenueTrend = (
       })
       .reduce((sum, sale) => sum + sale.totalAmount, 0),
   );
+
+  return result;
 };
 
 export const getDailySalesCountTrend = (
@@ -309,11 +339,6 @@ export const getDailySalesCountTrend = (
 
   // Use the last day of the active month as the end date for the trend
   const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-  const latestDate =
-    Math.min(monthEndDate.getTime(), new Date().getTime()) >
-    monthEndDate.getTime()
-      ? monthEndDate
-      : new Date();
 
   // Filter sales to only the active month
   const monthSales = sales.filter((sale) => {
@@ -325,6 +350,19 @@ export const getDailySalesCountTrend = (
       saleDate.getFullYear() === activeMonth.year
     );
   });
+
+  const latestMonthDate = getLatestDateValue(
+    monthSales,
+    (sale) => sale.date || sale.createdAt,
+  );
+
+  const latestDate = latestMonthDate
+    ? latestMonthDate.getTime() <= endDate.getTime()
+      ? latestMonthDate
+      : endDate
+    : monthEndDate.getTime() <= endDate.getTime()
+      ? monthEndDate
+      : endDate;
 
   const dateKeys = getRecentDateKeys(days, latestDate);
 
@@ -371,13 +409,6 @@ export const getDailyLossTrend = (
 
   // Use the last day of the active month as the end date
   const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-  const latestDate =
-    Math.min(monthEndDate.getTime(), new Date().getTime()) >
-    monthEndDate.getTime()
-      ? monthEndDate
-      : new Date();
-
-  const dateKeys = getRecentDateKeys(days, latestDate);
 
   // Filter to only the active month
   const monthMovements = stockMovements.filter((movement) => {
@@ -397,6 +428,31 @@ export const getDailyLossTrend = (
       returnDate.getFullYear() === activeMonth.year
     );
   });
+
+  const latestMovementDate = getLatestDateValue(
+    monthMovements,
+    (movement) => movement.createdAt,
+  );
+  const latestReturnDate = getLatestDateValue(
+    monthReturns,
+    (returnItem) => returnItem.createdAt,
+  );
+
+  const latestMonthDate = [latestMovementDate, latestReturnDate]
+    .filter((item): item is Date => item !== undefined)
+    .reduce<Date | undefined>((latest, date) => {
+      return latest ? (date > latest ? date : latest) : date;
+    }, undefined);
+
+  const latestDate = latestMonthDate
+    ? latestMonthDate.getTime() <= endDate.getTime()
+      ? latestMonthDate
+      : endDate
+    : monthEndDate.getTime() <= endDate.getTime()
+      ? monthEndDate
+      : endDate;
+
+  const dateKeys = getRecentDateKeys(days, latestDate);
 
   return dateKeys.map((key) => {
     const movementLoss = monthMovements
@@ -441,11 +497,25 @@ export const getDailyInventoryValueTrend = (
 
   // Use the last day of the active month as the end date
   const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-  const latestDate =
-    Math.min(monthEndDate.getTime(), new Date().getTime()) >
-    monthEndDate.getTime()
+  const latestMovementDate = getLatestDateValue(
+    stockMovements.filter((movement) => {
+      if (!movement.createdAt) return false;
+      const movementDate = parseDateValue(movement.createdAt);
+      return (
+        movementDate.getMonth() === activeMonth.month &&
+        movementDate.getFullYear() === activeMonth.year
+      );
+    }),
+    (movement) => movement.createdAt,
+  );
+
+  const latestDate = latestMovementDate
+    ? latestMovementDate.getTime() <= endDate.getTime()
+      ? latestMovementDate
+      : endDate
+    : monthEndDate.getTime() <= endDate.getTime()
       ? monthEndDate
-      : new Date();
+      : endDate;
 
   const dateKeys = getRecentDateKeys(days, latestDate);
   const currentInventoryValue = products.reduce(

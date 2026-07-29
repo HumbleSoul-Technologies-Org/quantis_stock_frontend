@@ -98,6 +98,9 @@ function KPICard({
       tooltip: {
         enabled: false,
       },
+      filler: {
+        propagate: true,
+      },
     },
     layout: {
       padding: 0,
@@ -105,18 +108,17 @@ function KPICard({
     scales: {
       x: {
         display: false,
+        type: "category" as const,
       },
       y: {
         display: false,
+        type: "linear" as const,
+        beginAtZero: false,
       },
     },
     elements: {
       point: {
         radius: 0,
-      },
-      line: {
-        borderWidth: 3,
-        borderColor: sparklineColor,
       },
     },
   };
@@ -127,9 +129,15 @@ function KPICard({
       {
         data: sparklineData || [],
         fill: true,
-        tension: 0.35,
+        tension: 0.4,
         backgroundColor: sparklineFill,
         borderColor: sparklineColor,
+        borderWidth: 3,
+        pointRadius: 0,
+        pointBorderWidth: 0,
+        segment: {
+          borderColor: sparklineColor,
+        },
       },
     ],
   };
