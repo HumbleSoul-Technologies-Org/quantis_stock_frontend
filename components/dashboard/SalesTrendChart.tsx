@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Line } from "react-chartjs-2";
-import { commonOptions, processSalesTrendData } from "@/lib/chartUtils";
+import { getCommonOptions, processSalesTrendData } from "@/lib/chartUtils";
 import {
   CalendarDays,
   TrendingUp,
@@ -14,7 +14,8 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { ThemeContext } from "@/components/theme-provider";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -25,6 +26,9 @@ export function SalesTrendChart() {
   const { sales } = useData();
   const { formatCurrency, getCurrencySymbol } = useSettings();
   const currencySymbol = getCurrencySymbol();
+  const { theme } = useContext(ThemeContext) || { theme: "light" };
+  const commonOptions = getCommonOptions(theme);
+  const axisLabelColor = commonOptions.color;
 
   // Process real sales data
   const salesData = processSalesTrendData(sales, timePeriod);
@@ -70,7 +74,7 @@ export function SalesTrendChart() {
         fill: true,
         tension: 0.4,
         pointBackgroundColor: "#14b8a6",
-        pointBorderColor: "#fff",
+        pointBorderColor: theme === "dark" ? "#fff" : "#000000",
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
@@ -99,7 +103,7 @@ export function SalesTrendChart() {
         fill: true,
         tension: 0.4,
         pointBackgroundColor: "#3b82f6",
-        pointBorderColor: "#fff",
+        pointBorderColor: theme === "dark" ? "#fff" : "#000000",
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
@@ -112,7 +116,7 @@ export function SalesTrendChart() {
   };
 
   const chartOptions = {
-    ...commonOptions,
+    ...getCommonOptions(theme),
     animation: {
       duration: 1200,
       easing: "easeOutQuart" as const,
@@ -123,12 +127,23 @@ export function SalesTrendChart() {
     },
     plugins: {
       ...commonOptions.plugins,
+      legend: {
+        ...commonOptions.plugins.legend,
+        labels: {
+          ...commonOptions.plugins.legend.labels,
+          color: axisLabelColor,
+        },
+      },
       tooltip: {
         ...commonOptions.plugins.tooltip,
-        backgroundColor: "var(--card)",
-        titleColor: "var(--foreground)",
-        bodyColor: "var(--foreground)",
-        borderColor: "var(--border)",
+        backgroundColor:
+          theme === "dark"
+            ? "rgba(15, 23, 42, 0.95)"
+            : commonOptions.plugins.tooltip.backgroundColor,
+        titleColor: axisLabelColor,
+        bodyColor: axisLabelColor,
+        labelTextColor: axisLabelColor,
+        borderColor: commonOptions.plugins.tooltip.borderColor,
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: true,
@@ -148,7 +163,7 @@ export function SalesTrendChart() {
     },
     scales: {
       x: {
-        ...commonOptions.scales.x,
+        ...getCommonOptions(theme).scales.x,
         title: {
           display: true,
           text:
@@ -157,17 +172,18 @@ export function SalesTrendChart() {
               : timePeriod === "weekly"
                 ? "Day"
                 : "Time",
-          color: "var(--foreground)",
+          color: axisLabelColor,
         },
       },
       y: {
-        ...commonOptions.scales.y,
+        ...getCommonOptions(theme).scales.y,
         title: {
           display: true,
           text: "Sales Count",
-          color: "var(--foreground)",
+          color: axisLabelColor,
         },
         ticks: {
+          color: axisLabelColor,
           callback: function (value: any) {
             return value.toLocaleString();
           },
@@ -180,13 +196,13 @@ export function SalesTrendChart() {
         title: {
           display: true,
           text: `Revenue (${currencySymbol})`,
-          color: "var(--foreground)",
+          color: axisLabelColor,
         },
         grid: {
           drawOnChartArea: false,
         },
         ticks: {
-          color: "var(--foreground)",
+          color: axisLabelColor,
           callback: function (value: any) {
             const numericValue = Number(value);
             if (numericValue >= 1_000_000) {
@@ -286,7 +302,7 @@ export function SalesTrendChart() {
         </div>
 
         <div className="h-64 md:h-80 lg:h-96">
-          <Line data={chartData} options={chartOptions} />
+          <Line key={theme} data={chartData} options={chartOptions} redraw />
         </div>
 
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">

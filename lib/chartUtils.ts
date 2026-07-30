@@ -62,48 +62,56 @@ export const chartColors = [
   "var(--chart-5)",
 ];
 
-// Common chart options
-export const commonOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  color: "var(--foreground)",
-  plugins: {
-    legend: {
-      position: "top" as const,
-      labels: {
-        usePointStyle: true,
-        padding: 20,
-        color: "var(--foreground)",
+// Common chart options builder
+export const getCommonOptions = (theme: "light" | "dark" = "light") => {
+  const selectedTheme = chartTheme[theme] ?? chartTheme.light;
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    color: selectedTheme.color,
+    plugins: {
+      legend: {
+        position: "top" as const,
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          color: selectedTheme.color,
+        },
+      },
+      tooltip: {
+        backgroundColor:
+          theme === "dark"
+            ? "rgba(15, 23, 42, 0.95)"
+            : selectedTheme.backgroundColor,
+        titleColor: selectedTheme.color,
+        bodyColor: selectedTheme.color,
+        labelTextColor: selectedTheme.color,
+        borderColor: selectedTheme.borderColor,
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
       },
     },
-    tooltip: {
-      backgroundColor: "var(--card)",
-      titleColor: "var(--foreground)",
-      bodyColor: "var(--foreground)",
-      borderColor: "var(--border)",
-      borderWidth: 1,
-      cornerRadius: 8,
-      padding: 12,
-    },
-  },
-  scales: {
-    x: {
-      grid: {
-        display: false,
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: selectedTheme.tick.color,
+        },
       },
-      ticks: {
-        color: "var(--foreground)",
-      },
-    },
-    y: {
-      grid: {
-        color: "var(--border)",
-      },
-      ticks: {
-        color: "var(--foreground)",
+      y: {
+        grid: {
+          color: selectedTheme.grid.color,
+        },
+        ticks: {
+          color: selectedTheme.tick.color,
+        },
       },
     },
-  },
+  };
 };
 
 // Utility functions for data transformation
@@ -279,51 +287,16 @@ export const getDailyRevenueTrend = (
   days = 7,
   endDate = new Date(),
 ): number[] => {
-  // Use the month that actually has data
-  const activeMonth = getActiveMonthForData(
-    sales,
-    (sale) => sale.date || sale.createdAt,
-  );
+  const dateKeys = getRecentDateKeys(days, endDate);
 
-  // Use the last day of the active month as the end date for the trend
-  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-
-  // Filter sales to only the active month
-  const monthSales = sales.filter((sale) => {
-    const dateValue = sale.date || sale.createdAt;
-    if (!dateValue) return false;
-    const saleDate = parseDateValue(dateValue);
-    return (
-      saleDate.getMonth() === activeMonth.month &&
-      saleDate.getFullYear() === activeMonth.year
-    );
-  });
-
-  const latestMonthDate = getLatestDateValue(
-    monthSales,
-    (sale) => sale.date || sale.createdAt,
-  );
-
-  const latestDate = latestMonthDate
-    ? latestMonthDate.getTime() <= endDate.getTime()
-      ? latestMonthDate
-      : endDate
-    : monthEndDate.getTime() <= endDate.getTime()
-      ? monthEndDate
-      : endDate;
-
-  const dateKeys = getRecentDateKeys(days, latestDate);
-
-  const result = dateKeys.map((key) =>
-    monthSales
+  return dateKeys.map((key) =>
+    sales
       .filter((sale) => {
         const dateValue = sale.date || sale.createdAt;
         return dateValue && getDateKey(dateValue) === key;
       })
       .reduce((sum, sale) => sum + sale.totalAmount, 0),
   );
-
-  return result;
 };
 
 export const getDailySalesCountTrend = (
@@ -331,44 +304,11 @@ export const getDailySalesCountTrend = (
   days = 7,
   endDate = new Date(),
 ): number[] => {
-  // Use the month that actually has data
-  const activeMonth = getActiveMonthForData(
-    sales,
-    (sale) => sale.date || sale.createdAt,
-  );
-
-  // Use the last day of the active month as the end date for the trend
-  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-
-  // Filter sales to only the active month
-  const monthSales = sales.filter((sale) => {
-    const dateValue = sale.date || sale.createdAt;
-    if (!dateValue) return false;
-    const saleDate = parseDateValue(dateValue);
-    return (
-      saleDate.getMonth() === activeMonth.month &&
-      saleDate.getFullYear() === activeMonth.year
-    );
-  });
-
-  const latestMonthDate = getLatestDateValue(
-    monthSales,
-    (sale) => sale.date || sale.createdAt,
-  );
-
-  const latestDate = latestMonthDate
-    ? latestMonthDate.getTime() <= endDate.getTime()
-      ? latestMonthDate
-      : endDate
-    : monthEndDate.getTime() <= endDate.getTime()
-      ? monthEndDate
-      : endDate;
-
-  const dateKeys = getRecentDateKeys(days, latestDate);
+  const dateKeys = getRecentDateKeys(days, endDate);
 
   return dateKeys.map(
     (key) =>
-      monthSales.filter((sale) => {
+      sales.filter((sale) => {
         const dateValue = sale.date || sale.createdAt;
         return dateValue && getDateKey(dateValue) === key;
       }).length,
@@ -382,101 +322,47 @@ export const getDailyLossTrend = (
   days = 7,
   endDate = new Date(),
 ): number[] => {
-  // Use the month that actually has data (check both movements and returns)
-  const movementActiveMonth = getActiveMonthForData(
-    stockMovements,
-    (movement) => movement.createdAt,
-  );
-  const returnActiveMonth = getActiveMonthForData(
-    saleReturns,
-    (returnItem) => returnItem.createdAt,
-  );
+  const dateKeys = getRecentDateKeys(days, endDate);
 
-  // Prefer the most recent month
-  let activeMonth = movementActiveMonth;
-  const movementMonthTime = new Date(
-    movementActiveMonth.year,
-    movementActiveMonth.month,
-  ).getTime();
-  const returnMonthTime = new Date(
-    returnActiveMonth.year,
-    returnActiveMonth.month,
-  ).getTime();
-
-  if (returnMonthTime > movementMonthTime) {
-    activeMonth = returnActiveMonth;
-  }
-
-  // Use the last day of the active month as the end date
-  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-
-  // Filter to only the active month
-  const monthMovements = stockMovements.filter((movement) => {
-    if (!movement.createdAt) return false;
-    const movementDate = parseDateValue(movement.createdAt);
-    return (
-      movementDate.getMonth() === activeMonth.month &&
-      movementDate.getFullYear() === activeMonth.year
-    );
+  const relevantMovements = stockMovements.filter((movement) => {
+    const createdAt = movement.createdAt;
+    if (!createdAt) return false;
+    return dateKeys.includes(getDateKey(createdAt));
   });
 
-  const monthReturns = saleReturns.filter((returnItem) => {
-    if (!returnItem.createdAt) return false;
-    const returnDate = parseDateValue(returnItem.createdAt);
-    return (
-      returnDate.getMonth() === activeMonth.month &&
-      returnDate.getFullYear() === activeMonth.year
-    );
+  const relevantReturns = saleReturns.filter((returnItem) => {
+    const createdAt = returnItem.createdAt;
+    if (!createdAt) return false;
+    return dateKeys.includes(getDateKey(createdAt));
   });
-
-  const latestMovementDate = getLatestDateValue(
-    monthMovements,
-    (movement) => movement.createdAt,
-  );
-  const latestReturnDate = getLatestDateValue(
-    monthReturns,
-    (returnItem) => returnItem.createdAt,
-  );
-
-  const latestMonthDate = [latestMovementDate, latestReturnDate]
-    .filter((item): item is Date => item !== undefined)
-    .reduce<Date | undefined>((latest, date) => {
-      return latest ? (date > latest ? date : latest) : date;
-    }, undefined);
-
-  const latestDate = latestMonthDate
-    ? latestMonthDate.getTime() <= endDate.getTime()
-      ? latestMonthDate
-      : endDate
-    : monthEndDate.getTime() <= endDate.getTime()
-      ? monthEndDate
-      : endDate;
-
-  const dateKeys = getRecentDateKeys(days, latestDate);
 
   return dateKeys.map((key) => {
-    const movementLoss = monthMovements
-      .filter(
-        (movement) =>
-          movement.createdAt &&
-          getDateKey(movement.createdAt) === key &&
+    const movementLoss = relevantMovements
+      .filter((movement) => {
+        const createdAt = movement.createdAt;
+        return (
+          !!createdAt &&
+          getDateKey(createdAt) === key &&
           movement.type === "out" &&
           ["damage", "expiry", "theft"].some((reason) =>
             movement.reason?.toLowerCase().includes(reason),
-          ),
-      )
+          )
+        );
+      })
       .reduce(
         (sum, movement) => sum + getStockMovementLossValue(movement, products),
         0,
       );
 
-    const returnLoss = monthReturns
-      .filter(
-        (returnItem) =>
+    const returnLoss = relevantReturns
+      .filter((returnItem) => {
+        const createdAt = returnItem.createdAt;
+        return (
           returnItem.status === "completed" &&
-          returnItem.createdAt &&
-          getDateKey(returnItem.createdAt) === key,
-      )
+          !!createdAt &&
+          getDateKey(createdAt) === key
+        );
+      })
       .reduce((sum, returnItem) => sum + returnItem.totalAmount, 0);
 
     return movementLoss + returnLoss;
@@ -489,54 +375,16 @@ export const getDailyInventoryValueTrend = (
   days = 7,
   endDate = new Date(),
 ): number[] => {
-  // Use the month that actually has data
-  const activeMonth = getActiveMonthForData(
-    stockMovements,
-    (movement) => movement.createdAt,
-  );
-
-  // Use the last day of the active month as the end date
-  const monthEndDate = getLastDayOfMonth(activeMonth.month, activeMonth.year);
-  const latestMovementDate = getLatestDateValue(
-    stockMovements.filter((movement) => {
-      if (!movement.createdAt) return false;
-      const movementDate = parseDateValue(movement.createdAt);
-      return (
-        movementDate.getMonth() === activeMonth.month &&
-        movementDate.getFullYear() === activeMonth.year
-      );
-    }),
-    (movement) => movement.createdAt,
-  );
-
-  const latestDate = latestMovementDate
-    ? latestMovementDate.getTime() <= endDate.getTime()
-      ? latestMovementDate
-      : endDate
-    : monthEndDate.getTime() <= endDate.getTime()
-      ? monthEndDate
-      : endDate;
-
-  const dateKeys = getRecentDateKeys(days, latestDate);
+  const dateKeys = getRecentDateKeys(days, endDate);
   const currentInventoryValue = products.reduce(
     (sum, product) => sum + product.currentStock * product.unitPrice,
     0,
   );
 
-  // Filter to only the active month
-  const monthMovements = stockMovements.filter((movement) => {
-    if (!movement.createdAt) return false;
-    const movementDate = parseDateValue(movement.createdAt);
-    return (
-      movementDate.getMonth() === activeMonth.month &&
-      movementDate.getFullYear() === activeMonth.year
-    );
-  });
-
   const movementsByDate: Record<string, { inbound: number; outbound: number }> =
     {};
 
-  monthMovements.forEach((movement) => {
+  stockMovements.forEach((movement) => {
     if (!movement.createdAt) return;
     const key = getDateKey(movement.createdAt);
     if (!dateKeys.includes(key)) return;

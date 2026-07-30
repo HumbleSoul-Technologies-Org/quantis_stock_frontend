@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bar, Pie } from "react-chartjs-2";
-import { commonOptions, processLossAnalysisData } from "@/lib/chartUtils";
+import { getCommonOptions, processLossAnalysisData } from "@/lib/chartUtils";
 import {
   AlertTriangle,
   TrendingDown,
@@ -13,7 +13,8 @@ import {
   DollarSign,
   Target,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { ThemeContext } from "@/components/theme-provider";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -31,6 +32,7 @@ export function LossAnalysisChart() {
     saleReturns,
     products,
   );
+  const { theme } = useContext(ThemeContext) || { theme: "light" };
 
   const lossColors = [
     "red", // Damage
@@ -60,7 +62,7 @@ export function LossAnalysisChart() {
       {
         data: lossesData.map((item) => item.value),
         backgroundColor: lossColors,
-        borderColor: "#fff",
+        borderColor: theme === "dark" ? "#fff" : "#000000",
         borderWidth: 2,
         hoverBorderWidth: 3,
       },
@@ -68,15 +70,19 @@ export function LossAnalysisChart() {
   };
 
   const barChartOptions = {
-    ...commonOptions,
+    ...getCommonOptions(theme),
     plugins: {
-      ...commonOptions.plugins,
+      ...getCommonOptions(theme).plugins,
       tooltip: {
-        ...commonOptions.plugins.tooltip,
-        backgroundColor: "var(--card)",
-        titleColor: "var(--foreground)",
-        bodyColor: "var(--foreground)",
-        borderColor: "var(--border)",
+        ...getCommonOptions(theme).plugins.tooltip,
+        backgroundColor:
+          theme === "dark"
+            ? "rgba(15, 23, 42, 0.95)"
+            : getCommonOptions(theme).plugins.tooltip.backgroundColor,
+        titleColor: getCommonOptions(theme).plugins.tooltip.titleColor,
+        bodyColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        labelTextColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        borderColor: getCommonOptions(theme).plugins.tooltip.borderColor,
         displayColors: false,
         titleFont: { size: 14, weight: "bold" as const },
         bodyFont: { size: 12 },
@@ -94,19 +100,19 @@ export function LossAnalysisChart() {
     },
     scales: {
       x: {
-        ...commonOptions.scales.x,
+        ...getCommonOptions(theme).scales.x,
         title: {
           display: true,
           text: "Loss Reason",
-          color: "var(--foreground)",
+          color: getCommonOptions(theme).color,
         },
       },
       y: {
-        ...commonOptions.scales.y,
+        ...getCommonOptions(theme).scales.y,
         title: {
           display: true,
           text: `Loss Value (${currencySymbol})`,
-          color: "var(--foreground)",
+          color: getCommonOptions(theme).color,
         },
         ticks: {
           callback: function (value: any) {
@@ -125,19 +131,23 @@ export function LossAnalysisChart() {
   };
 
   const pieChartOptions = {
-    ...commonOptions,
+    ...getCommonOptions(theme),
     plugins: {
-      ...commonOptions.plugins,
+      ...getCommonOptions(theme).plugins,
       legend: {
-        ...commonOptions.plugins.legend,
+        ...getCommonOptions(theme).plugins.legend,
         position: "right" as const,
       },
       tooltip: {
-        ...commonOptions.plugins.tooltip,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        borderColor: "#fff",
+        ...getCommonOptions(theme).plugins.tooltip,
+        backgroundColor:
+          theme === "dark"
+            ? "rgba(15, 23, 42, 0.95)"
+            : getCommonOptions(theme).plugins.tooltip.backgroundColor,
+        titleColor: getCommonOptions(theme).plugins.tooltip.titleColor,
+        bodyColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        labelTextColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        borderColor: getCommonOptions(theme).plugins.tooltip.borderColor,
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
@@ -226,9 +236,19 @@ export function LossAnalysisChart() {
 
         <div className="h-80">
           {chartType === "bar" ? (
-            <Bar data={barChartData} options={barChartOptions} />
+            <Bar
+              key={`${theme}-bar`}
+              data={barChartData}
+              options={barChartOptions}
+              redraw
+            />
           ) : (
-            <Pie data={pieChartData} options={pieChartOptions} />
+            <Pie
+              key={`${theme}-pie`}
+              data={pieChartData}
+              options={pieChartOptions}
+              redraw
+            />
           )}
         </div>
 

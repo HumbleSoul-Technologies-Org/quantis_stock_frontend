@@ -5,17 +5,22 @@ import { useRouter, usePathname } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
 import { Button } from "@/components/ui/button";
 import { LogOut, Moon, Sun, Bell, Wifi } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useContext, useState } from "react";
 import { NotificationSidebar } from "@/components/notifications/NotificationSidebar";
 import { TrialWarningDialog } from "@/components/TrialWarningDialog";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { ThemeContext } from "@/components/theme-provider";
 
 export function TopNav() {
   const { user, business, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { getUnreadCount } = useNotifications();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { theme, setTheme, toggleTheme } = useContext(ThemeContext) ?? {
+    theme: "light",
+    setTheme: () => undefined,
+    toggleTheme: () => undefined,
+  };
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showTrialDialog, setShowTrialDialog] = useState(false);
@@ -44,7 +49,7 @@ export function TopNav() {
     if (storedTheme === "dark") {
       document.documentElement.classList.add("dark");
     }
-  }, []);
+  }, [setTheme]);
 
   useEffect(() => {
     // Update unread count
@@ -65,15 +70,8 @@ export function TopNav() {
     }
   }, [trialStatus.daysLeft, trialStatus.isActive, user]);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+  const handleToggleTheme = () => {
+    toggleTheme();
   };
 
   const handleLogout = async () => {
@@ -102,7 +100,7 @@ export function TopNav() {
             trialStatus.isActive ? (
               <button
                 type="button"
-                onClick={() => setShowTrialDialog((open) => !open)}
+                onClick={() => setShowTrialDialog((open: boolean) => !open)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
                   trialStatus.statusColor === "green"
                     ? "bg-green-50 text-green-700 border-green-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
@@ -141,7 +139,7 @@ export function TopNav() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleTheme}
+              onClick={handleToggleTheme}
               className="text-gray-600 dark:text-teal-400 hover:text-green-700 dark:hover:text-teal-300"
               title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             >

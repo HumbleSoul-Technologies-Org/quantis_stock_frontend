@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Pie } from "react-chartjs-2";
 import {
-  commonOptions,
+  getCommonOptions,
   processCategoryPerformanceData,
 } from "@/lib/chartUtils";
 import {
@@ -16,7 +16,8 @@ import {
   DollarSign,
   Target,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { ThemeContext } from "@/components/theme-provider";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -35,6 +36,7 @@ export function ProductPerformanceChart() {
     metricType,
     timePeriod,
   );
+  const { theme } = useContext(ThemeContext) || { theme: "light" };
 
   const chartData = {
     labels: categoryData.map((item) => item.category),
@@ -64,22 +66,26 @@ export function ProductPerformanceChart() {
   };
 
   const chartOptions = {
-    ...commonOptions,
+    ...getCommonOptions(theme),
     plugins: {
-      ...commonOptions.plugins,
+      ...getCommonOptions(theme).plugins,
       legend: {
-        ...commonOptions.plugins.legend,
+        ...getCommonOptions(theme).plugins.legend,
         labels: {
-          ...commonOptions.plugins.legend.labels,
-          color: "var(--foreground)",
+          ...getCommonOptions(theme).plugins.legend.labels,
+          color: getCommonOptions(theme).color,
         },
       },
       tooltip: {
-        ...commonOptions.plugins.tooltip,
-        backgroundColor: "var(--card)",
-        titleColor: "var(--foreground)",
-        bodyColor: "var(--foreground)",
-        borderColor: "var(--border)",
+        ...getCommonOptions(theme).plugins.tooltip,
+        backgroundColor:
+          theme === "dark"
+            ? "rgba(15, 23, 42, 0.95)"
+            : getCommonOptions(theme).plugins.tooltip.backgroundColor,
+        titleColor: getCommonOptions(theme).plugins.tooltip.titleColor,
+        bodyColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        labelTextColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        borderColor: getCommonOptions(theme).plugins.tooltip.borderColor,
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
@@ -176,7 +182,7 @@ export function ProductPerformanceChart() {
         </div>
 
         <div className="h-80">
-          <Pie data={chartData} options={chartOptions} />
+          <Pie key={theme} data={chartData} options={chartOptions} redraw />
         </div>
 
         <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">

@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Doughnut } from "react-chartjs-2";
 import {
-  commonOptions,
+  getCommonOptions,
   processCategoryDistributionData,
 } from "@/lib/chartUtils";
 import { PieChart, BarChart3, Package } from "lucide-react";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { ThemeContext } from "@/components/theme-provider";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -21,6 +22,7 @@ export function CategoryDistributionChart() {
   const { formatCurrency } = useSettings();
 
   const categoryData = processCategoryDistributionData(products, metricType);
+  const { theme } = useContext(ThemeContext) || { theme: "light" };
 
   const chartData = {
     labels: categoryData.map((item) => item.category),
@@ -39,7 +41,7 @@ export function CategoryDistributionChart() {
           "#EF4444",
           "#06B6D4",
         ].slice(0, categoryData.length),
-        borderColor: "#fff",
+        borderColor: theme === "dark" ? "#fff" : "#000000",
         borderWidth: 2,
         hoverBorderWidth: 3,
       },
@@ -47,14 +49,14 @@ export function CategoryDistributionChart() {
   };
 
   const chartOptions = {
-    ...commonOptions,
+    ...getCommonOptions(theme),
     plugins: {
-      ...commonOptions.plugins,
+      ...getCommonOptions(theme).plugins,
       legend: {
-        ...commonOptions.plugins.legend,
+        ...getCommonOptions(theme).plugins.legend,
         position: "right" as const,
         labels: {
-          ...commonOptions.plugins.legend.labels,
+          ...getCommonOptions(theme).plugins.legend.labels,
           padding: 15,
           usePointStyle: true,
         },
@@ -63,11 +65,15 @@ export function CategoryDistributionChart() {
         propagate: false,
       },
       tooltip: {
-        ...commonOptions.plugins.tooltip,
-        backgroundColor: "var(--card)",
-        titleColor: "var(--foreground)",
-        bodyColor: "var(--foreground)",
-        borderColor: "var(--border)",
+        ...getCommonOptions(theme).plugins.tooltip,
+        backgroundColor:
+          theme === "dark"
+            ? "rgba(15, 23, 42, 0.95)"
+            : getCommonOptions(theme).plugins.tooltip.backgroundColor,
+        titleColor: getCommonOptions(theme).plugins.tooltip.titleColor,
+        bodyColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        labelTextColor: getCommonOptions(theme).plugins.tooltip.bodyColor,
+        borderColor: getCommonOptions(theme).plugins.tooltip.borderColor,
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
@@ -165,7 +171,12 @@ export function CategoryDistributionChart() {
         </div>
 
         <div className="relative h-80">
-          <Doughnut data={chartData} options={chartOptions} />
+          <Doughnut
+            key={theme}
+            data={chartData}
+            options={chartOptions}
+            redraw
+          />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
