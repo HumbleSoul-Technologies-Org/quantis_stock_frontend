@@ -35,9 +35,13 @@ export function ContactForm() {
       newErrors.email = "Invalid email format";
     }
     if (!formData.subject?.trim()) newErrors.subject = "Subject is required";
-    if (!formData.message?.trim()) newErrors.message = "Message is required";
-    if ((formData.message?.trim().length || 0) < 10)
+
+    const trimmedMessage = formData.message?.trim() || "";
+    if (!trimmedMessage) {
+      newErrors.message = "Message is required";
+    } else if (trimmedMessage.length < 10) {
       newErrors.message = "Message must be at least 10 characters";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -201,10 +205,11 @@ export function ContactForm() {
             </div>
 
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded text-sm text-blue-800 dark:text-blue-300 flex gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <p>
-                Our support team typically responds within 24-48 hours during
-                business days.
+                This form is currently UI-only. It validates your message
+                locally and shows the expected success flow, but it does not yet
+                send data to a backend service.
               </p>
             </div>
 

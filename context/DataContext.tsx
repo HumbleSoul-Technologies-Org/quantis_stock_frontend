@@ -42,6 +42,7 @@ const normalizeCollectionPayload = (payload: unknown, fallbackKey?: string) => {
   if (Array.isArray(data.data)) return data.data;
   if (Array.isArray(data.items)) return data.items;
   if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.suppliers)) return data.suppliers;
   if (Array.isArray(data.products)) return data.products;
   if (Array.isArray(data.sales)) return data.sales;
   if (Array.isArray(data.movements)) return data.movements;
@@ -71,7 +72,7 @@ const apiSuppliers = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-      return normalizeCollectionPayload(data);
+      return normalizeCollectionPayload(data, "suppliers");
     }
   } catch (error) {
     console.warn("Failed to fetch suppliers from API:", error);

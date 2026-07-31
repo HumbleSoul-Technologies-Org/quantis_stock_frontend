@@ -91,12 +91,12 @@ export function Sidebar() {
       icon: Settings,
       roles: ["admin"],
     },
-    // {
-    //   href: "/dashboard/help",
-    //   label: "Help",
-    //   icon: HelpCircle,
-    //   roles: ["admin", "manager", "sales", "accountant"],
-    // },
+    {
+      href: "/dashboard/help",
+      label: "Help & Support",
+      icon: HelpCircle,
+      roles: ["admin", "manager", "sales", "accountant"],
+    },
   ];
 
   const visibleItems = menuItems.filter((item) =>

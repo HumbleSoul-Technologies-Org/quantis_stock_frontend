@@ -645,9 +645,9 @@ export function ProductForm({
               document.getElementById("product-image-upload")?.click()
             }
             disabled={isSubmitting}
-            className="inline-flex items-center justify-center rounded-md border border-green-200 px-4 py-2 text-sm font-medium text-green-700 dark:text-teal-100 bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center justify-center rounded-md border border-green-200 px-4 py-2 text-sm font-medium text-green-700 dark:text-teal-100 bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {!!imagePreview ? "Choose Image" : "Change Image"}
+            {!!imagePreview ? "Choose Image" : "Upload Image"}
           </button>
           {uploadedImage && (
             <p className="text-xs text-green-600 dark:text-green-400 mt-2">
@@ -803,12 +803,13 @@ export function ProductForm({
           </select>
         </div>
 
-        <div>
+        <div className="hidden">
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             <input
               type="checkbox"
               checked={isFinishedGood}
               onChange={(e) => setIsFinishedGood(e.target.checked)}
+              disabled={true}
             />
             Finished Good (has BOM)
           </label>

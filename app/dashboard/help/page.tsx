@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FAQSection } from "@/components/help/FAQSection";
 import { ContactForm } from "@/components/help/ContactForm";
+import { DemoGuide } from "@/components/help/DemoGuide";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   HelpCircle,
@@ -12,6 +13,8 @@ import {
   Zap,
   Users,
   Package,
+  Compass,
+  MessageSquareText,
 } from "lucide-react";
 
 export default function HelpPage() {
@@ -25,99 +28,16 @@ export default function HelpPage() {
     { key: "Enter", action: "Submit form" },
   ];
 
-  const gettingStarted = [
-    {
-      title: "Understanding the Dashboard",
-      description: "Your central hub for business overview",
-      steps: [
-        "The Dashboard displays key metrics at a glance",
-        "View today's sales, recent activity, and quick stats",
-        "Access all major sections (Inventory, Sales, Products, etc.) from the sidebar",
-        "Use the top navigation for user profile, notifications, and settings",
-      ],
-    },
-    {
-      title: "Managing Products",
-      description: "Organize and track your product catalog",
-      steps: [
-        "Go to Products section to view all available items",
-        "Click 'Add Product' to create new products with details like SKU, category, pricing",
-        "Set reorder levels to trigger low stock alerts",
-        "Edit products to update prices, descriptions, or availability status",
-        "Products can only be deleted if they have no sales history",
-      ],
-    },
-    {
-      title: "Recording Sales",
-      description: "Process customer transactions and track revenue",
-      steps: [
-        "Navigate to Sales section and click 'Record New Sale'",
-        "Enter customer details and select payment method (cash, card, transfer, etc.)",
-        "Add products by selecting them from dropdown and entering quantities",
-        "Review the sale items and total amount before submitting",
-        "Sales automatically deduct from inventory and appear in stock movements",
-        "View all sales history with filtering and search options",
-      ],
-    },
-    {
-      title: "Managing Inventory",
-      description: "Track stock levels and movements",
-      steps: [
-        "Inventory section shows real-time stock levels for all products",
-        "View detailed stock history for each product",
-        "Manually adjust stock using 'Add Inventory' for receiving stock",
-        "Stock movements are automatically created for every inventory change",
-        "Track stock type (in/out/adjustment) with reasons and references",
-        "Monitor low stock items that need reordering",
-      ],
-    },
-    {
-      title: "Managing Suppliers",
-      description: "Keep track of your supply chain",
-      steps: [
-        "Add supplier information including contact details and payment terms",
-        "Track purchase orders and delivery history with suppliers",
-        "Link suppliers to products to manage multiple supply sources",
-        "Update supplier status (active/inactive) as needed",
-        "Use supplier data for reordering and negotiations",
-      ],
-    },
-    {
-      title: "Generating Reports",
-      description: "Analyze business performance and trends",
-      steps: [
-        "Reports section provides three main report types: Inventory, Sales, Stock Movements",
-        "Inventory Report shows product details, stock levels, and inventory values",
-        "Sales Report lists all sales transactions with customer and payment details",
-        "Stock Movements Report tracks all inventory changes with reasons",
-        "Export any report as CSV file for further analysis",
-        "View visual summaries including top products and sales trends",
-      ],
-    },
-    {
-      title: "Configuring Settings",
-      description: "Customize system behavior and preferences",
-      steps: [
-        "Navigate to Settings to configure your system",
-        "General: Set company name, theme preference, and regional settings",
-        "Currency: Define currency symbol, code, and decimal places",
-        "Units: Set default units of measurement (kg, liters, units, etc.)",
-        "Notifications: Enable/disable alerts for sales, low stock, etc.",
-        "Credentials: Manage user accounts and team members",
-      ],
-    },
-  ];
-
   const featureGuides = [
     {
       title: "Role-Based Access Control",
       icon: Users,
       description: "Different user roles with specific permissions",
       content: [
-        "Admin: Full system access, can manage all features and users",
-        "Manager: Can manage inventory, sales, and generate reports",
-        "Sales: Can record sales and view product information",
-        "Accountant: Read-only access to view transactions and reports",
+        "Admin: full access to manage all features and users.",
+        "Manager: can handle inventory, sales, and reporting tasks.",
+        "Sales: can record sales and view products, but may have restricted setup access.",
+        "Accountant: can review transactions and reports without changing core records.",
       ],
     },
     {
@@ -125,21 +45,42 @@ export default function HelpPage() {
       icon: Zap,
       description: "Automatic synchronization between local storage and API",
       content: [
-        "All data is saved to local storage for offline access",
-        "System syncs with API every 5 seconds when online",
-        "If API is unavailable, system continues using cached data",
-        "Changes sync automatically when connection is restored",
+        "Your changes are saved locally so you can keep working even if the connection is weak.",
+        "The system syncs with the server every few seconds when you are online.",
+        "If the API is temporarily unavailable, the app keeps working with the latest stored data.",
+        "Once the connection is back, pending changes are pushed automatically.",
       ],
     },
     {
       title: "Stock Movement Tracking",
       icon: Package,
-      description: "Complete audit trail of all inventory changes",
+      description: "Complete audit trail for every inventory change",
       content: [
-        "Every inventory change creates a stock movement record",
-        "Track type: 'in' (received), 'out' (sold/used), 'adjustment' (corrections)",
-        "Each movement includes reason and reference (sale number, PO, etc.)",
-        "Build complete history for audits and reconciliation",
+        "Each inventory change creates a movement record for easier tracking.",
+        "Use movement types such as in, out, and adjustment to describe what happened.",
+        "Add a reason and reference so later reviews are much easier to follow.",
+        "This history supports audits, reconciliations, and day-to-day review.",
+      ],
+    },
+    {
+      title: "Beginner Workflow Guide",
+      icon: Compass,
+      description: "A simple path for first-time users",
+      content: [
+        "Start with the Dashboard to review your current operations.",
+        "Add or update products before you record sales or inventory changes.",
+        "Create a sale only after the required product and stock information is ready.",
+        "Use Reports and Settings to review performance and adapt the system to your process.",
+      ],
+    },
+    {
+      title: "Support and Help Access",
+      icon: MessageSquareText,
+      description: "Find answers quickly and reach out for assistance",
+      content: [
+        "Use the Getting Started section for step-by-step walkthroughs.",
+        "Check the FAQ section for common issues and fast answers.",
+        "Use the contact form when you need help with a bug, question, or feature request.",
       ],
     },
   ];
@@ -237,35 +178,7 @@ export default function HelpPage() {
 
         {/* Getting Started Tab */}
         <TabsContent value="getting-started" className="space-y-4">
-          <div className="space-y-4">
-            {gettingStarted.map((guide, idx) => (
-              <Card
-                key={idx}
-                className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700"
-              >
-                <CardHeader>
-                  <CardTitle className="dark:text-teal-100">
-                    {guide.title}
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                    {guide.description}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <ol className="list-decimal list-inside space-y-2">
-                    {guide.steps.map((step, stepIdx) => (
-                      <li
-                        key={stepIdx}
-                        className="text-sm text-gray-700 dark:text-slate-300 ml-2"
-                      >
-                        {step}
-                      </li>
-                    ))}
-                  </ol>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DemoGuide />
         </TabsContent>
 
         {/* Features Tab */}
