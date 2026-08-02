@@ -138,7 +138,7 @@ export function StockMovementForm({
   const movementReasons = {
     in: ["Purchase Order", "Return", "Correction", "Stock Transfer"],
     out: ["Sale", "Damage", "Expiry", "Theft", "Stock Transfer", "Others"],
-    adjustment: ["Inventory Count", "Correction", "Write-off"],
+    adjustment: ["Stock Count", "Correction", "Write-off"],
   };
 
   const onFormSubmit = async (data: StockMovementFormData) => {

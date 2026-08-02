@@ -43,7 +43,7 @@ export function ProductDialog({
           <DialogDescription>
             {product
               ? "Update product details and pricing information."
-              : "Add a new product to your inventory catalog."}
+              : "Add a new product to your stock catalog."}
           </DialogDescription>
         </DialogHeader>
         <ProductForm

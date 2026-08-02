@@ -44,8 +44,8 @@ export function Sidebar() {
       roles: ["admin", "manager", "accountant", "sales"],
     },
     {
-      href: "/dashboard/inventory",
-      label: "Inventory",
+      href: "/dashboard/stock",
+      label: "Stock",
       icon: Truck,
       roles: ["admin", "manager", "accountant"],
     },

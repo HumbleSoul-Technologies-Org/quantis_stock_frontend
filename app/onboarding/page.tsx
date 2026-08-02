@@ -202,7 +202,7 @@ function OnboardingContent() {
             </svg>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome to Inventory Manager
+            Welcome to Stock Manager
           </h1>
           <p className="text-gray-600 dark:text-slate-300 text-lg">
             Let's set up your business to get started
@@ -281,7 +281,7 @@ function OnboardingContent() {
             </li>
             <li className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></span>
-              Enable notifications to stay on top of inventory
+              Enable notifications to stay on top of stock
             </li>
             <li className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></span>

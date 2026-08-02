@@ -595,12 +595,14 @@ export interface Notification {
 }
 
 // Report Types
-export interface InventorySummary {
+export interface StockSummary {
   totalProducts: number;
   totalValue: number;
   lowStockItems: Product[];
   averageStockLevel: number;
 }
+
+export type InventorySummary = StockSummary;
 
 export interface SalesReport {
   totalSales: number;

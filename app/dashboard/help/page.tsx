@@ -35,7 +35,7 @@ export default function HelpPage() {
       description: "Different user roles with specific permissions",
       content: [
         "Admin: full access to manage all features and users.",
-        "Manager: can handle inventory, sales, and reporting tasks.",
+        "Manager: can handle stock, sales, and reporting tasks.",
         "Sales: can record sales and view products, but may have restricted setup access.",
         "Accountant: can review transactions and reports without changing core records.",
       ],
@@ -54,9 +54,9 @@ export default function HelpPage() {
     {
       title: "Stock Movement Tracking",
       icon: Package,
-      description: "Complete audit trail for every inventory change",
+      description: "Complete audit trail for every stock change",
       content: [
-        "Each inventory change creates a movement record for easier tracking.",
+        "Each stock change creates a movement record for easier tracking.",
         "Use movement types such as in, out, and adjustment to describe what happened.",
         "Add a reason and reference so later reviews are much easier to follow.",
         "This history supports audits, reconciliations, and day-to-day review.",
@@ -68,7 +68,7 @@ export default function HelpPage() {
       description: "A simple path for first-time users",
       content: [
         "Start with the Dashboard to review your current operations.",
-        "Add or update products before you record sales or inventory changes.",
+        "Add or update products before you record sales or stock changes.",
         "Create a sale only after the required product and stock information is ready.",
         "Use Reports and Settings to review performance and adapt the system to your process.",
       ],
@@ -92,9 +92,9 @@ export default function HelpPage() {
         "Sales are saved locally and synced to API automatically. Refresh the page to see updates. Check that you have all required fields (customer name, at least one item).",
     },
     {
-      issue: "Inventory didn't decrease after sale",
+      issue: "Stock didn't decrease after sale",
       solution:
-        "Sales automatically deduct from inventory. If not updating, ensure products have sufficient stock. Try refreshing the page. If persists, check that sale was successfully recorded.",
+        "Sales automatically deduct from stock. If not updating, ensure products have sufficient stock. Try refreshing the page. If persists, check that sale was successfully recorded.",
     },
     {
       issue: "Low stock alerts not showing",
@@ -136,7 +136,7 @@ export default function HelpPage() {
           Help & Support
         </h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
-          Learn how to use Quantis stock and manage your inventory efficiently
+          Learn how to use Quantis stock and manage your stock efficiently
         </p>
       </div>
 
@@ -323,14 +323,14 @@ export default function HelpPage() {
         <CardContent className="space-y-3 text-sm text-gray-700 dark:text-slate-400">
           <p>
             <strong className="dark:text-teal-100">Quantis stock</strong> is a
-            modern, comprehensive inventory management system designed for
+            modern, comprehensive stock management system designed for
             businesses of all sizes to efficiently manage their stock, sales,
             and supplier relationships.
           </p>
           <div>
             <strong className="dark:text-teal-100">Core Features:</strong>
             <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
-              <li>Real-time inventory tracking and stock movements</li>
+              <li>Real-time stock tracking and stock movements</li>
               <li>Complete sales management with payment tracking</li>
               <li>Supplier management and relationships</li>
               <li>Comprehensive reporting and analytics with CSV export</li>
@@ -364,7 +364,7 @@ export default function HelpPage() {
           </p>
           <p className="text-sm text-purple-800 dark:text-purple-300">
             • <strong>Report Analytics:</strong> Use reports regularly to
-            identify trends and make data-driven decisions about inventory and
+            identify trends and make data-driven decisions about stock and
             pricing.
           </p>
           <p className="text-sm text-purple-800 dark:text-purple-300">

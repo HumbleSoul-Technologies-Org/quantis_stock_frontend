@@ -8,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Quantis stock - Stock Management System",
-  description: "Comprehensive inventory and stock management solution",
+  description: "Comprehensive stock management solution",
   icons: {
     icon: [
       {

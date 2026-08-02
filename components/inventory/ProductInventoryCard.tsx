@@ -36,11 +36,10 @@ export function ProductInventoryCard({
     ? format(new Date(lastMovement.createdAt!), "MMM dd, yyyy")
     : "Never";
 
-  // ✅ Better stock percentage (with safe fallback when reorderLevel is missing/zero)
   const safeReorderLevel = Math.max(0, product.reorderLevel || 0);
   const maxStock =
     safeReorderLevel > 0
-      ? safeReorderLevel * 10
+      ? safeReorderLevel
       : Math.max(1, product.currentStock, 1);
   const rawPercentage =
     maxStock > 0 ? (product.currentStock / maxStock) * 100 : 0;

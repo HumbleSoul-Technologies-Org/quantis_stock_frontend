@@ -20,7 +20,7 @@ import {
   getDailyRevenueTrend,
   getDailySalesCountTrend,
   getDailyLossTrend,
-  getDailyInventoryValueTrend,
+  getDailyStockValueTrend,
 } from "@/lib/chartUtils";
 import { useData } from "@/context/DataContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -278,7 +278,7 @@ export function LossesKPICard() {
   );
 }
 
-export function InventoryValueKPICard() {
+export function StockValueKPICard() {
   const { sales, products, stockMovements } = useData();
   const { formatCurrency } = useSettings();
   const kpiData = processKPIData(sales, products, stockMovements);
@@ -288,21 +288,17 @@ export function InventoryValueKPICard() {
     (product) => product.currentStock <= product.reorderLevel,
   ).length;
 
-  // Generate sparkline data from recent inventory value history (last 7 days)
-  const sparklineData = getDailyInventoryValueTrend(
-    products,
-    stockMovements,
-    7,
-  );
+  // Generate sparkline data from recent stock value history (last 7 days)
+  const sparklineData = getDailyStockValueTrend(products, stockMovements, 7);
 
   return (
     <KPICard
-      title="Inventory Value"
-      value={kpiData.inventory.value}
-      change={kpiData.inventory.change}
+      title="Stock Value"
+      value={kpiData.stock.value}
+      change={kpiData.stock.change}
       changeLabel={`${lowStockCount} low stock items`}
       icon={<Package className="h-4 w-4" />}
-      trend={kpiData.inventory.change >= 0 ? "up" : "down"}
+      trend={kpiData.stock.change >= 0 ? "up" : "down"}
       theme="purple"
       sparklineData={sparklineData}
       formatCurrency={formatCurrency}

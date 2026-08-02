@@ -23,7 +23,7 @@ import { AuditReport } from "@/components/reports/AuditReport";
 function ReportsPageContent() {
   const { products, sales, stockMovements } = useData();
   const { formatCurrency } = useSettings();
-  const [selectedReport, setSelectedReport] = useState("inventory");
+  const [selectedReport, setSelectedReport] = useState("stock");
   const [salesPeriod, setSalesPeriod] = useState("monthly");
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1), // Last 6 months
@@ -224,7 +224,7 @@ function ReportsPageContent() {
     );
   };
 
-  // Inventory Summary
+  // Stock Summary
   const totalProducts = safeProducts.length;
   const lowStockItems = safeProducts.filter(
     (p) =>
@@ -232,7 +232,7 @@ function ReportsPageContent() {
       Number.isFinite(p?.reorderLevel) &&
       p.currentStock <= p.reorderLevel,
   );
-  const totalInventoryValue = safeProducts.reduce(
+  const totalStockValue = safeProducts.reduce(
     (sum, p) =>
       sum +
       (Number.isFinite(p?.currentStock) ? p.currentStock : 0) *
@@ -283,7 +283,7 @@ function ReportsPageContent() {
 
   const exportCSV = () => {
     let csv = "";
-    if (selectedReport === "inventory") {
+    if (selectedReport === "stock") {
       csv =
         "ID,_ID,Name,SKU,Category,Unit Price,Cost Price,Unit,Supplier ID,Reorder Level,Current Stock,Created At,Updated At,Description,Status,Retail SubType,Base UoM,Tracking Config,Reorder Strategy\n";
       products.forEach((p) => {
@@ -384,15 +384,15 @@ function ReportsPageContent() {
 
       <div className="flex gap-2 flex-wrap">
         <Button
-          onClick={() => setSelectedReport("inventory")}
-          variant={selectedReport === "inventory" ? "default" : "outline"}
+          onClick={() => setSelectedReport("stock")}
+          variant={selectedReport === "stock" ? "default" : "outline"}
           className={
-            selectedReport === "inventory"
+            selectedReport === "stock"
               ? "bg-green-600 hover:bg-green-700 dark:bg-teal-600 dark:hover:bg-teal-700"
               : "dark:border-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
           }
         >
-          Inventory Report
+          Stock Report
         </Button>
         <Button
           onClick={() => setSelectedReport("sales")}
@@ -443,12 +443,10 @@ function ReportsPageContent() {
           )}
       </div>
 
-      {selectedReport === "inventory" && (
+      {selectedReport === "stock" && (
         <Card className="border-green-200 border-2 dark:bg-slate-800 dark:border-teal-700">
           <CardHeader>
-            <CardTitle className="dark:text-teal-100">
-              Inventory Summary
-            </CardTitle>
+            <CardTitle className="dark:text-teal-100">Stock Summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -462,10 +460,10 @@ function ReportsPageContent() {
               </div>
               <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700">
                 <p className="text-sm text-purple-600 font-medium dark:text-purple-300">
-                  Inventory Value
+                  Stock Value
                 </p>
                 <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
-                  {formatCurrency(totalInventoryValue)}
+                  {formatCurrency(totalStockValue)}
                 </p>
               </div>
               <div className="p-4 bg-red-50 rounded-lg border border-red-200 dark:bg-red-900/20 dark:border-red-700">

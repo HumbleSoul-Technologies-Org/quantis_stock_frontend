@@ -197,10 +197,10 @@ export function CategoryDistributionChart() {
                 className="flex items-center space-x-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600"
               >
                 <Package className="h-3 w-3" />
-                <span>Inventory Overview</span>
+                <span>Stock Overview</span>
               </Badge>
               <span className="text-sm text-slate-600 dark:text-slate-400">
-                Distribution of all product categories in inventory
+                Distribution of product categories in stock
               </span>
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400">

@@ -23,7 +23,7 @@ const navItems = [
     roles: ["admin", "manager"],
   },
   {
-    href: "/dashboard/inventory",
+    href: "/dashboard/stock",
     label: "+ Stock In",
     icon: Truck,
     roles: ["admin", "manager"],

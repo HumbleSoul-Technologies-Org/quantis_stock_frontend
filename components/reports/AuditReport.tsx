@@ -61,7 +61,10 @@ export function AuditReport({}: AuditReportProps) {
     activities.forEach((activity) => {
       if (activity.createdBy && typeof activity.createdBy === "object") {
         const user = activity.createdBy as any;
-        userMap.set(user.id || user._id, user.name || user.username || "Unknown");
+        userMap.set(
+          user.id || user._id,
+          user.name || user.username || "Unknown",
+        );
       }
     });
     return Array.from(userMap.entries()).map(([id, name]) => ({ id, name }));
@@ -121,7 +124,16 @@ export function AuditReport({}: AuditReportProps) {
 
       return true;
     });
-  }, [activities, searchTerm, dateFrom, dateTo, resourceFilter, actionFilter, userFilter, statusFilter]);
+  }, [
+    activities,
+    searchTerm,
+    dateFrom,
+    dateTo,
+    resourceFilter,
+    actionFilter,
+    userFilter,
+    statusFilter,
+  ]);
 
   // Get user name for display
   const getUserName = (createdBy: string | any) => {
@@ -132,20 +144,28 @@ export function AuditReport({}: AuditReportProps) {
   // Get action color
   const getActionColor = (action: ActivityAction) => {
     switch (action) {
-      case "create": return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
-      case "update": return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
-      case "delete": return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300";
-      case "system_event": return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+      case "create":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
+      case "update":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
+      case "delete":
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300";
+      case "system_event":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
     }
   };
 
   // Get status color
   const getStatusColor = (status: ActivityStatus) => {
     switch (status) {
-      case "success": return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
-      case "failed": return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+      case "success":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
+      case "failed":
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
     }
   };
 
@@ -254,7 +274,7 @@ export function AuditReport({}: AuditReportProps) {
                   <SelectItem value="all">All Resources</SelectItem>
                   <SelectItem value="product">Products</SelectItem>
                   <SelectItem value="sale">Sales</SelectItem>
-                  <SelectItem value="stockMovement">Inventory</SelectItem>
+                  <SelectItem value="stockMovement">Stock</SelectItem>
                   <SelectItem value="supplier">Suppliers</SelectItem>
                   <SelectItem value="return">Returns</SelectItem>
                 </SelectContent>
@@ -315,11 +335,18 @@ export function AuditReport({}: AuditReportProps) {
             </div>
 
             <div className="flex items-end gap-2">
-              <Button onClick={exportToCSV} className="dark:bg-slate-700 dark:hover:bg-slate-600 gap-2">
+              <Button
+                onClick={exportToCSV}
+                className="dark:bg-slate-700 dark:hover:bg-slate-600 gap-2"
+              >
                 <Download className="w-4 h-4" />
                 Export CSV
               </Button>
-              <Button onClick={exportToJSON} variant="outline" className="dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 gap-2">
+              <Button
+                onClick={exportToJSON}
+                variant="outline"
+                className="dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 gap-2"
+              >
                 <FileJson className="w-4 h-4" />
                 Export JSON
               </Button>
@@ -330,7 +357,8 @@ export function AuditReport({}: AuditReportProps) {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-sm text-gray-600 dark:text-slate-400">
-                Showing {filteredActivities.length} of {activities.length} activities
+                Showing {filteredActivities.length} of {activities.length}{" "}
+                activities
               </p>
             </div>
 
@@ -346,18 +374,35 @@ export function AuditReport({}: AuditReportProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="dark:bg-slate-800">
-                      <TableHead className="dark:text-slate-300">Action</TableHead>
-                      <TableHead className="dark:text-slate-300">Resource</TableHead>
-                      <TableHead className="dark:text-slate-300">Entity</TableHead>
-                      <TableHead className="dark:text-slate-300">User</TableHead>
-                      <TableHead className="dark:text-slate-300">Date</TableHead>
-                      <TableHead className="dark:text-slate-300">Status</TableHead>
-                      <TableHead className="dark:text-slate-300">Details</TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        Action
+                      </TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        Resource
+                      </TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        Entity
+                      </TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        User
+                      </TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        Date
+                      </TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        Status
+                      </TableHead>
+                      <TableHead className="dark:text-slate-300">
+                        Details
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredActivities.map((activity) => (
-                      <TableRow key={activity.id} className="dark:bg-slate-900 dark:border-slate-700">
+                      <TableRow
+                        key={activity.id}
+                        className="dark:bg-slate-900 dark:border-slate-700"
+                      >
                         <TableCell>
                           <Badge className={getActionColor(activity.action)}>
                             {activity.action}
@@ -373,7 +418,10 @@ export function AuditReport({}: AuditReportProps) {
                           {getUserName(activity.createdBy)}
                         </TableCell>
                         <TableCell className="dark:text-slate-100">
-                          {format(new Date(activity.createdAt), "MMM dd, HH:mm")}
+                          {format(
+                            new Date(activity.createdAt),
+                            "MMM dd, HH:mm",
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(activity.status)}>
@@ -386,7 +434,9 @@ export function AuditReport({}: AuditReportProps) {
                             size="sm"
                             onClick={() =>
                               setExpandedActivity(
-                                expandedActivity === activity.id ? null : activity.id
+                                expandedActivity === activity.id
+                                  ? null
+                                  : activity.id,
                               )
                             }
                             className="dark:text-slate-300 dark:hover:bg-slate-700"
@@ -407,26 +457,53 @@ export function AuditReport({}: AuditReportProps) {
                 {expandedActivity && (
                   <div className="border-t dark:border-slate-700 p-4 bg-gray-50 dark:bg-slate-800">
                     {(() => {
-                      const activity = filteredActivities.find(a => a.id === expandedActivity);
+                      const activity = filteredActivities.find(
+                        (a) => a.id === expandedActivity,
+                      );
                       if (!activity) return null;
 
                       return (
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <h4 className="font-medium mb-2 dark:text-slate-100">Activity Details</h4>
+                              <h4 className="font-medium mb-2 dark:text-slate-100">
+                                Activity Details
+                              </h4>
                               <div className="space-y-1 text-sm">
-                                <p><span className="font-medium">Title:</span> {activity.title}</p>
-                                <p><span className="font-medium">Description:</span> {activity.description}</p>
-                                <p><span className="font-medium">IP Address:</span> {activity.ipAddress || "N/A"}</p>
-                                <p><span className="font-medium">User Agent:</span> {activity.userAgent ? "Present" : "N/A"}</p>
+                                <p>
+                                  <span className="font-medium">Title:</span>{" "}
+                                  {activity.title}
+                                </p>
+                                <p>
+                                  <span className="font-medium">
+                                    Description:
+                                  </span>{" "}
+                                  {activity.description}
+                                </p>
+                                <p>
+                                  <span className="font-medium">
+                                    IP Address:
+                                  </span>{" "}
+                                  {activity.ipAddress || "N/A"}
+                                </p>
+                                <p>
+                                  <span className="font-medium">
+                                    User Agent:
+                                  </span>{" "}
+                                  {activity.userAgent ? "Present" : "N/A"}
+                                </p>
                                 {activity.resultingAction && (
-                                  <p><span className="font-medium">Result:</span> {activity.resultingAction}</p>
+                                  <p>
+                                    <span className="font-medium">Result:</span>{" "}
+                                    {activity.resultingAction}
+                                  </p>
                                 )}
                               </div>
                             </div>
                             <div>
-                              <h4 className="font-medium mb-2 dark:text-slate-100">Changes</h4>
+                              <h4 className="font-medium mb-2 dark:text-slate-100">
+                                Changes
+                              </h4>
                               {renderChangeDiff(activity.changeLog)}
                             </div>
                           </div>
@@ -448,8 +525,9 @@ export function AuditReport({}: AuditReportProps) {
                   Audit Trail Security
                 </h4>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Audit logs are immutable and represent a permanent record of all system changes.
-                  These records cannot be modified or deleted through the user interface.
+                  Audit logs are immutable and represent a permanent record of
+                  all system changes. These records cannot be modified or
+                  deleted through the user interface.
                 </p>
               </div>
             </div>

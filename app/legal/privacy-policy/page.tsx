@@ -123,7 +123,7 @@ export default function PrivacyPolicyPage() {
             <p className="text-gray-700 dark:text-slate-300">
               Quantis stock is committed to protecting your privacy. This
               Privacy Policy explains how we collect, use, disclose, and
-              safeguard your information when you use our inventory management
+              safeguard your information when you use our stock management
               platform.
             </p>
             <p className="text-gray-700 dark:text-slate-300">
@@ -149,8 +149,8 @@ export default function PrivacyPolicyPage() {
                 password, company name, business type
               </li>
               <li>
-                <strong>Business Data:</strong> Products, inventory, sales
-                records, supplier information, transaction details
+                <strong>Business Data:</strong> Products, stock, sales records,
+                supplier information, transaction details
               </li>
               <li>
                 <strong>Payment Information:</strong> Payment methods,

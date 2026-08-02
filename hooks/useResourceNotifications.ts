@@ -1,7 +1,13 @@
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
-type ResourceType = 'Product' | 'Inventory' | 'Sale' | 'User' | 'Supplier';
-type ActionType = 'created' | 'updated' | 'deleted';
+type ResourceType =
+  | "Product"
+  | "Stock"
+  | "Inventory"
+  | "Sale"
+  | "User"
+  | "Supplier";
+type ActionType = "created" | "updated" | "deleted";
 
 interface ResourceNotificationConfig {
   resourceType: ResourceType;
@@ -58,7 +64,10 @@ export function useResourceNotifications() {
     });
   };
 
-  const notifyLoading = ({ resourceType, action }: ResourceNotificationConfig) => {
+  const notifyLoading = ({
+    resourceType,
+    action,
+  }: ResourceNotificationConfig) => {
     const messages: Record<ActionType, string> = {
       created: `Creating ${resourceType.toLowerCase()}...`,
       updated: `Updating ${resourceType.toLowerCase()}...`,
@@ -80,22 +89,19 @@ export function useResourceNotifications() {
     isSuccess: boolean,
   ) => {
     if (isSuccess) {
-      toast.success(
-        `${config.resourceType} ${config.action} successfully`,
-        {
-          id: toastId,
-          description: config.resourceName
-            ? `${config.resourceType} "${config.resourceName}" has been ${config.action}`
-            : `${config.resourceType} has been ${config.action}`,
-          duration: 3000,
-        },
-      );
+      toast.success(`${config.resourceType} ${config.action} successfully`, {
+        id: toastId,
+        description: config.resourceName
+          ? `${config.resourceType} "${config.resourceName}" has been ${config.action}`
+          : `${config.resourceType} has been ${config.action}`,
+        duration: 3000,
+      });
     } else {
       toast.error(
         `Failed to ${config.action} ${config.resourceType.toLowerCase()}`,
         {
           id: toastId,
-          description: config.error || 'Please try again.',
+          description: config.error || "Please try again.",
           duration: 4000,
         },
       );
@@ -105,56 +111,56 @@ export function useResourceNotifications() {
   // Quick methods for common operations
   const productCreated = (productName: string) =>
     notifySuccess({
-      resourceType: 'Product',
-      action: 'created',
+      resourceType: "Product",
+      action: "created",
       resourceName: productName,
     });
 
   const productUpdated = (productName: string) =>
     notifySuccess({
-      resourceType: 'Product',
-      action: 'updated',
+      resourceType: "Product",
+      action: "updated",
       resourceName: productName,
     });
 
   const productDeleted = (productName: string) =>
     notifySuccess({
-      resourceType: 'Product',
-      action: 'deleted',
+      resourceType: "Product",
+      action: "deleted",
       resourceName: productName,
     });
 
   const productError = (action: ActionType, error?: string) =>
     notifyError({
-      resourceType: 'Product',
+      resourceType: "Product",
       action,
       error,
     });
 
-  // Inventory operations
-  const inventoryMovementCreated = (type: string, productName: string) =>
+  // Stock movement operations
+  const stockMovementCreated = (type: string, productName: string) =>
     toast.success(`Stock movement recorded`, {
       description: `${type} movement for "${productName}" has been recorded`,
       duration: 3000,
     });
 
-  const inventoryMovementUpdated = (productName: string) =>
+  const stockMovementUpdated = (productName: string) =>
     notifySuccess({
-      resourceType: 'Inventory',
-      action: 'updated',
+      resourceType: "Stock",
+      action: "updated",
       resourceName: productName,
     });
 
-  const inventoryMovementDeleted = (productName: string) =>
+  const stockMovementDeleted = (productName: string) =>
     notifySuccess({
-      resourceType: 'Inventory',
-      action: 'deleted',
+      resourceType: "Stock",
+      action: "deleted",
       resourceName: productName,
     });
 
-  const inventoryError = (action: ActionType, error?: string) =>
+  const stockError = (action: ActionType, error?: string) =>
     notifyError({
-      resourceType: 'Inventory',
+      resourceType: "Stock",
       action,
       error,
     });
@@ -168,69 +174,72 @@ export function useResourceNotifications() {
 
   const saleUpdated = (saleNumber: string) =>
     notifySuccess({
-      resourceType: 'Sale',
-      action: 'updated',
+      resourceType: "Sale",
+      action: "updated",
       resourceName: saleNumber,
     });
 
   const saleDeleted = (saleNumber: string) =>
     notifySuccess({
-      resourceType: 'Sale',
-      action: 'deleted',
+      resourceType: "Sale",
+      action: "deleted",
       resourceName: saleNumber,
     });
 
   const saleError = (action: ActionType, error?: string) =>
     notifyError({
-      resourceType: 'Sale',
+      resourceType: "Sale",
       action,
       error,
     });
 
   // User operations
   const userCreated = (username: string) =>
-    toast.success('User created successfully', {
+    toast.success("User created successfully", {
       description: `User "${username}" has been created and can now log in.`,
       duration: 3000,
     });
 
   const userUpdated = (username: string) =>
     notifySuccess({
-      resourceType: 'User',
-      action: 'updated',
+      resourceType: "User",
+      action: "updated",
       resourceName: username,
     });
 
   const userDeleted = (username: string) =>
     notifySuccess({
-      resourceType: 'User',
-      action: 'deleted',
+      resourceType: "User",
+      action: "deleted",
       resourceName: username,
     });
 
   const userBanned = (username: string) =>
-    toast.success('User banned', {
+    toast.success("User banned", {
       description: `${username} has been banned and cannot log in.`,
       duration: 3000,
     });
 
   const userUnbanned = (username: string) =>
-    toast.success('User unbanned', {
+    toast.success("User unbanned", {
       description: `${username} has been unbanned and can log in again.`,
       duration: 3000,
     });
 
-  const userError = (action: 'created' | 'updated' | 'deleted' | 'banned' | 'unbanned', error?: string) => {
+  const userError = (
+    action: "created" | "updated" | "deleted" | "banned" | "unbanned",
+    error?: string,
+  ) => {
     const actionMessages = {
-      created: 'Failed to create user',
-      updated: 'Failed to update user',
-      deleted: 'Failed to delete user',
-      banned: 'Failed to ban user',
-      unbanned: 'Failed to unban user',
+      created: "Failed to create user",
+      updated: "Failed to update user",
+      deleted: "Failed to delete user",
+      banned: "Failed to ban user",
+      unbanned: "Failed to unban user",
     };
 
     toast.error(actionMessages[action], {
-      description: error || 'Please try again.',
+      description: error || "Please try again.",
       duration: 4000,
     });
   };
@@ -249,11 +258,15 @@ export function useResourceNotifications() {
     productDeleted,
     productError,
 
-    // Inventory methods
-    inventoryMovementCreated,
-    inventoryMovementUpdated,
-    inventoryMovementDeleted,
-    inventoryError,
+    // Stock movement methods
+    stockMovementCreated,
+    stockMovementUpdated,
+    stockMovementDeleted,
+    stockError,
+    inventoryMovementCreated: stockMovementCreated,
+    inventoryMovementUpdated: stockMovementUpdated,
+    inventoryMovementDeleted: stockMovementDeleted,
+    inventoryError: stockError,
 
     // Sales methods
     saleCreated,

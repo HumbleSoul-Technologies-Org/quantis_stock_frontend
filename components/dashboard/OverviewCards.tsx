@@ -19,7 +19,7 @@ function OverviewCardsContent() {
       ? formatCurrency
       : (value: number) => `$ ${value.toFixed(2)}`;
 
-  const totalInventoryValue = safeProducts.reduce(
+  const totalStockValue = safeProducts.reduce(
     (sum, p) =>
       sum +
       (Number.isFinite(p?.currentStock) ? p.currentStock : 0) *
@@ -61,8 +61,8 @@ function OverviewCardsContent() {
       borderColor: "border-green-200",
     },
     {
-      title: "Inventory Value",
-      value: formatCurrencyShort(totalInventoryValue),
+      title: "Stock Value",
+      value: formatCurrencyShort(totalStockValue),
       icon: TrendingUp,
       color: "bg-purple-50",
       iconColor: "text-purple-600",

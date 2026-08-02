@@ -369,14 +369,14 @@ export const getDailyLossTrend = (
   });
 };
 
-export const getDailyInventoryValueTrend = (
+export const getDailyStockValueTrend = (
   products: Product[],
   stockMovements: StockMovement[],
   days = 7,
   endDate = new Date(),
 ): number[] => {
   const dateKeys = getRecentDateKeys(days, endDate);
-  const currentInventoryValue = products.reduce(
+  const currentStockValue = products.reduce(
     (sum, product) => sum + product.currentStock * product.unitPrice,
     0,
   );
@@ -404,7 +404,7 @@ export const getDailyInventoryValueTrend = (
   });
 
   const values: number[] = [];
-  let runningValue = currentInventoryValue;
+  let runningValue = currentStockValue;
 
   for (let index = dateKeys.length - 1; index >= 0; index--) {
     const key = dateKeys[index];
@@ -829,7 +829,7 @@ export const processKPIData = (
     previousSalesCount,
   );
 
-  const currentInventoryValue = products.reduce(
+  const currentStockValue = products.reduce(
     (sum, product) => sum + product.currentStock * product.unitPrice,
     0,
   );
@@ -865,13 +865,11 @@ export const processKPIData = (
       return sum + (product?.unitPrice ?? 0) * movement.quantity;
     }, 0);
 
-  const inventoryValueAtMonthStart =
-    currentInventoryValue -
-    inboundCurrentMonthValue +
-    outboundCurrentMonthValue;
-  const inventoryChange = calculatePercentChange(
-    currentInventoryValue,
-    inventoryValueAtMonthStart,
+  const stockValueAtMonthStart =
+    currentStockValue - inboundCurrentMonthValue + outboundCurrentMonthValue;
+  const stockChange = calculatePercentChange(
+    currentStockValue,
+    stockValueAtMonthStart,
   );
 
   const currentLosses = currentMonthMovements
@@ -905,12 +903,12 @@ export const processKPIData = (
   return {
     revenue: { value: currentRevenue, change: revenueChange },
     sales: { value: currentSalesCount, change: salesChange },
-    inventory: {
-      value: currentInventoryValue,
+    stock: {
+      value: currentStockValue,
       lowStock: products.filter(
         (product) => product.currentStock <= product.reorderLevel,
       ).length,
-      change: inventoryChange,
+      change: stockChange,
     },
     losses: { value: currentLosses, change: lossesChange },
   };

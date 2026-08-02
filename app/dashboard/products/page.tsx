@@ -196,8 +196,8 @@ function ProductsPageContent() {
   };
 
   const handleStockIn = (product: Product) => {
-    // Redirect to inventory page - will implement stock in dialog there
-    window.location.href = `/dashboard/inventory?productId=${product.id || product._id}`;
+    // Redirect to stock page with selected product preloaded
+    window.location.href = `/dashboard/stock?productId=${product.id || product._id}`;
   };
 
   const handleViewProduct = (product: Product) => {
@@ -213,7 +213,7 @@ function ProductsPageContent() {
             Products
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mt-1 sm:mt-2">
-            Manage your product inventory
+            Manage your product stock
           </p>
         </div>
         {user && (user.role === "admin" || user.role === "manager") && (

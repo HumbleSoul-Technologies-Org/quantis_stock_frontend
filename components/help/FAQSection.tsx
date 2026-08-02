@@ -19,15 +19,15 @@ const faqs: FAQItem[] = [
   },
   {
     id: "2",
-    question: "How do I manage inventory levels?",
+    question: "How do I manage stock levels?",
     answer:
-      "Go to Inventory Management section. You can record stock movements (in/out/adjustment), view stock history for each product, and set reorder levels. The system will alert you when stock falls below the reorder level.",
+      "Go to Stock Management section. You can record stock movements (in/out/adjustment), view stock history for each product, and set reorder levels. The system will alert you when stock falls below the reorder level.",
   },
   {
     id: "3",
     question: "How do I create a sale?",
     answer:
-      'Click "New Sale" on the Sales page. Select products from available inventory, specify quantities, and add them to the sale. Review the total and click "Complete Sale". Stock will automatically be deducted.',
+      'Click "New Sale" on the Sales page. Select products from available stock, specify quantities, and add them to the sale. Review the total and click "Complete Sale". Stock will automatically be deducted.',
   },
   {
     id: "4",
@@ -51,7 +51,7 @@ const faqs: FAQItem[] = [
     id: "7",
     question: "How do I export reports?",
     answer:
-      'In the Reports section, select the report type you want (Inventory or Sales) and click "Export CSV" to download the data in CSV format that you can open in Excel.',
+      'In the Reports section, select the report type you want (Stock or Sales) and click "Export CSV" to download the data in CSV format that you can open in Excel.',
   },
   {
     id: "8",
@@ -63,7 +63,7 @@ const faqs: FAQItem[] = [
     id: "9",
     question: "How do I view recent activity?",
     answer:
-      "The Dashboard shows recent activity including recent sales and stock movements. This gives you a quick overview of what&apos;s happening in your inventory.",
+      "The Dashboard shows recent activity including recent sales and stock movements. This gives you a quick overview of what&apos;s happening in your stock.",
   },
   {
     id: "10",
@@ -75,13 +75,13 @@ const faqs: FAQItem[] = [
     id: "11",
     question: "How do role-based permissions work?",
     answer:
-      "Admin: Full access to all features. Manager: Can manage products, inventory, and reports. Sales: Can only view products and create sales. Some features like settings are restricted based on role.",
+      "Admin: Full access to all features. Manager: Can manage products, stock, and reports. Sales: Can only view products and create sales. Some features like settings are restricted based on role.",
   },
   {
     id: "12",
     question: "What happens if I delete a product?",
     answer:
-      "Deleting a product removes it from your inventory. Historical sales involving that product will still be available in your sales records, but you won&apos;t be able to create new sales for it.",
+      "Deleting a product removes it from your stock. Historical sales involving that product will still be available in your sales records, but you won&apos;t be able to create new sales for it.",
   },
 ];
 

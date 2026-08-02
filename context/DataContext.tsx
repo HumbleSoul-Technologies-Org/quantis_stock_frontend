@@ -103,7 +103,7 @@ const apiProducts = async (token?: string, businessId?: string) => {
   return null;
 };
 
-const apiInventory = async (
+const apiStock = async (
   token?: string,
   businessId?: string,
   branchId?: string | null,
@@ -111,7 +111,7 @@ const apiInventory = async (
   try {
     const response = await apiRequest(
       "GET",
-      "/inventory/movements",
+      "/stock/movements",
       {
         limit: 100,
         status: "active",
@@ -126,7 +126,7 @@ const apiInventory = async (
       return normalizeCollectionPayload(data, "movements");
     }
   } catch (error) {
-    console.warn("Failed to fetch inventory movements from API:", error);
+    console.warn("Failed to fetch stock movements from API:", error);
   }
   return null;
 };
@@ -256,13 +256,13 @@ interface DataContextType {
   refresh: () => void;
   refetchData: () => Promise<void>;
   refetchProducts: () => Promise<any>;
-  refetchInventory: () => Promise<any>;
+  refetchStock: () => Promise<any>;
 
   // Loading states for skeleton loaders
   isInitialLoadingProducts: boolean;
   isInitialLoadingSuppliers: boolean;
   isInitialLoadingSales: boolean;
-  isInitialLoadingInventory: boolean;
+  isInitialLoadingStock: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -294,8 +294,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isInitialLoadingSuppliers, setIsInitialLoadingSuppliers] =
     useState(true);
   const [isInitialLoadingSales, setIsInitialLoadingSales] = useState(true);
-  const [isInitialLoadingInventory, setIsInitialLoadingInventory] =
-    useState(true);
+  const [isInitialLoadingStock, setIsInitialLoadingStock] = useState(true);
 
   const sendApiRequest = useCallback(
     async (method: string, endpoint: string, payload?: unknown) => {
@@ -387,7 +386,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       state.stockMovements = updatedStockMovements;
       storage.saveState(state);
       queryClient.setQueryData(
-        ["inventory", "movements", activeBusinessId, defaultBranchId],
+        ["stock", "movements", activeBusinessId, defaultBranchId],
         updatedStockMovements,
       );
     },
@@ -537,10 +536,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
-  // Poll inventory movements from API every 20 seconds (critical for stock accuracy)
-  const { data: inventoryData, refetch: refetchInventory } = useQuery({
-    queryKey: ["inventory", "movements", activeBusinessId, defaultBranchId],
-    queryFn: () => apiInventory(user?.token, activeBusinessId, defaultBranchId),
+  // Poll stock movements from API every 20 seconds (critical for stock accuracy)
+  const { data: stockData, refetch: refetchStock } = useQuery({
+    queryKey: ["stock", "movements", activeBusinessId, defaultBranchId],
+    queryFn: () => apiStock(user?.token, activeBusinessId, defaultBranchId),
     enabled: !!user?.token && !!activeBusinessId && isInitialized,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
@@ -600,14 +599,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [productsData]);
 
   useEffect(() => {
-    if (inventoryData !== undefined && inventoryData !== null) {
-      const validData = Array.isArray(inventoryData) ? inventoryData : [];
+    if (stockData !== undefined && stockData !== null) {
+      const validData = Array.isArray(stockData) ? stockData : [];
       setStockMovements(validData);
       const state = storage.getState();
       state.stockMovements = validData;
       storage.saveState(state);
     }
-  }, [inventoryData]);
+  }, [stockData]);
 
   useEffect(() => {
     if (salesData !== undefined && salesData !== null) {
@@ -679,20 +678,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (
-      inventoryData !== undefined &&
-      inventoryData !== null &&
-      isInitialLoadingInventory
+      stockData !== undefined &&
+      stockData !== null &&
+      isInitialLoadingStock
     ) {
-      setIsInitialLoadingInventory(false);
+      setIsInitialLoadingStock(false);
     }
-  }, [inventoryData, isInitialLoadingInventory]);
+  }, [stockData, isInitialLoadingStock]);
 
   // Refetch data from API immediately (for instant updates after creating records)
   const refetchData = useCallback(async () => {
     await Promise.all([
       refetchProducts(),
       refetchSuppliers(),
-      refetchInventory(),
+      refetchStock(),
       refetchSales(),
       refetchSaleReturns(),
       refetchActivities(),
@@ -701,7 +700,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [
     refetchProducts,
     refetchSuppliers,
-    refetchInventory,
+    refetchStock,
     refetchSales,
     refetchSaleReturns,
     refetchActivities,
@@ -992,7 +991,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await Promise.all([
             refetchSales(),
             refetchProducts(),
-            refetchInventory(),
+            refetchStock(),
           ]);
         } else {
           const responseData = response?.data as
@@ -1042,7 +1041,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       stockMovements,
       refetchSales,
       refetchProducts,
-      refetchInventory,
+      refetchStock,
       resolveReferenceId,
       sendApiRequest,
       user?.businessId,
@@ -1369,12 +1368,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           queryKey: ["products", activeBusinessId],
         });
         queryClient.invalidateQueries({
-          queryKey: [
-            "inventory",
-            "movements",
-            activeBusinessId,
-            defaultBranchId,
-          ],
+          queryKey: ["stock", "movements", activeBusinessId, defaultBranchId],
         });
         queryClient.invalidateQueries({
           queryKey: ["sales", activeBusinessId, defaultBranchId],
@@ -1439,12 +1433,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           queryKey: ["sales", activeBusinessId, defaultBranchId],
         }),
         queryClient.invalidateQueries({
-          queryKey: [
-            "inventory",
-            "movements",
-            activeBusinessId,
-            defaultBranchId,
-          ],
+          queryKey: ["stock", "movements", activeBusinessId, defaultBranchId],
         }),
       ]).catch(() => {
         // Continue even if invalidation fails
@@ -1523,12 +1512,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         const response = await sendApiRequest(
           "POST",
-          "/inventory/movements/add",
+          "/stock/movements/add",
           movementWithBusinessId,
         );
 
         if (response?.ok) {
-          await Promise.all([refetchInventory(), refetchProducts()]);
+          await Promise.all([refetchStock(), refetchProducts()]);
         } else {
           persistProducts(previousProducts);
           persistStockMovements(previousStockMovements);
@@ -1544,7 +1533,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       persistProducts,
       persistStockMovements,
       products,
-      refetchInventory,
+      refetchStock,
       refetchProducts,
       sendApiRequest,
       stockMovements,
@@ -1850,12 +1839,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refresh,
         refetchData,
         refetchProducts,
-        refetchInventory,
+        refetchStock,
         // Loading states for skeleton loaders
         isInitialLoadingProducts,
         isInitialLoadingSuppliers,
         isInitialLoadingSales,
-        isInitialLoadingInventory,
+        isInitialLoadingStock,
       }}
     >
       {children}

@@ -32,7 +32,8 @@ export function TopNav() {
     const titles: Record<string, string> = {
       "": "Dashboard",
       products: "Products",
-      inventory: "Inventory",
+      inventory: "Stock",
+      stock: "Stock",
       sales: "Sales",
       suppliers: "Suppliers",
       reports: "Reports",

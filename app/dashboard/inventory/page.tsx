@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { useToast } from "@/components/ui/use-toast";
 import { ClientOnly } from "@/components/client-only";
@@ -35,17 +35,18 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardSkeleton } from "@/components/ui/CardSkeleton";
 
-function InventoryPageContent() {
+function StockPageContent() {
   const {
     products,
     stockMovements,
     addStockMovement,
-    isInitialLoadingInventory,
+    isInitialLoadingStock,
     logActivity,
   } = useData();
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const {
     notifyLowStock,
     notifyStockOut,
@@ -77,7 +78,7 @@ function InventoryPageContent() {
 
   // Clear productId from URL to prevent re-selection on refresh
   const clearProductIdFromUrl = () => {
-    router.push("/dashboard/inventory", { scroll: false });
+    router.push(pathname || "/dashboard/stock", { scroll: false });
   };
 
   useEffect(() => {
@@ -165,7 +166,7 @@ function InventoryPageContent() {
     }
 
     notifyResourceCreated(
-      "Inventory movement",
+      "Stock movement",
       `${movement.type} for ${productName}`,
     );
 
@@ -344,7 +345,7 @@ function InventoryPageContent() {
             <div className="flex items-center gap-3 mb-2">
               <Package className="w-8 h-8" />
               <h1 className="text-3xl sm:text-4xl font-bold">
-                Inventory Management
+                Stock Management
               </h1>
             </div>
             <p className="text-emerald-100 text-lg">
@@ -549,7 +550,7 @@ function InventoryPageContent() {
           </p>
         </div>
 
-        {isInitialLoadingInventory ? (
+        {isInitialLoadingStock ? (
           <CardSkeleton count={6} />
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -794,10 +795,10 @@ function InventoryPageContent() {
   );
 }
 
-export default function InventoryPage() {
+export default function StockPage() {
   return (
     <ClientOnly>
-      <InventoryPageContent />
+      <StockPageContent />
     </ClientOnly>
   );
 }

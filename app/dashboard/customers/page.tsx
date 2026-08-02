@@ -701,7 +701,7 @@ export default function CustomersPage() {
                   <div className="space-y-6">
                     <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
                       <div className="rounded-3xl bg-slate-50 p-6 text-center dark:bg-slate-900">
-                        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary text-4xl font-bold text-white">
+                        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary text-4xl font-bold dark:text-white text-black">
                           {selectedCustomer.name
                             .split(" ")
                             .map((part) => part[0])

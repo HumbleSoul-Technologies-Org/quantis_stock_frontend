@@ -506,7 +506,7 @@ export function Security() {
             <p className="font-medium mb-1">⚠️ Warning</p>
             <p>
               Deleting your business account is permanent and cannot be undone.
-              All data including users, products, inventory, sales records, and
+              All data including users, products, stock, sales records, and
               settings will be permanently deleted from our servers.
             </p>
           </div>
@@ -558,7 +558,7 @@ export function Security() {
               <ul className="list-disc list-inside space-y-1">
                 <li>Business profile</li>
                 <li>All team users</li>
-                <li>Products and inventory</li>
+                <li>Products and stock</li>
                 <li>Sales records</li>
                 <li>Settings and preferences</li>
               </ul>

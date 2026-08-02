@@ -110,7 +110,7 @@ function OnboardingHero() {
       </h1>
       <p className="text-lg text-gray-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
         Let's set up your business profile to get you started with powerful
-        inventory management
+        stock management
       </p>
     </div>
   );
@@ -429,13 +429,13 @@ export function BusinessSetupForm({
                   )}
                   <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">
                     {businessType === "retail" &&
-                      "Optimized for retail stores with inventory tracking and sales management."}
+                      "Optimized for retail stores with stock tracking and sales management."}
                     {businessType === "wholesaler" &&
                       "Wholesaler businesses can manage customer credit, approvals, and payment tracking."}
                     {businessType === "manufacturer" &&
-                      "Manufacturer businesses can manage BOMs, production orders and finished goods inventory."}
+                      "Manufacturer businesses can manage BOMs, production orders and finished goods stock."}
                     {businessType === "other" &&
-                      "Other business types can use core inventory and sales features."}
+                      "Other business types can use core stock and sales features."}
                   </p>
                 </div>
 

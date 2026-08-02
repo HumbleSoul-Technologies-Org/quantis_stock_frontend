@@ -42,10 +42,10 @@ export default async function ProductKeyPage({
               Quantis stock
             </h1>
             <p className="text-slate-600 dark:text-slate-300 text-lg">
-              Inventory Management System
+              Stock Management System
             </p>
             <p className="text-slate-500 dark:text-slate-400 text-sm italic">
-              "Streamline your inventory, boost your business"
+              "Streamline your stock, boost your business"
             </p>
           </div>
         </div>

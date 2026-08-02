@@ -25,7 +25,7 @@ const ENCRYPTED_KEYS = [
   "teamUsers",
 
   // Main Application State (Primary Data Stores)
-  "erp_system_state", // Main app state (products, inventory, sales, suppliers, reports)
+  "erp_system_state", // Main app state (products, stock, sales, suppliers, reports)
   "erp_system_merged_cache", // Merged cache of system state
   "erp_system_offline_items", // Offline sync queue
 ];

@@ -6,7 +6,7 @@ import {
   RevenueKPICard,
   SalesKPICard,
   LossesKPICard,
-  InventoryValueKPICard,
+  StockValueKPICard,
   OutstandingCreditKPICard,
 } from "@/components/dashboard/KPICards";
 import { SalesTrendChart } from "@/components/dashboard/SalesTrendChart";
@@ -52,7 +52,7 @@ export default function DashboardPage() {
         <RevenueKPICard />
         <SalesKPICard />
         <LossesKPICard />
-        <InventoryValueKPICard />
+        <StockValueKPICard />
         <OutstandingCreditKPICard />
       </div>
 

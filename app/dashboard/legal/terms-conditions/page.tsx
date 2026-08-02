@@ -151,8 +151,8 @@ export default function TermsAndConditionsPage() {
             <p className="text-gray-700 dark:text-slate-300">
               Quantis stock grants you a limited, non-exclusive,
               non-transferable license to access and use the platform for your
-              personal or business inventory management purposes, subject to
-              these Terms.
+              personal or business stock management purposes, subject to these
+              Terms.
             </p>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-teal-200 mt-4">
               2.1 Authorized Use
