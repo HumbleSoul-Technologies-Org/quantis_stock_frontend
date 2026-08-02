@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,11 +37,22 @@ interface BranchPageProps {
   }>;
 }
 
+type BranchTab =
+  | "overview"
+  | "customers"
+  | "sales"
+  | "stock"
+  | "users"
+  | "activity";
+
 export default function BranchDetailsPage({ params }: BranchPageProps) {
   const { branchId } = use(params);
   const { user, business } = useAuth();
   const { userCreated } = useResourceNotifications();
   const { formatCurrency } = useSettings();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [branch, setBranch] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +88,7 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
   const [showStockDatePicker, setShowStockDatePicker] = useState(false);
   const [branchActivities, setBranchActivities] = useState<any[]>([]);
   const [branchCustomers, setBranchCustomers] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<BranchTab>("overview");
 
   const validateCreateUserForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -180,6 +193,22 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
   };
 
   useEffect(() => {
+    const tabFromQuery = searchParams.get("tab") as BranchTab | null;
+    const validTabs: BranchTab[] = [
+      "overview",
+      "customers",
+      "sales",
+      "stock",
+      "users",
+      "activity",
+    ];
+
+    if (tabFromQuery && validTabs.includes(tabFromQuery)) {
+      setActiveTab(tabFromQuery);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     async function loadBranch() {
       setLoading(true);
       setError(null);
@@ -281,6 +310,21 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
           : buildBranchOverviewData(branch, branchUsers).recentActivity,
     };
   }, [branch, branchUsers, branchActivities]);
+
+  const handleTabChange = (tab: BranchTab) => {
+    setActiveTab(tab);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+
+    const queryString = params.toString();
+    const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(nextUrl, { scroll: false });
+  };
 
   const salesSearchTerm = salesSearchQuery.trim().toLowerCase();
   const stockSearchTerm = stockSearchQuery.trim().toLowerCase();
@@ -420,14 +464,18 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => handleTabChange(value as BranchTab)}
+        className="space-y-4"
+      >
         <TabsList className="flex flex-wrap gap-2 bg-gray-100 dark:bg-slate-700 p-2 rounded-2xl">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="stock">Stock Movement</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
-          {/* <TabsTrigger value="activity">Activity</TabsTrigger> */}
+          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -468,6 +516,30 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
                         </p>
                         <p className="text-base font-medium text-slate-900 dark:text-slate-100">
                           {branch.address || "—"}
+                        </p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Region
+                        </p>
+                        <p className="text-base font-medium text-slate-900 dark:text-slate-100">
+                          {branch.region || "—"}
+                        </p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          District / State
+                        </p>
+                        <p className="text-base font-medium text-slate-900 dark:text-slate-100">
+                          {branch.district || "—"}
+                        </p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Country
+                        </p>
+                        <p className="text-base font-medium text-slate-900 dark:text-slate-100">
+                          {branch.country || "—"}
                         </p>
                       </div>
                     </div>
@@ -599,60 +671,35 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => {
-                          const trigger = document.querySelector(
-                            '[data-slot="tabs-trigger"][value="customers"]',
-                          ) as HTMLButtonElement | null;
-                          trigger?.click();
-                        }}
+                        onClick={() => handleTabChange("customers")}
                       >
                         View customers
                       </Button>
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => {
-                          const trigger = document.querySelector(
-                            '[data-slot="tabs-trigger"][value="sales"]',
-                          ) as HTMLButtonElement | null;
-                          trigger?.click();
-                        }}
+                        onClick={() => handleTabChange("sales")}
                       >
                         View sales
                       </Button>
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => {
-                          const trigger = document.querySelector(
-                            '[data-slot="tabs-trigger"][value="stock"]',
-                          ) as HTMLButtonElement | null;
-                          trigger?.click();
-                        }}
+                        onClick={() => handleTabChange("stock")}
                       >
                         View stock movement
                       </Button>
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => {
-                          const trigger = document.querySelector(
-                            '[data-slot="tabs-trigger"][value="users"]',
-                          ) as HTMLButtonElement | null;
-                          trigger?.click();
-                        }}
+                        onClick={() => handleTabChange("users")}
                       >
                         View users
                       </Button>
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => {
-                          const trigger = document.querySelector(
-                            '[data-slot="tabs-trigger"][value="activity"]',
-                          ) as HTMLButtonElement | null;
-                          trigger?.click();
-                        }}
+                        onClick={() => handleTabChange("activity")}
                       >
                         View activity
                       </Button>
@@ -662,6 +709,44 @@ export default function BranchDetailsPage({ params }: BranchPageProps) {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <Card>
+            <CardHeader>
+              <CardTitle>Branch activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {overviewData.recentActivity.length > 0 ? (
+                <ul className="space-y-3">
+                  {overviewData.recentActivity.map((item, index) => (
+                    <li
+                      key={`${item.title}-${index}`}
+                      className="rounded-lg border border-slate-200 p-3 dark:border-slate-700"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-medium text-slate-900 dark:text-slate-100">
+                          {item.title}
+                        </p>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {item.timestamp
+                            ? format(new Date(item.timestamp), "MMM d, yyyy")
+                            : "—"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        {item.detail}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No recent activity has been recorded for this branch yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="customers">

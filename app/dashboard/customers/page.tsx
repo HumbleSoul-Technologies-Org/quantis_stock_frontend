@@ -702,12 +702,11 @@ export default function CustomersPage() {
                     <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
                       <div className="rounded-3xl bg-slate-50 p-6 text-center dark:bg-slate-900">
                         <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary text-4xl font-bold dark:text-white text-black">
-                          {selectedCustomer.name
-                            .split(" ")
-                            .map((part) => part[0])
-                            .slice(0, 2)
-                            .join("")
-                            .toUpperCase()}
+                          <img
+                            src="/user.jpg"
+                            alt={selectedCustomer.name}
+                            className="w-full h-full object-cover rounded-full"
+                          />
                         </div>
                         <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                           {selectedCustomer.name}
