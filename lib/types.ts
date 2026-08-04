@@ -192,6 +192,7 @@ export interface Product {
   reorderLevel: number;
   currentStock: number;
   businessId?: string; // Business isolation (optional during transition)
+  branchIds?: string[];
   createdAt: string;
   updatedAt: string;
 

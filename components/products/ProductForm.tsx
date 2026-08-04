@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { uploadImage } from "@/lib/cloudinary";
 import { useBusinessConfig } from "@/hooks/useBusinessConfig";
+import { apiRequest } from "@/lib/queryClient";
 import {
   getFieldSchemaForCategory,
   FieldDefinition,
@@ -70,6 +71,10 @@ export function ProductForm({
   const [isFinishedGood, setIsFinishedGood] = useState<boolean>(
     product?.isFinishedGood || false,
   );
+  const [branches, setBranches] = useState<
+    Array<{ id: string; branchName: string }>
+  >([]);
+  const [isLoadingBranches, setIsLoadingBranches] = useState<boolean>(false);
   const [bomItems, setBomItems] = useState<
     Array<{ componentId?: string; quantity?: number; unit?: string }>
   >(product?.bom || []);
@@ -101,6 +106,50 @@ export function ProductForm({
         }))
       : [{ title: "", value: "" }],
   );
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchBranches = async () => {
+      if (!user?.token) {
+        return;
+      }
+
+      setIsLoadingBranches(true);
+      try {
+        const response = await apiRequest("GET", "/branches", {}, user.token);
+        if (!mounted) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          const branchList = Array.isArray(data)
+            ? data.map((branch: any) => ({
+                id: branch._id || branch.id,
+                branchName: branch.branchName,
+              }))
+            : [];
+          setBranches(branchList);
+
+          if (!product && user.branchId) {
+            setFormData((prev) => ({
+              ...prev,
+              branchIds: [user.branchId],
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load branches:", error);
+      } finally {
+        if (mounted) {
+          setIsLoadingBranches(false);
+        }
+      }
+    };
+
+    fetchBranches();
+    return () => {
+      mounted = false;
+    };
+  }, [product, user?.branchId, user?.token]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -505,6 +554,7 @@ export function ProductForm({
         supplierId: formData.supplierId || "",
         reorderLevel: formData.reorderLevel || 10,
         currentStock: formData.currentStock ?? product?.currentStock ?? 0,
+        branchIds: formData.branchIds,
 
         retailSubType: formData.retailSubType || retailSubType,
 
@@ -739,6 +789,46 @@ export function ProductForm({
           </select>
           {errors.supplierId && (
             <p className="text-red-500 text-xs mt-1">{errors.supplierId}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Assigned Branches
+          </label>
+          <select
+            multiple
+            value={formData.branchIds || []}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map(
+                (option) => option.value,
+              );
+              setFormData({ ...formData, branchIds: selected });
+            }}
+            className={`w-full px-3 py-2 border rounded-md text-sm dark:bg-slate-700 dark:text-slate-50 ${
+              errors.branchIds
+                ? "border-red-500"
+                : "border-green-200 dark:border-teal-700"
+            }`}
+          >
+            {branches.length === 0 && !isLoadingBranches && (
+              <option disabled value="">
+                No branches available
+              </option>
+            )}
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.branchName}
+              </option>
+            ))}
+          </select>
+          {isLoadingBranches && (
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+              Loading branches...
+            </p>
+          )}
+          {errors.branchIds && (
+            <p className="text-red-500 text-xs mt-1">{errors.branchIds}</p>
           )}
         </div>
 

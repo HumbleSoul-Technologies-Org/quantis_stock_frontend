@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BarChart3,
   Check,
+  Clock,
   Factory,
   Headphones,
   Package,
@@ -403,17 +404,24 @@ export function SubscriptionPlans() {
                   <button
                     type="button"
                     onClick={() => handleSelectPlan(plan.id)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || plan?.name === "Manufacturer"}
                     className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${
                       plan.recommended
                         ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500"
                         : "bg-emerald-600 text-white hover:bg-emerald-500"
-                    } ${isProcessing ? "cursor-not-allowed opacity-70" : ""}`}
+                    } ${isProcessing || plan?.name === "Manufacturer" ? "cursor-not-allowed opacity-70" : ""}`}
                   >
-                    {processingPlan === plan.id
-                      ? "Processing…"
-                      : `Choose ${plan.name}`}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {plan?.name === "Manufacturer"
+                      ? "Coming soon"
+                      : processingPlan === plan.id
+                        ? "Processing…"
+                        : `Choose ${plan.name}`}
+
+                    {plan?.name === "Manufacturer" ? (
+                      <Clock className="ml-2 h-4 w-4" />
+                    ) : (
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    )}
                   </button>
                 )}
               </article>
