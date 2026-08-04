@@ -38,6 +38,12 @@ export function Sidebar() {
       roles: ["admin", "manager", "accountant", "sales"],
     },
     {
+      href: "/dashboard/sales",
+      label: "Sales",
+      icon: ShoppingCart,
+      roles: ["admin", "manager", "sales", "accountant"],
+    },
+    {
       href: "/dashboard/products",
       label: "Products",
       icon: Package,
@@ -49,12 +55,7 @@ export function Sidebar() {
       icon: Truck,
       roles: ["admin", "manager", "accountant"],
     },
-    {
-      href: "/dashboard/sales",
-      label: "Sales",
-      icon: ShoppingCart,
-      roles: ["admin", "manager", "sales", "accountant"],
-    },
+
     {
       href: "/dashboard/customers",
       label: "Customers",
@@ -68,17 +69,18 @@ export function Sidebar() {
       roles: ["admin", "manager", "accountant"],
     },
     {
-      href: "/dashboard/reports",
-      label: "Reports",
-      icon: BarChart3,
-      roles: ["admin", "manager", "accountant"],
-    },
-    {
       href: "/dashboard/branches",
       label: "Branches",
       icon: MapPin,
       roles: ["admin", "manager", "accountant"],
     },
+    {
+      href: "/dashboard/reports",
+      label: "Reports",
+      icon: BarChart3,
+      roles: ["admin", "manager", "accountant"],
+    },
+
     {
       href: "/subscriptions",
       label: "Subscriptions",

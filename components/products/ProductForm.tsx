@@ -130,9 +130,10 @@ export function ProductForm({
           setBranches(branchList);
 
           if (!product && user.branchId) {
+            const branchId = String(user.branchId);
             setFormData((prev) => ({
               ...prev,
-              branchIds: [user.branchId],
+              branchIds: [branchId],
             }));
           }
         }
