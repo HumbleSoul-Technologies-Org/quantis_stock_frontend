@@ -274,7 +274,7 @@ export default function WorkforcePage() {
       calculateWorkforceStats(
         workers.map((worker) => ({
           id: worker.id || worker._id || "",
-          fullName: worker.fullName,
+          fullName: worker.fullName ?? "",
           department: worker.department,
           branchId: worker.branchId || undefined,
           employmentType: worker.employmentType,
@@ -282,7 +282,7 @@ export default function WorkforcePage() {
         })),
         attendance.map((record) => ({
           workerId: record.workerId,
-          status: record.status,
+          status: record.status ?? "present",
         })),
       ),
     [workers, attendance],

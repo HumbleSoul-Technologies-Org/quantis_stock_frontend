@@ -27,6 +27,9 @@ interface StockMovementFormProps {
   onCancel: () => void;
   currentUserId: string;
   preselectedProductId?: string;
+  allowedStockStages?: string[];
+  defaultStockStage?: string;
+  showManufacturingFields?: boolean;
   initialMovement?: StockMovement;
   serverError?: string;
 }

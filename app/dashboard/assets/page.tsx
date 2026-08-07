@@ -224,10 +224,7 @@ export default function AssetsPage() {
     setCategoryError("");
 
     try {
-      await createAssetCategory(
-        { name: trimmedName, type: "other" },
-        user.token,
-      );
+      await createAssetCategory({ name: trimmedName }, user.token);
       setIsCategoryDialogOpen(false);
       setNewCategoryName("");
       await loadData();

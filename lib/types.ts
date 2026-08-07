@@ -185,6 +185,7 @@ export interface Product {
   sku: string;
   category: string;
   customCategory?: string; // For "Other" category - user-defined category name
+  productStage?: string;
   unitPrice: number;
   costPrice: number;
   unit: string; // kg, lbs, units, etc (base unit)
@@ -245,6 +246,8 @@ export interface StockMovement {
   quantity: number;
   reason: string;
   reference: string; // Purchase order, Sales order, etc
+  stockStage?: string;
+  movementCategory?: string;
   businessId?: string; // Business isolation (optional during transition)
   branchId?: string | null; // Branch-level scoping
   createdBy: string | User;
@@ -259,6 +262,310 @@ export interface Category {
   businessId?: string; // Business isolation (optional during transition)
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Branch {
+  id?: string;
+  _id?: string;
+  branchName?: string;
+  branchCode?: string;
+  address?: string;
+  city?: string;
+  district?: string;
+  country?: string;
+  region?: string;
+  status?: string;
+  latitude?: number | string;
+  longitude?: number | string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AssetCategory {
+  id?: string;
+  _id?: string;
+  name: string;
+  description?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AssetCategoryPayload {
+  name: string;
+  description?: string;
+  businessId?: string;
+}
+
+export interface AssetPayload {
+  branchId?: string;
+  categoryId: string;
+  name: string;
+  description?: string;
+  code?: string;
+  assetType:
+    | "property"
+    | "equipment"
+    | "vehicle"
+    | "furniture"
+    | "tool"
+    | "other";
+  acquisitionDate: string;
+  acquisitionCost: number;
+  currentValue?: number;
+  depreciationMethod?: string;
+  usefulLifeYears?: number;
+  status?: "inUse" | "retired" | "maintenance" | "disposed";
+  location?: string;
+  custodianId?: string;
+  purchaseInvoiceRef?: string;
+}
+
+export interface Asset extends AssetPayload {
+  id?: string;
+  _id?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ExpenseCategory {
+  id?: string;
+  _id?: string;
+  name: string;
+  description?: string;
+  businessId?: string;
+  branchId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ExpensePaymentMethod = "cash" | "bank" | "mobileMoney" | "other";
+export type ExpensePaymentStatus = "unpaid" | "partial" | "paid";
+export type ExpenseApprovalStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "rejected"
+  | "paid";
+
+export interface Expense {
+  id?: string;
+  _id?: string;
+  title: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  expenseDate: string;
+  paymentMethod?: ExpensePaymentMethod;
+  paymentStatus?: ExpensePaymentStatus;
+  approvalStatus?: ExpenseApprovalStatus;
+  costCenter?: string;
+  categoryId?: string;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ExpensePaymentPayload {
+  expenseId: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: ExpensePaymentMethod;
+  reference?: string;
+}
+
+export interface ExpensePayment extends ExpensePaymentPayload {
+  id?: string;
+  _id?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ExpenseApprovalPayload {
+  expenseId: string;
+  status: "submitted" | "approved" | "rejected";
+  note?: string;
+}
+
+export interface ExpenseApproval extends ExpenseApprovalPayload {
+  id?: string;
+  _id?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ExpenseAttachment {
+  id?: string;
+  _id?: string;
+  expenseId: string;
+  filename?: string;
+  url?: string;
+  description?: string;
+  uploadedAt?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkforceWorkerProfile {
+  id?: string;
+  _id?: string;
+  fullName?: string;
+  department?: string;
+  employmentType?: string;
+  status?: string;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkforceAttendanceRecordType {
+  id?: string;
+  _id?: string;
+  workerId: string;
+  date?: string;
+  status?: "present" | "absent" | "halfDay" | "leave" | "off";
+  branchId?: string;
+  businessId?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkforcePayrollRunType {
+  id?: string;
+  _id?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  totalGross?: number;
+  totalDeductions?: number;
+  totalNet?: number;
+  branchId?: string;
+  businessId?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkforceAdvanceType {
+  id?: string;
+  _id?: string;
+  advanceId?: string;
+  workerId?: string;
+  amount?: number;
+  outstandingBalance?: number;
+  status?: string;
+  note?: string;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AttendancePolicy {
+  id?: string;
+  _id?: string;
+  name?: string;
+  department?: string;
+  isActive?: boolean;
+  branchId?: string;
+  businessId?: string;
+  workSchedule?: {
+    daysOfWork?: number;
+    workHours?: number;
+    workingDays?: string[];
+  };
+  pay?: {
+    payPerDay?: number;
+    halfDayPay?: number;
+    overtimeEnabled?: boolean;
+    overtimeRate?: number;
+  };
+  publicHolidays?: {
+    working?: boolean;
+    paymentMode?: string;
+    paymentMultiplier?: number;
+  };
+  leaves?: {
+    enabled?: boolean;
+    maxLeaveDays?: number;
+    paymentEnabled?: boolean;
+    paymentRules?: Array<{
+      reason: string;
+      paymentAmount: number;
+      isPaid: boolean;
+    }>;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PayrollPolicy {
+  id?: string;
+  _id?: string;
+  department?: string;
+  employmentType?: string;
+  payCycle?: string;
+  basicPayMode?: string;
+  basicRate?: number;
+  overtimeRate?: number;
+  allowanceRate?: number;
+  deductionsRules?: Array<{ type: string; amount: number }>;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PayrollEntry {
+  id?: string;
+  _id?: string;
+  workerId?: string;
+  runId?: string;
+  basePay?: number;
+  overtimePay?: number;
+  allowances?: number;
+  deductions?: number;
+  advances?: number;
+  netPay?: number;
+  status?: string;
+  notes?: string;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Payslip {
+  id?: string;
+  _id?: string;
+  entryId?: string;
+  pdfUrl?: string;
+  issuedAt?: string;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdvanceDeduction {
+  id?: string;
+  _id?: string;
+  advanceId?: string;
+  entryId?: string;
+  amountDeducted?: number;
+  remainingBalanceAfterDeduction?: number;
+  deductedAt?: string;
+  branchId?: string;
+  businessId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Sales Types
