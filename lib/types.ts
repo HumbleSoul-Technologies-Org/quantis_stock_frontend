@@ -150,6 +150,87 @@ export interface User {
   product_key_verified?: boolean; // Whether product key has been verified
 }
 
+export interface RawMaterial {
+  id?: string;
+  _id?: string;
+  name: string;
+  code?: string;
+  category?: string;
+  description?: string;
+  unitOfMeasure?: string;
+  packagingUnit?: string;
+  quantityPerPack?: number;
+  subUnitSize?: number;
+  totalEquivalentQuantity?: number;
+  openingBalance?: number;
+  currentStockBalance?: number;
+  quantityReceived?: number;
+  quantityUsed?: number;
+  quantityWasted?: number;
+  reorderLevel?: number;
+  minimumStockLevel?: number;
+  maximumStockLevel?: number;
+  supplier?: string;
+  purchasePrice?: number;
+  currency?: string;
+  storageLocation?: string;
+  storageCondition?: string;
+  expiryDate?: string;
+  handlingNotes?: string;
+  businessId?: string;
+  branchId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RawMaterialMovement {
+  id?: string;
+  _id?: string;
+  rawMaterialId: string;
+  movementType: "received" | "used" | "wasted" | "adjusted";
+  quantity: number;
+  reason?: string;
+  reference?: string;
+  notes?: string;
+  businessId?: string;
+  branchId?: string | null;
+  createdBy?: string;
+  createdAt?: string;
+}
+
+export interface ProductionTraceComponent {
+  componentId: string;
+  requiredQuantity: number;
+  unit?: string;
+}
+
+export interface ProductionTracePayload {
+  productId: string;
+  productionDate: string;
+  quantity: number;
+  bulkUnitKey?: string;
+  bulkUnitValue?: string;
+  bulkUnitLabel?: string;
+  openingStock?: number;
+  closingStock?: number;
+  damagedQuantity?: number;
+  sales?: number;
+  notes?: string;
+  components?: ProductionTraceComponent[];
+  businessId?: string;
+  branchId?: string | null;
+  createdBy?: string;
+}
+
+export interface ProductionTraceRecord extends ProductionTracePayload {
+  id?: string;
+  _id?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  productName?: string;
+}
+
 // Product Types - Extended ERP Support
 export interface UnitOfMeasure {
   unit: string;
@@ -235,6 +316,21 @@ export interface Product {
   // Manufacturing fields
   isFinishedGood?: boolean;
   bom?: Array<{ componentId: string; quantity: number; unit?: string }>;
+  productType?: string;
+  packagingType?: string;
+  productionLeadTime?: number;
+  expectedYield?: number;
+  productionCostPerUnit?: number;
+  qualityStandard?: string;
+  inspectionRequirements?: string;
+  shelfLife?: string;
+  storageCondition?: string;
+  complianceNotes?: string;
+  batchSize?: number;
+  machineRequirements?: string;
+  labourRequirement?: string;
+  productionMethod?: string;
+  recipe?: string;
 }
 
 // Inventory Types
@@ -932,6 +1028,8 @@ export interface AppState {
   sales: Sale[];
   saleReturns: SaleReturn[]; // Add sale returns tracking
   stockMovements: StockMovement[];
+  rawMaterials: RawMaterial[];
+  rawMaterialMovements: RawMaterialMovement[];
   activities: Activity[];
   securityAudits: SecurityAudit[];
   // settings removed - now handled by SettingsContext

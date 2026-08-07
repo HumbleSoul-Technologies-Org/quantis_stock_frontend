@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
@@ -32,21 +32,21 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
     setError,
     setValue,
   } = useForm<ProductKeyFormData>({
     resolver: zodResolver(productKeySchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       productKey: defaultProductKey ?? "",
     },
   });
 
-  useEffect(() => {
-    if (defaultProductKey) {
-      setValue("productKey", defaultProductKey);
-    }
-  }, [defaultProductKey, setValue]);
+  const productKeyValue = watch("productKey");
+  const [autoSubmittedKey, setAutoSubmittedKey] = useState("");
 
   const onSubmit = async (data: ProductKeyFormData) => {
     setSuccess("");
@@ -135,6 +135,31 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (defaultProductKey) {
+      setValue("productKey", defaultProductKey, { shouldValidate: true });
+    }
+  }, [defaultProductKey, setValue]);
+
+  useEffect(() => {
+    const key = productKeyValue?.trim();
+    if (!key || key === autoSubmittedKey) {
+      return;
+    }
+
+    const isValidKey = productKeySchema.safeParse(key).success;
+    if (!isValidKey) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setAutoSubmittedKey(key);
+      handleSubmit(onSubmit)();
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [autoSubmittedKey, handleSubmit, onSubmit, productKeyValue]);
 
   const restartRegistration = async () => {
     setRestartLoading(true);

@@ -19,6 +19,7 @@ import {
   X,
   MapPin,
   CreditCard,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -75,6 +76,34 @@ export function Sidebar() {
       roles: ["admin", "manager", "accountant"],
     },
     {
+      href: "/dashboard/assets",
+      label: "Assets",
+      icon: Package,
+      roles: ["admin", "manager", "accountant", "sales"],
+      requiresManufacturer: true,
+    },
+    {
+      href: "/dashboard/raw-materials",
+      label: "Raw Materials",
+      icon: Layers,
+      roles: ["admin", "manager", "accountant", "sales"],
+      requiresManufacturer: true,
+    },
+    {
+      href: "/dashboard/expenses",
+      label: "Expenses",
+      icon: BarChart3,
+      roles: ["admin", "manager", "accountant", "sales"],
+      requiresManufacturer: true,
+    },
+    {
+      href: "/dashboard/workforce",
+      label: "Workforce",
+      icon: Users,
+      roles: ["admin", "manager", "accountant", "sales"],
+      requiresManufacturer: true,
+    },
+    {
       href: "/dashboard/reports",
       label: "Reports",
       icon: BarChart3,
@@ -101,8 +130,12 @@ export function Sidebar() {
     },
   ];
 
-  const visibleItems = menuItems.filter((item) =>
-    item.roles.includes(user.role),
+  const isManufacturer = business?.businessType === "manufacturer";
+
+  const visibleItems = menuItems.filter(
+    (item) =>
+      item.roles.includes(user.role) &&
+      (!item.requiresManufacturer || isManufacturer),
   );
 
   const handleLogout = async () => {

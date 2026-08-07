@@ -21,6 +21,10 @@ import {
   SaleItem,
   SaleReturn,
   StockMovement,
+  RawMaterial,
+  RawMaterialMovement,
+  ProductionTracePayload,
+  ProductionTraceRecord,
 } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
@@ -111,7 +115,7 @@ const apiStock = async (
   try {
     const response = await apiRequest(
       "GET",
-      "/stock/movements",
+      "/inventory/movements",
       {
         limit: 100,
         status: "active",
@@ -217,6 +221,17 @@ interface DataContextType {
   stockMovements: StockMovement[];
   addStockMovement: (movement: StockMovement) => void;
 
+  // Raw Materials
+  rawMaterials: RawMaterial[];
+  rawMaterialMovements: RawMaterialMovement[];
+  addRawMaterial: (rawMaterial: RawMaterial) => Promise<RawMaterial>;
+  addRawMaterialMovement: (
+    movement: RawMaterialMovement,
+  ) => Promise<RawMaterialMovement>;
+  traceProduction: (
+    production: ProductionTracePayload,
+  ) => Promise<ProductionTraceRecord>;
+
   // Activities
   activities: Activity[];
   addActivity: (activity: Activity) => Promise<void>;
@@ -284,6 +299,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [saleReturns, setSaleReturns] = useState<SaleReturn[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
+  const [rawMaterialMovements, setRawMaterialMovements] = useState<
+    RawMaterialMovement[]
+  >([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [securityAudits, setSecurityAudits] = useState<SecurityAudit[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -393,6 +412,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [activeBusinessId],
   );
 
+  const persistRawMaterials = useCallback(
+    (updatedRawMaterials: RawMaterial[]) => {
+      setRawMaterials(updatedRawMaterials);
+      const state = storage.getState();
+      state.rawMaterials = updatedRawMaterials;
+      storage.saveState(state);
+      queryClient.setQueryData(
+        ["raw-materials", activeBusinessId],
+        updatedRawMaterials,
+      );
+    },
+    [activeBusinessId],
+  );
+
+  const persistRawMaterialMovements = useCallback(
+    (updatedRawMaterialMovements: RawMaterialMovement[]) => {
+      setRawMaterialMovements(updatedRawMaterialMovements);
+      const state = storage.getState();
+      state.rawMaterialMovements = updatedRawMaterialMovements;
+      storage.saveState(state);
+      queryClient.setQueryData(
+        ["raw-material-movements", activeBusinessId],
+        updatedRawMaterialMovements,
+      );
+    },
+    [activeBusinessId],
+  );
+
   const persistActivities = useCallback(
     (updatedActivities: Activity[]) => {
       setActivities(updatedActivities);
@@ -483,6 +530,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setStockMovements(
       Array.isArray(state.stockMovements) ? state.stockMovements : [],
     );
+    setRawMaterials(
+      Array.isArray(state.rawMaterials) ? state.rawMaterials : [],
+    );
+    setRawMaterialMovements(
+      Array.isArray(state.rawMaterialMovements)
+        ? state.rawMaterialMovements
+        : [],
+    );
     setActivities(Array.isArray(state.activities) ? state.activities : []);
     setSecurityAudits(
       Array.isArray(state.securityAudits) ? state.securityAudits : [],
@@ -509,6 +564,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSaleReturns(Array.isArray(state.saleReturns) ? state.saleReturns : []);
       setStockMovements(
         Array.isArray(state.stockMovements) ? state.stockMovements : [],
+      );
+      setRawMaterials(
+        Array.isArray(state.rawMaterials) ? state.rawMaterials : [],
+      );
+      setRawMaterialMovements(
+        Array.isArray(state.rawMaterialMovements)
+          ? state.rawMaterialMovements
+          : [],
       );
       setActivities(Array.isArray(state.activities) ? state.activities : []);
       setSecurityAudits(
@@ -1542,6 +1605,123 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  const addRawMaterial = useCallback(
+    async (rawMaterial: RawMaterial): Promise<RawMaterial> => {
+      const materialWithDefaults: RawMaterial = {
+        ...rawMaterial,
+        id: rawMaterial.id || rawMaterial._id || uuidv4(),
+        businessId: rawMaterial.businessId || user?.businessId,
+        branchId: rawMaterial.branchId || user?.branchId,
+        createdAt: rawMaterial.createdAt || new Date().toISOString(),
+        updatedAt: rawMaterial.updatedAt || new Date().toISOString(),
+      };
+
+      const previousMaterials = rawMaterials;
+      const optimisticMaterials = [materialWithDefaults, ...rawMaterials];
+      persistRawMaterials(optimisticMaterials);
+
+      try {
+        const response = await sendApiRequest(
+          "POST",
+          "/raw-materials/create",
+          materialWithDefaults,
+        );
+
+        if (!response?.ok) {
+          persistRawMaterials(previousMaterials);
+          throw new Error("Unable to save raw material");
+        }
+
+        return materialWithDefaults;
+      } catch (error) {
+        persistRawMaterials(previousMaterials);
+        throw error;
+      }
+    },
+    [
+      persistRawMaterials,
+      rawMaterials,
+      sendApiRequest,
+      user?.businessId,
+      user?.branchId,
+    ],
+  );
+
+  const traceProduction = useCallback(
+    async (
+      production: ProductionTracePayload,
+    ): Promise<ProductionTraceRecord> => {
+      const productionWithDefaults: ProductionTracePayload = {
+        ...production,
+        businessId: production.businessId || user?.businessId,
+        branchId: production.branchId || user?.branchId,
+      };
+
+      const response = await sendApiRequest(
+        "POST",
+        "/production/trace",
+        productionWithDefaults,
+      );
+
+      if (!response?.ok) {
+        const errorText =
+          response?.data?.message || "Unable to save production trace";
+        throw new Error(errorText as string);
+      }
+
+      const responseData = (await response.json()) as {
+        data: ProductionTraceRecord;
+      };
+
+      return responseData.data;
+    },
+    [sendApiRequest, user?.businessId, user?.branchId],
+  );
+
+  const addRawMaterialMovement = useCallback(
+    async (movement: RawMaterialMovement): Promise<RawMaterialMovement> => {
+      const movementWithDefaults: RawMaterialMovement = {
+        ...movement,
+        id: movement.id || movement._id || uuidv4(),
+        businessId: movement.businessId || user?.businessId,
+        branchId: movement.branchId || user?.branchId,
+        createdAt: movement.createdAt || new Date().toISOString(),
+      };
+
+      const previousMovements = rawMaterialMovements;
+      const optimisticMovements = [
+        movementWithDefaults,
+        ...rawMaterialMovements,
+      ];
+      persistRawMaterialMovements(optimisticMovements);
+
+      try {
+        const response = await sendApiRequest(
+          "POST",
+          "/raw-materials/movements/create",
+          movementWithDefaults,
+        );
+
+        if (!response?.ok) {
+          persistRawMaterialMovements(previousMovements);
+          throw new Error("Unable to save raw material movement");
+        }
+
+        return movementWithDefaults;
+      } catch (error) {
+        persistRawMaterialMovements(previousMovements);
+        throw error;
+      }
+    },
+    [
+      persistRawMaterialMovements,
+      rawMaterialMovements,
+      sendApiRequest,
+      user?.businessId,
+      user?.branchId,
+    ],
+  );
+
   // Activity Logging
   const logActivity = useCallback(
     async (
@@ -1818,6 +1998,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refetchSaleReturns,
         stockMovements,
         addStockMovement,
+        rawMaterials,
+        rawMaterialMovements,
+        addRawMaterial,
+        addRawMaterialMovement,
+        traceProduction,
         activities,
         addActivity,
         refetchActivities,

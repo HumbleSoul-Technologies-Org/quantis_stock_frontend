@@ -9,6 +9,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ProductForm } from "./ProductForm";
+import { ManufacturerProductForm } from "./ManufacturerProductForm";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -29,6 +31,9 @@ export function ProductDialog({
   onOpenChange,
   serverError = "",
 }: ProductDialogProps) {
+  const { business } = useAuth();
+  const isManufacturer = business?.businessType === "manufacturer";
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
@@ -46,14 +51,25 @@ export function ProductDialog({
               : "Add a new product to your stock catalog."}
           </DialogDescription>
         </DialogHeader>
-        <ProductForm
-          product={product}
-          suppliers={suppliers}
-          categories={categories}
-          onSubmit={onSubmit}
-          onCancel={() => onOpenChange(false)}
-          serverError={serverError}
-        />
+        {isManufacturer ? (
+          <ManufacturerProductForm
+            product={product}
+            suppliers={suppliers}
+            categories={categories}
+            onSubmit={onSubmit}
+            onCancel={() => onOpenChange(false)}
+            serverError={serverError}
+          />
+        ) : (
+          <ProductForm
+            product={product}
+            suppliers={suppliers}
+            categories={categories}
+            onSubmit={onSubmit}
+            onCancel={() => onOpenChange(false)}
+            serverError={serverError}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

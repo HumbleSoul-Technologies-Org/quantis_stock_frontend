@@ -5,9 +5,17 @@ import { Product, Supplier } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { uploadImage } from "@/lib/cloudinary";
 import { useBusinessConfig } from "@/hooks/useBusinessConfig";
+import { useData } from "@/context/DataContext";
 import { apiRequest } from "@/lib/queryClient";
 import {
   getFieldSchemaForCategory,
@@ -40,6 +48,11 @@ export function ProductForm({
 }: ProductFormProps) {
   const { config: businessConfig, retailSubType } = useBusinessConfig();
   const { user } = useAuth();
+  const { rawMaterials } = useData();
+  const defaultUnits = ["units", "kg", "g", "grammes", "L", "ml", "lbs", "oz"];
+  const units = Array.from(
+    new Set([...(businessConfig.units || defaultUnits), "g", "grammes"]),
+  );
   const [formData, setFormData] = useState<Partial<Product>>(
     product || {
       name: "",
@@ -174,7 +187,6 @@ export function ProductForm({
     }
   };
 
-  const units = businessConfig.units;
   const defaultCategories = businessConfig.categories;
   const mergedCategories = Array.from(
     new Set([...categories, ...defaultCategories]),
@@ -276,35 +288,15 @@ export function ProductForm({
     }
   }, [product?.id]);
 
-  // Fetch products for BOM component selector
+  // Use raw materials as BOM component options instead of finished products
   useEffect(() => {
-    let mounted = true;
-    const fetchComponents = async () => {
-      try {
-        const resp = await (
-          await import("@/lib/queryClient")
-        ).apiRequest(
-          "GET",
-          "/products/all",
-          { businessId: user?.businessId },
-          user?.token,
-        );
-        if (mounted && resp.ok) {
-          const list = (resp.data || []).map((p: any) => ({
-            id: p._id || p.id || p.id,
-            name: p.name,
-          }));
-          setAvailableComponents(list);
-        }
-      } catch (err) {
-        console.error("Failed to fetch components", err);
-      }
-    };
-    fetchComponents();
-    return () => {
-      mounted = false;
-    };
-  }, [user?.businessId, user?.token]);
+    setAvailableComponents(
+      (rawMaterials || []).map((material) => ({
+        id: material._id || material.id || "",
+        name: material.name,
+      })),
+    );
+  }, [rawMaterials]);
 
   // Generic field renderer for any field type
   const renderField = (fieldDef: FieldDefinition) => {
@@ -1004,14 +996,27 @@ export function ProductForm({
                 </div>
                 <div className="col-span-1">
                   <label className="text-xs">Unit</label>
-                  <Input
-                    value={item.unit || formData.unit || "units"}
-                    onChange={(e) => {
+                  <Select
+                    value={item.unit ?? ""}
+                    onValueChange={(value) => {
                       const updated = [...bomItems];
-                      updated[idx].unit = e.target.value;
+                      updated[idx].unit = value;
                       setBomItems(updated);
                     }}
-                  />
+                  >
+                    <SelectTrigger className="w-full" id={`bom-unit-${idx}`}>
+                      <SelectValue
+                        placeholder={formData.unit || "Select unit"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-52">
+                      {units.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-6 flex gap-2">
                   <Button

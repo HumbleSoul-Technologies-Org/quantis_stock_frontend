@@ -196,6 +196,242 @@ export function ProductDetailsDialog({
             </CardContent>
           </Card>
 
+          {(product.productType ||
+            product.productStage ||
+            product.packagingType ||
+            product.productionLeadTime !== undefined ||
+            product.expectedYield !== undefined ||
+            product.productionCostPerUnit !== undefined ||
+            product.batchSize !== undefined ||
+            product.machineRequirements ||
+            product.labourRequirement ||
+            product.productionMethod ||
+            product.qualityStandard ||
+            product.inspectionRequirements ||
+            product.shelfLife ||
+            product.storageCondition ||
+            product.complianceNotes ||
+            product.recipe ||
+            product.isFinishedGood ||
+            (product.bom && product.bom.length > 0)) && (
+            <Card className="border-2 border-green-200 dark:border-teal-700 dark:bg-slate-800">
+              <CardHeader className="bg-linear-to-r from-emerald-50 to-teal-50 dark:from-slate-700 dark:to-slate-600">
+                <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-teal-100">
+                  <Settings className="w-5 h-5" />
+                  Manufacturing Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {product.productType && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Product Type
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.productType}
+                      </p>
+                    </div>
+                  )}
+                  {product.productStage && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Product Stage
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.productStage}
+                      </p>
+                    </div>
+                  )}
+                  {product.packagingType && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Packaging Type
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.packagingType}
+                      </p>
+                    </div>
+                  )}
+                  {product.productionLeadTime !== undefined && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Production Lead Time
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.productionLeadTime} days
+                      </p>
+                    </div>
+                  )}
+                  {product.expectedYield !== undefined && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Expected Yield
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.expectedYield} {product.unit}
+                      </p>
+                    </div>
+                  )}
+                  {product.productionCostPerUnit !== undefined && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Production Cost per Unit
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {formatCurrency(product.productionCostPerUnit)}
+                      </p>
+                    </div>
+                  )}
+                  {product.batchSize !== undefined && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Batch Size
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.batchSize}
+                      </p>
+                    </div>
+                  )}
+                  {product.machineRequirements && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Machine Requirements
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.machineRequirements}
+                      </p>
+                    </div>
+                  )}
+                  {product.labourRequirement && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Labour Requirement
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.labourRequirement}
+                      </p>
+                    </div>
+                  )}
+                  {product.productionMethod && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Production Method
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.productionMethod}
+                      </p>
+                    </div>
+                  )}
+                  {product.qualityStandard && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Quality Standard
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.qualityStandard}
+                      </p>
+                    </div>
+                  )}
+                  {product.inspectionRequirements && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Inspection Requirements
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.inspectionRequirements}
+                      </p>
+                    </div>
+                  )}
+                  {product.shelfLife && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Shelf Life
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.shelfLife}
+                      </p>
+                    </div>
+                  )}
+                  {product.storageCondition && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Storage Condition
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.storageCondition}
+                      </p>
+                    </div>
+                  )}
+                  {product.complianceNotes && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Compliance Notes
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100 whitespace-pre-line">
+                        {product.complianceNotes}
+                      </p>
+                    </div>
+                  )}
+                  {product.recipe && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Recipe / Formula
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100 whitespace-pre-line">
+                        {product.recipe}
+                      </p>
+                    </div>
+                  )}
+                  {product.isFinishedGood !== undefined && (
+                    <div className="space-y-1 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg md:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        Finished Good
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-slate-100">
+                        {product.isFinishedGood ? "Yes" : "No"}
+                      </p>
+                    </div>
+                  )}
+                  {product.bom && product.bom.length > 0 && (
+                    <div className="md:col-span-2">
+                      <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                          Bill of Materials
+                        </p>
+                        <div className="space-y-2">
+                          {product.bom.map((item, index) => (
+                            <div
+                              key={`${item.componentId}-${index}`}
+                              className="flex flex-col sm:flex-row sm:justify-between gap-2 p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-teal-700"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                                  Component
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-slate-400">
+                                  {item.componentId || "Unknown"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                                  Quantity
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-slate-400">
+                                  {item.quantity} {item.unit || product.unit}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Supplier Information */}
           <Card className="border-2 border-green-200 dark:border-teal-700 dark:bg-slate-800">
             <CardHeader className="bg-linear-to-r from-emerald-50 to-teal-50 dark:from-slate-700 dark:to-slate-600">

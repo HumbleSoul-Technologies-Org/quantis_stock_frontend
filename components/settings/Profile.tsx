@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,10 +19,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
-import { set } from "date-fns";
 
 export function Profile() {
-  const { user, business, updateBusinessSetup, updateBusiness } = useAuth();
+  const router = useRouter();
+  const { user, business, updateBusiness } = useAuth();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -34,7 +35,7 @@ export function Profile() {
 
   const PLAN_RANK: Record<string, number> = {
     retail: 1,
-    other: 1,
+
     wholesaler: 2,
     wholesale: 2,
     manufacturer: 3,
@@ -44,16 +45,14 @@ export function Profile() {
   const effectivePlan = currentPlan || business?.businessType;
   const effectivePlanRank = effectivePlan ? PLAN_RANK[effectivePlan] : 0;
   const canEditProfile = user?.role === "admin";
-  const canEditBusinessType =
-    canEditProfile && !currentPlan && !business?.activated;
+  const canEditBusinessType = canEditProfile;
   const tierOptions = [
     { value: "retail", label: "Retail" },
     { value: "wholesaler", label: "Wholesaler" },
     { value: "manufacturer", label: "Manufacturer" },
-    { value: "other", label: "Other" },
   ];
   const isTierAvailable = (tier: string) =>
-    !effectivePlan || PLAN_RANK[tier] <= effectivePlanRank;
+    !currentPlan || PLAN_RANK[tier] <= effectivePlanRank;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleEditSave = async () => {
@@ -116,6 +115,7 @@ export function Profile() {
               );
             } catch (e) {}
             updateBusiness(updatedBusiness as any);
+            router.refresh();
           } catch (e) {
             // Fallback to optimistic update if parsing fails
             const updatedBusiness = {
@@ -134,6 +134,7 @@ export function Profile() {
               _clientUpdatedAt: Date.now(),
             };
             updateBusiness(updatedBusiness as any);
+            router.refresh();
           }
         }
       }
@@ -291,7 +292,6 @@ export function Profile() {
                           ...editForm,
                           businessType: e.target.value as
                             | "retail"
-                            | "other"
                             | "wholesaler"
                             | "manufacturer",
                         })
