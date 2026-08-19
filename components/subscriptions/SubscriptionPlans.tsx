@@ -39,7 +39,7 @@ const plans = [
   {
     id: "retail",
     name: "Retail",
-    price: "$ 162",
+    price: "KES 21,349",
     period: "(One time payment)",
     tagline: "Fast setup for single-location retail teams",
     description:
@@ -58,7 +58,7 @@ const plans = [
   {
     id: "wholesale",
     name: "Wholesale",
-    price: "$ 325",
+    price: "KES 42,039",
     period: "(One time payment)",
     tagline: "Built for growing distributors and multi-branch operations",
     description:
@@ -77,7 +77,7 @@ const plans = [
   {
     id: "manufacturer",
     name: "Manufacturer",
-    price: "$ 540",
+    price: "KES 69,790",
     period: "(One time payment)",
     tagline: "Complete production and operations control",
     description:
@@ -424,6 +424,10 @@ export function SubscriptionPlans() {
                     )}
                   </button>
                 )}
+                <i className="text-xs mt-5 text-muted-foreground">
+                  An additional mantainance fee of <b>6,462 KES</b> will be
+                  required annually{" "}
+                </i>
               </article>
             );
           })}
