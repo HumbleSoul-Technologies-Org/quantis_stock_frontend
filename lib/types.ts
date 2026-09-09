@@ -2,6 +2,27 @@
 export type UserRole = "admin" | "manager" | "sales" | "accountant";
 export type BusinessType = "retail" | "other" | "wholesaler" | "manufacturer";
 export type SubscriptionPlan = "retail" | "wholesale" | "manufacturer";
+export type FeatureId =
+  | "sales"
+  | "product_profiles"
+  | "supplier_profiles"
+  | "credit_sales"
+  | "customer_management"
+  | "credit_trace"
+  | "multi_branch";
+
+export interface BusinessEntitlement {
+  businessId?: string | null;
+  plan?: SubscriptionPlan | null;
+  trialActive: boolean;
+  subscriptionActive: boolean;
+  accessAllowed: boolean;
+  trial: {
+    startsAt?: string | null;
+    expiresAt?: string | null;
+  };
+  features: Partial<Record<FeatureId, boolean>>;
+}
 export type RetailSubType =
   | "electronics"
   | "clothing"
@@ -124,6 +145,9 @@ export interface Business {
   settings: BusinessSettings; // New: embedded business settings
   user?: any; // Array of user IDs associated with this business
   currentPlan?: SubscriptionPlan; // Paid subscription tier
+  entitlement?: BusinessEntitlement;
+  trial_start?: string;
+  trial_expires?: string;
   activated?: boolean; // New: whether the business is activated via product key
   activationKey?: string; // New: the product key used for activation
   isDemoActivation?: boolean; // New: demo activation flag
@@ -148,6 +172,7 @@ export interface User {
   trial_days?: number; // Configured trial duration from server
   productKey?: string; // Product key stored after activation
   product_key_verified?: boolean; // Whether product key has been verified
+  entitlement?: BusinessEntitlement;
 }
 
 export interface RawMaterial {

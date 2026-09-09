@@ -9,7 +9,6 @@ interface ReceiptPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   sale: Sale | null;
   products: Product[];
-  onPrint?: (receiptData: Record<string, unknown>) => Promise<void>;
 }
 
 export function ReceiptPreviewDialog({

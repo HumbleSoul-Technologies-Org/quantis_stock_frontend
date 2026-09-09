@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { normalizeAuthUser } from "@/lib/authUser";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
 import { loginSchema, type LoginFormData } from "@/lib/validations/authSchemas";
 
@@ -50,15 +51,7 @@ export function LoginForm() {
       }
 
       // Extract user data from backend response
-      const userData = {
-        id: responseData.user._id || responseData.user.id,
-        username: responseData.user.username,
-        role: responseData.user.role,
-        businessId: responseData.user.businessId, // Critical: get businessId from response
-        business: responseData.user.business, // For backward compatibility
-        token: responseData.token,
-        branchId: responseData.user.branchId, // Optional: if your backend provides branchId
-      };
+      const userData = normalizeAuthUser(responseData.user, responseData.token);
 
       // Update auth context with API user data
       loginWithApiData(userData);

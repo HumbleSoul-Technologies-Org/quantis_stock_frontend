@@ -260,10 +260,14 @@ export function SubscriptionPlans() {
 
         const updatedUser = {
           ...user,
+          entitlement: verificationData?.entitlement || user.entitlement,
+          trial_expires: undefined,
+          trial_start: undefined,
           product_key_verified: true,
           productKey: activationKey,
           business: {
             ...(business || {}),
+            entitlement: verificationData?.entitlement || business?.entitlement,
             activated: true,
             activationKey,
             currentPlan: planId,

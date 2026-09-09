@@ -9,6 +9,7 @@ import { clearUserSession } from "@/lib/authStorage";
 import { AlertCircle, CheckCircle, Key, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
+import { normalizeAuthUser } from "@/lib/authUser";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 import {
   productKeySchema,
@@ -25,7 +26,7 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
   const [success, setSuccess] = useState("");
 
   const { loginWithApiData, user, business } = useAuth();
-  const trialDays = user?.trial_days ?? 31;
+  const trialDays = user?.trial_days ?? 30;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -88,16 +89,11 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
       const isDemoActivation =
         userData.isDemoActivation || userData.user?.isDemoActivation || false;
 
-      const newUser = {
-        id: userData.user.id,
-        username: userData.user.username,
-        role: userData.user.role,
-        createdAt: userData.user.createdAt,
-        token: user?.token || "", // Preserve existing token if available
-        businessId: userData.user.businessId,
-        business: userData.user.business,
-        isDemoActivation: isDemoActivation, // Store demo flag
-      };
+      const newUser = normalizeAuthUser(
+        { ...userData.user, isDemoActivation },
+        user?.token,
+        user,
+      );
 
       if (isDemoActivation) {
         setSuccess("Demo key verified! Welcome to demo mode. Redirecting...");

@@ -37,10 +37,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <Script
-          src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.2/qz-tray.js"
-          strategy="beforeInteractive"
-        />
-        <Script
           src="https://js.paystack.co/v2/inline.js"
           strategy="afterInteractive"
         />

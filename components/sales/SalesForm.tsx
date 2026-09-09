@@ -12,22 +12,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { X, Plus, Trash2, Printer } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { ThemeContext } from "@/components/theme-provider";
 import { v4 as uuidv4 } from "uuid";
 import Select from "react-select";
-import { printService } from "@/lib/printService";
 import { useToast } from "@/components/ui/use-toast";
 import { ReceiptTemplate } from "./ReceiptTemplate";
 import { downloadReceiptPdf } from "@/lib/pdfUtils";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import {
   getCurrentCreditSaleTxnId,
   getNextCreditSaleTxnId,
 } from "@/lib/transactionIdStorage";
-// import { Printer } from "lucide-react";
 
 interface SalesFormProps {
   products: Product[];
@@ -118,14 +117,11 @@ export function SalesForm({
   const { user, business } = useAuth();
   const { theme } = useContext(ThemeContext) || { theme: "light" };
   const { customers, fetchCustomers } = useCredit();
+  const { canAccess } = useFeatureAccess();
   const { sales } = useData();
 
-  const effectivePlan = (business?.currentPlan || business?.businessType) as
-    | string
-    | undefined;
-  const isWholesaler =
-    effectivePlan === "wholesale" || effectivePlan === "wholesaler";
-  const allowCreditSales = isWholesaler || Boolean(sale?.isCreditSale);
+  const allowCreditSales =
+    canAccess("credit_sales") || Boolean(sale?.isCreditSale);
   const isEditing = !!sale; // Determine if we're in edit mode
 
   const [items, setItems] = useState<SaleItem[]>(
@@ -190,10 +186,10 @@ export function SalesForm({
 
   // Load credit customers for wholesaler business use
   useEffect(() => {
-    if (isWholesaler) {
+    if (canAccess("customer_management")) {
       void fetchCustomers();
     }
-  }, [isWholesaler, fetchCustomers]);
+  }, [canAccess("customer_management"), fetchCustomers]);
 
   // Update form state when sale prop changes
   useEffect(() => {
@@ -519,8 +515,7 @@ export function SalesForm({
           </p>
         </div>
 
-        {((business?.currentPlan && business.currentPlan !== "retail") ||
-          sale?.isCreditSale) && (
+        {(allowCreditSales || sale?.isCreditSale) && (
           <div className="md:col-span-2">
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-2">
@@ -548,11 +543,6 @@ export function SalesForm({
                     Record as credit sale
                   </label>
                 </div>
-                {!isWholesaler && !sale?.isCreditSale && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Credit sales are available for wholesaler businesses only.
-                  </p>
-                )}
               </div>
 
               {isCreditSaleActive && (
@@ -1028,91 +1018,6 @@ export const RecieptPreview = ({
   const { business, user } = useAuth();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  const handlePrintToPos = async () => {
-    try {
-      if (!printService.isQzAvailable()) {
-        toast({
-          title: "QZ Tray Not Available",
-          description: "Please install QZ Tray to enable POS printing.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const connected = await printService.ensureConnected();
-      if (!connected) {
-        toast({
-          title: "Connection Failed",
-          description:
-            "Could not connect to QZ Tray. Please check if it's running.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const items = (payLoad?.items || []) as SaleItem[];
-      const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
-      const businessPhone =
-        business?.businessPhone?.contact ||
-        (business as { phone?: string } | undefined)?.phone ||
-        "Phone: XXXX-XXXX-XXXX";
-      const businessAddress =
-        business?.businessAddress ||
-        (business as { address?: string } | undefined)?.address ||
-        "Address Line 1";
-      const businessName = business?.businessName || "BUSINESS NAME";
-      const businessEmail = business?.businessEmail?.email || undefined;
-
-      const cashierName =
-        typeof payLoad?.createdBy === "string"
-          ? payLoad!.createdBy
-          : (payLoad?.createdBy as any)?.username ||
-            (user as any)?.username ||
-            "---";
-
-      const receiptData = {
-        saleNumber: payLoad?.saleNumber || "---",
-        date: payLoad?.date || new Date().toISOString(),
-        customerName: payLoad?.customerName || "Walk-in",
-        cashier: cashierName,
-        businessName,
-        businessAddress,
-        businessPhone,
-        businessEmail,
-        items: items.map((item) => {
-          const product = payLoad?.products?.find(
-            (p) => p.id === item.productId || p._id === item.productId,
-          );
-          return {
-            name: product?.name || "Product",
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            total: item.total,
-          };
-        }),
-        totalAmount,
-        paymentType: payLoad?.paymentType || "cash",
-        txnId: payLoad?.txnId,
-        notes: payLoad?.notes,
-      };
-
-      await printService.printReceipt(receiptData as any);
-
-      toast({
-        title: "Receipt Printed",
-        description: "Receipt sent to POS printer successfully.",
-      });
-    } catch (error) {
-      console.error("POS Print error:", error);
-      toast({
-        title: "Print Failed",
-        description:
-          error instanceof Error ? error.message : "Failed to print receipt.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleDownloadPdf = async () => {
     if (!receiptRef.current) {
       toast({
@@ -1224,14 +1129,6 @@ export const RecieptPreview = ({
       <ReceiptTemplate payLoad={payLoad} receiptRef={receiptRef} />
 
       <div className="flex flex-wrap gap-2 justify-center no-print">
-        {/* <Button
-          onClick={handlePrintToPos}
-          disabled={!payLoad}
-          className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 gap-2"
-        >
-          <Printer className="w-4 h-4" />
-          Print Receipt
-        </Button> */}
         <Button
           onClick={handleDownloadPdf}
           disabled={!payLoad || isGeneratingPdf}

@@ -22,12 +22,14 @@ import {
   Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 
 export function Sidebar() {
   const { user, business, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { canAccess } = useFeatureAccess();
 
   if (!user) return null;
 
@@ -135,7 +137,9 @@ export function Sidebar() {
   const visibleItems = menuItems.filter(
     (item) =>
       item.roles.includes(user.role) &&
-      (!item.requiresManufacturer || isManufacturer),
+        (!item.requiresManufacturer || isManufacturer) &&
+        (item.href !== "/dashboard/customers" || canAccess("customer_management")) &&
+        (item.href !== "/dashboard/branches" || canAccess("multi_branch")),
   );
 
   const handleLogout = async () => {

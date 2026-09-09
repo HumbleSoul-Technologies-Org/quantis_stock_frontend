@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
+import { normalizeAuthUser } from "@/lib/authUser";
 import { Button } from "@/components/ui/button";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
 import {
@@ -99,19 +100,10 @@ export function RegisterForm() {
       }
 
       const responseData = await res.json();
-      const newUser = {
-        id: responseData.user.id,
-        username: responseData.user.username,
-        email: responseData.user.email,
-        role: responseData.user.role,
-        createdAt: responseData.user.createdAt,
-        token: responseData.token,
-        businessId: responseData.user.businessId, // Include business data if returned by backend
-        business: responseData.user.business, // Include business data if returned by backend
-        trial_expires: responseData.user.trial_expires,
-        trial_days: responseData.user.trial_days,
-        product_key_verified: responseData.user.product_key_verified,
-      };
+      const newUser = normalizeAuthUser(
+        responseData.user,
+        responseData.token,
+      );
 
       setSuccess("Account created successfully! Redirecting...");
 

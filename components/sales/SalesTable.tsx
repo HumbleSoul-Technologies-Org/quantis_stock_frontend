@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChevronDown,
   ChevronUp,
-  Printer,
   Trash2,
   RotateCcw,
   Edit2,
@@ -16,7 +15,6 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
-import { printService } from "@/lib/printService";
 import { useToast } from "@/components/ui/use-toast";
 import { ReceiptPreviewDialog } from "./ReceiptPreviewDialog";
 
@@ -169,45 +167,6 @@ export function SalesTable({
 
   const getTotalQuantity = (sale: Sale) => {
     return sale.items.reduce((sum, item) => sum + item.quantity, 0);
-  };
-
-  const handlePrintToPos = async (receiptData: any) => {
-    try {
-      if (!printService.isQzAvailable()) {
-        toast({
-          title: "QZ Tray Not Available",
-          description: "Please install QZ Tray to enable POS printing.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const connected = await printService.ensureConnected();
-      if (!connected) {
-        toast({
-          title: "Connection Failed",
-          description:
-            "Could not connect to QZ Tray. Please check if it's running.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await printService.printReceipt(receiptData);
-
-      toast({
-        title: "Receipt Printed",
-        description: "Receipt sent to POS printer successfully.",
-      });
-    } catch (error) {
-      console.error("POS Print error:", error);
-      toast({
-        title: "Print Failed",
-        description:
-          error instanceof Error ? error.message : "Failed to print receipt.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleViewReceipt = (sale: Sale) => {
@@ -450,7 +409,6 @@ export function SalesTable({
         onOpenChange={setIsReceiptDialogOpen}
         sale={selectedSaleForReceipt}
         products={products}
-        onPrint={handlePrintToPos}
       />
     </Card>
   );
