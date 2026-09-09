@@ -168,6 +168,7 @@ export interface User {
   business?: Business | BusinessSetup; // Updated: can be either Business (with settings) or BusinessSetup
   createdAt?: string;
   token?: string; // For session management
+  trial_start?: string; // ISO date string when the trial started
   trial_expires?: string; // ISO date string when trial expires
   trial_days?: number; // Configured trial duration from server
   productKey?: string; // Product key stored after activation

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +27,7 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
 
   const { loginWithApiData, user, business } = useAuth();
   const trialDays = user?.trial_days ?? 30;
+  const trialActive = user?.entitlement?.trialActive === true;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -243,7 +244,9 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
             <AuthButton
               type="button"
               variant="blue"
-              onClick={() => router.push("/dashboard")}
+              onClick={() =>
+                router.push(trialActive ? "/dashboard" : "/product-key")
+              }
               disabled={isLoading}
             >
               Continue with {trialDays}-day trial

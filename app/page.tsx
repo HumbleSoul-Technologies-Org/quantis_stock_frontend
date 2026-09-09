@@ -20,8 +20,7 @@ export default function Home() {
             !!business?.businessPhone?.contact &&
             !!business?.settings?.currency?.code;
 
-          const trialActive =
-            !!user.trial_expires && new Date(user.trial_expires) > new Date();
+          const trialActive = user.entitlement?.trialActive === true;
 
           if (!business) {
             router.push("/onboarding");

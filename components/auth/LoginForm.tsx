@@ -15,7 +15,7 @@ import { loginSchema, type LoginFormData } from "@/lib/validations/authSchemas";
 export function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { loginWithApiData, updateBusiness, updateBusinessSetup } = useAuth();
+  const { loginWithApiData, updateBusiness } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -59,7 +59,6 @@ export function LoginForm() {
       // Update business setup in context if provided (for backward compatibility)
       if (responseData.user.business) {
         updateBusiness(responseData.user.business);
-        updateBusinessSetup(responseData.user.business);
       }
 
       // Show success toast

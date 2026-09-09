@@ -24,9 +24,8 @@ export default function DashboardLayout({
     }
 
     if (user.role === "admin" && business && !business.activated) {
-      const trialExpired =
-        !user.trial_expires || new Date(user.trial_expires) <= new Date();
-      if (trialExpired) {
+      const hasAccess = user.entitlement?.accessAllowed === true;
+      if (!hasAccess) {
         router.push("/product-key");
         return;
       }

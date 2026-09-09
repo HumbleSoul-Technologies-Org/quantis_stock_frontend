@@ -140,9 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateBusinessSetup = (businessSetup: BusinessSetup): boolean => {
     if (!user) return false;
-    const updatedUser = { ...user, business: businessSetup };
+    const updatedBusiness = {
+      ...(business as Business | null),
+      ...businessSetup,
+    } as Business;
+    const updatedUser = { ...user, business: updatedBusiness };
     setUser(updatedUser);
-    setBusiness(businessSetup as unknown as Business);
+    setBusiness(updatedBusiness);
     saveUserSession(updatedUser);
     return true;
   };
