@@ -24,6 +24,38 @@ import { useState } from "react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import type { BusinessEntitlement } from "@/lib/types";
+
+interface PaystackInitResponse {
+  data?: {
+    accessCode?: string;
+    reference?: string;
+  };
+}
+
+interface PaystackVerificationResponse {
+  activationKey?: string;
+  entitlement?: BusinessEntitlement;
+}
+
+interface PaystackPopupOptions {
+  onSuccess: () => void | Promise<void>;
+  onCancel: () => void;
+  onError: (error: unknown) => void;
+}
+
+interface PaystackPopup {
+  resumeTransaction: (
+    accessCode: string,
+    options: PaystackPopupOptions,
+  ) => void;
+}
+
+declare global {
+  interface Window {
+    PaystackPop?: new () => PaystackPopup;
+  }
+}
 
 const PLAN_RANK: Record<string, number> = {
   retail: 1,
@@ -39,7 +71,7 @@ const plans = [
   {
     id: "retail",
     name: "Retail",
-    price: "KES 21,349",
+    price: "KES 25,000",
     period: "(One time payment)",
     tagline: "Fast setup for single-location retail teams",
     description:
@@ -58,7 +90,7 @@ const plans = [
   {
     id: "wholesale",
     name: "Wholesale",
-    price: "KES 42,039",
+    price: "KES 35,000",
     period: "(One time payment)",
     tagline: "Built for growing distributors and multi-branch operations",
     description:
@@ -204,7 +236,7 @@ export function SubscriptionPlans() {
       return;
     }
 
-    if (!(window as any).PaystackPop) {
+    if (!window.PaystackPop) {
       setPaymentError(
         "Paystack is not yet loaded. Please refresh the page and try again.",
       );
@@ -227,7 +259,7 @@ export function SubscriptionPlans() {
         throw new Error(errorMessage);
       }
 
-      const responseData = response.data as any;
+      const responseData = response.data as PaystackInitResponse;
       const accessCode = responseData.data?.accessCode;
       const reference = responseData.data?.reference;
 
@@ -249,13 +281,18 @@ export function SubscriptionPlans() {
           throw new Error(errorMessage);
         }
 
-        const verificationData = verifyResponse.data?.data;
+        const verificationData =
+          verifyResponse.data?.data as PaystackVerificationResponse;
         const activationKey = verificationData?.activationKey;
 
         if (!activationKey) {
           throw new Error(
             "Activation key was not returned from the verification response.",
           );
+        }
+
+        if (!business) {
+          throw new Error("Business data is unavailable after payment verification.");
         }
 
         const updatedUser = {
@@ -266,21 +303,21 @@ export function SubscriptionPlans() {
           product_key_verified: true,
           productKey: activationKey,
           business: {
-            ...(business || {}),
+            ...business,
             entitlement: verificationData?.entitlement || business?.entitlement,
             activated: true,
             activationKey,
-            currentPlan: planId,
+            currentPlan: planId as "retail" | "wholesale" | "manufacturer",
           },
         };
 
-        loginWithApiData(updatedUser as any);
+        loginWithApiData(updatedUser);
         router.push(
           `/product-key?prefill=${encodeURIComponent(activationKey)}`,
         );
       };
 
-      const popup = new (window as any).PaystackPop();
+      const popup = new window.PaystackPop();
       popup.resumeTransaction(accessCode, {
         onSuccess: async () => {
           try {
