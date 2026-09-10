@@ -36,19 +36,44 @@ export function ProductInventoryCard({
     ? format(new Date(lastMovement.createdAt!), "MMM dd, yyyy")
     : "Never";
 
-  const safeReorderLevel = Math.max(0, product.reorderLevel || 0);
-  const maxStock =
-    safeReorderLevel > 0
+  const safeCurrentStock = Math.max(
+    0,
+    Number.isFinite(Number(product.currentStock)) ? Number(product.currentStock) : 0,
+  );
+  const safeReorderLevel = Math.max(
+    0,
+    Number.isFinite(Number(product.reorderLevel)) ? Number(product.reorderLevel) : 0,
+  );
+  const rawMaximumStockLevel: number | string | null | undefined =
+    product.maximumStockLevel as number | string | null | undefined;
+  const normalizedMaximumStockLevel =
+    rawMaximumStockLevel === null || rawMaximumStockLevel === undefined
+      ? null
+      : typeof rawMaximumStockLevel === "string" &&
+            rawMaximumStockLevel.trim() === ""
+        ? null
+        : Number.isFinite(Number(rawMaximumStockLevel))
+          ? Number(rawMaximumStockLevel)
+          : null;
+  const hasStockLimit =
+    normalizedMaximumStockLevel !== null && normalizedMaximumStockLevel >= 0;
+  const fallbackCapacity = hasStockLimit
+    ? normalizedMaximumStockLevel!
+    : safeReorderLevel > 0
       ? safeReorderLevel
-      : Math.max(1, product.currentStock, 1);
+      : Math.max(safeCurrentStock, 1);
   const rawPercentage =
-    maxStock > 0 ? (product.currentStock / maxStock) * 100 : 0;
+    fallbackCapacity > 0
+      ? (safeCurrentStock / fallbackCapacity) * 100
+      : safeCurrentStock > 0
+        ? 100
+        : 0;
   const stockPercentage = Math.max(
     0,
     Math.min(Number.isNaN(rawPercentage) ? 0 : rawPercentage, 100),
   );
 
-  const isLowStock = product.currentStock <= safeReorderLevel;
+  const isLowStock = safeCurrentStock <= safeReorderLevel;
 
   // ✅ Pie chart now behaves like a progress ring
   const pieData = [
@@ -112,9 +137,15 @@ export function ProductInventoryCard({
           {/* ✅ Percentage Label in Center */}
           <div className="absolute text-center">
             <p className="text-lg font-semibold text-gray-900 dark:text-teal-200">
-              {Math.round(stockPercentage)}%
+              {hasStockLimit || safeReorderLevel > 0
+                ? `${Math.round(stockPercentage)}%`
+                : "No limit"}
             </p>
-            <p className="text-xs text-gray-500">Stock</p>
+            <p className="text-xs text-gray-500">
+              {hasStockLimit
+                ? `${safeCurrentStock} / ${normalizedMaximumStockLevel} ${product.unit}`
+                : `${safeCurrentStock} ${product.unit}${safeReorderLevel > 0 ? ` / ${safeReorderLevel} ${product.unit}` : ""}`}
+            </p>
           </div>
         </div>
 
@@ -133,7 +164,12 @@ export function ProductInventoryCard({
               Units Remaining:
             </span>
             <span className="font-medium text-gray-900 dark:text-teal-300">
-              {product.currentStock} {product.unit}
+              {safeCurrentStock} {product.unit}
+              {hasStockLimit
+                ? ` / ${normalizedMaximumStockLevel} ${product.unit}`
+                : safeReorderLevel > 0
+                  ? ` / ${safeReorderLevel} ${product.unit}`
+                  : " (uncapped)"}
             </span>
           </div>
           <div className="flex justify-between">

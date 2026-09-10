@@ -222,7 +222,18 @@ export async function apiRequest<T = any>(
     // credentials: "include",
   });
 
-  return await createApiResponse(res);
+  const response = await createApiResponse(res);
+
+  if (!response.ok) {
+    console.error("[API] Request failed", {
+      method,
+      url: `${API_BASE_URL}${finalUrl}`,
+      status: response.status,
+      data: response.data,
+    });
+  }
+
+  return response;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

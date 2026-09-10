@@ -38,6 +38,14 @@ interface ProductFormProps {
   serverError?: string;
 }
 
+const getDefaultMaximumStockLevel = (reorderLevel?: number | null) => {
+  const normalizedReorderLevel = Number.isFinite(Number(reorderLevel))
+    ? Number(reorderLevel)
+    : 0;
+
+  return normalizedReorderLevel > 0 ? normalizedReorderLevel * 10 : null;
+};
+
 export function ProductForm({
   product,
   suppliers,
@@ -64,6 +72,7 @@ export function ProductForm({
       supplierId: "",
       reorderLevel: 10,
       currentStock: 0,
+      maximumStockLevel: getDefaultMaximumStockLevel(10),
       status: "active",
       retailSubType: retailSubType,
       imageUrl: "",
@@ -119,6 +128,33 @@ export function ProductForm({
         }))
       : [{ title: "", value: "" }],
   );
+
+  useEffect(() => {
+    if (product) {
+      setFormData((prev) => ({
+        ...prev,
+        ...product,
+        maximumStockLevel:
+          product.maximumStockLevel ?? getDefaultMaximumStockLevel(product.reorderLevel),
+      }));
+    }
+  }, [product]);
+
+  useEffect(() => {
+    const defaultMaximumStockLevel = getDefaultMaximumStockLevel(
+      formData.reorderLevel,
+    );
+
+    if (
+      formData.maximumStockLevel == null &&
+      defaultMaximumStockLevel !== null
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        maximumStockLevel: defaultMaximumStockLevel,
+      }));
+    }
+  }, [formData.maximumStockLevel, formData.reorderLevel]);
 
   useEffect(() => {
     let mounted = true;
@@ -493,6 +529,14 @@ export function ProductForm({
     if (!formData.supplierId) newErrors.supplierId = "Supplier is required";
     if ((formData.reorderLevel || 0) < 0)
       newErrors.reorderLevel = "Reorder level must be 0 or greater";
+    if (
+      formData.maximumStockLevel != null &&
+      (formData.maximumStockLevel < 0 ||
+        formData.maximumStockLevel < (formData.currentStock || 0))
+    ) {
+      newErrors.maximumStockLevel =
+        "Maximum stock must be blank or at least the current stock";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -547,6 +591,7 @@ export function ProductForm({
         supplierId: formData.supplierId || "",
         reorderLevel: formData.reorderLevel || 10,
         currentStock: formData.currentStock ?? product?.currentStock ?? 0,
+        maximumStockLevel: formData.maximumStockLevel ?? null,
         branchIds: formData.branchIds,
 
         retailSubType: formData.retailSubType || retailSubType,
@@ -924,6 +969,31 @@ export function ProductForm({
           />
           {errors.reorderLevel && (
             <p className="text-red-500 text-xs mt-1">{errors.reorderLevel}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Maximum Stock Level
+          </label>
+          <Input
+            type="number"
+            min="0"
+            value={formData.maximumStockLevel ?? ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                maximumStockLevel:
+                  e.target.value === "" ? null : Number(e.target.value),
+              })
+            }
+            placeholder="Auto fills to 10x reorder level"
+            className={`${errors.maximumStockLevel ? "border-red-500" : "border-green-200 dark:border-teal-700"} dark:bg-slate-700 dark:text-slate-50`}
+          />
+          {errors.maximumStockLevel && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.maximumStockLevel}
+            </p>
           )}
         </div>
       </div>

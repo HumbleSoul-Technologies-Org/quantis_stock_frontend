@@ -299,6 +299,7 @@ export interface Product {
   supplierId: string;
   reorderLevel: number;
   currentStock: number;
+  maximumStockLevel?: number | null;
   businessId?: string; // Business isolation (optional during transition)
   branchIds?: string[];
   createdAt: string;

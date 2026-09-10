@@ -36,6 +36,14 @@ const PACKAGING_TYPES = [
   "Other",
 ];
 
+const getDefaultMaximumStockLevel = (reorderLevel?: number | null) => {
+  const normalizedReorderLevel = Number.isFinite(Number(reorderLevel))
+    ? Number(reorderLevel)
+    : 0;
+
+  return normalizedReorderLevel > 0 ? normalizedReorderLevel * 10 : null;
+};
+
 export function ManufacturerProductForm({
   product,
   suppliers = [],
@@ -62,6 +70,7 @@ export function ManufacturerProductForm({
       costPrice: 0,
       currentStock: 0,
       reorderLevel: 0,
+      maximumStockLevel: getDefaultMaximumStockLevel(0),
       status: "active",
       description: "",
       supplierId: "",
@@ -108,10 +117,28 @@ export function ManufacturerProductForm({
     if (product) {
       setFormData({
         ...product,
+        maximumStockLevel:
+          product.maximumStockLevel ?? getDefaultMaximumStockLevel(product.reorderLevel),
       });
       setBomItems(product.bom || []);
     }
   }, [product]);
+
+  useEffect(() => {
+    const defaultMaximumStockLevel = getDefaultMaximumStockLevel(
+      formData.reorderLevel,
+    );
+
+    if (
+      formData.maximumStockLevel == null &&
+      defaultMaximumStockLevel !== null
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        maximumStockLevel: defaultMaximumStockLevel,
+      }));
+    }
+  }, [formData.maximumStockLevel, formData.reorderLevel]);
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -133,6 +160,14 @@ export function ManufacturerProductForm({
     if (!formData.supplierId?.trim()) {
       nextErrors.supplierId = "Supplier is required";
     }
+    if (
+      formData.maximumStockLevel != null &&
+      (formData.maximumStockLevel < 0 ||
+        formData.maximumStockLevel < (formData.currentStock || 0))
+    ) {
+      nextErrors.maximumStockLevel =
+        "Maximum stock must be blank or at least the current stock";
+    }
     return nextErrors;
   };
 
@@ -152,6 +187,7 @@ export function ManufacturerProductForm({
         supplierId: formData.supplierId || "",
         currentStock: formData.currentStock ?? 0,
         reorderLevel: formData.reorderLevel ?? 0,
+        maximumStockLevel: formData.maximumStockLevel ?? null,
         unitPrice: formData.unitPrice ?? 0,
         costPrice: formData.costPrice ?? 0,
         status: formData.status || "active",
@@ -442,6 +478,31 @@ export function ManufacturerProductForm({
             placeholder="0"
             className="border-green-200 dark:border-teal-700 dark:bg-slate-700 dark:text-slate-50"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+            Maximum Stock Level
+          </label>
+          <Input
+            type="number"
+            min="0"
+            value={formData.maximumStockLevel ?? ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                maximumStockLevel:
+                  e.target.value === "" ? null : Number(e.target.value),
+              })
+            }
+            placeholder="Auto fills to 10x reorder level"
+            className={`${errors.maximumStockLevel ? "border-red-500" : "border-green-200 dark:border-teal-700"} dark:bg-slate-700 dark:text-slate-50`}
+          />
+          {errors.maximumStockLevel && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.maximumStockLevel}
+            </p>
+          )}
         </div>
       </div>
 

@@ -28,7 +28,11 @@ import {
 } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  apiRequest,
+  extractApiErrorMessage,
+  queryClient,
+} from "@/lib/queryClient";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/hooks/useToast";
 
@@ -62,6 +66,38 @@ const normalizeCollectionPayload = (payload: unknown, fallbackKey?: string) => {
   }
 
   return [];
+};
+
+const normalizeProductPayload = (
+  product: Partial<Product> | null | undefined,
+): Product | null => {
+  if (!product || typeof product !== "object") {
+    return null;
+  }
+
+  const normalizedCurrentStock = Number.isFinite(Number(product.currentStock))
+    ? Number(product.currentStock)
+    : 0;
+  const normalizedReorderLevel = Number.isFinite(Number(product.reorderLevel))
+    ? Number(product.reorderLevel)
+    : 0;
+  const rawMaximumStockLevel: unknown = product.maximumStockLevel;
+  const normalizedMaximumStockLevel =
+    rawMaximumStockLevel === null || rawMaximumStockLevel === undefined
+      ? null
+      : typeof rawMaximumStockLevel === "string" &&
+            rawMaximumStockLevel.trim() === ""
+        ? null
+        : Number.isFinite(Number(rawMaximumStockLevel))
+          ? Number(rawMaximumStockLevel)
+          : null;
+
+  return {
+    ...(product as Product),
+    currentStock: normalizedCurrentStock,
+    reorderLevel: normalizedReorderLevel,
+    maximumStockLevel: normalizedMaximumStockLevel,
+  };
 };
 
 // API functions for polling
@@ -99,7 +135,10 @@ const apiProducts = async (token?: string, businessId?: string) => {
 
     if (response.ok) {
       const data = await response.json();
-      return normalizeCollectionPayload(data, "products");
+      const products = normalizeCollectionPayload(data, "products");
+      return (products as Array<Partial<Product> | null | undefined>)
+        .map((product) => normalizeProductPayload(product))
+        .filter((product): product is Product => product !== null);
     }
   } catch (error) {
     console.warn("Failed to fetch products from API:", error);
@@ -115,7 +154,7 @@ const apiStock = async (
   try {
     const response = await apiRequest(
       "GET",
-      "/inventory/movements",
+      "/stock/movements",
       {
         limit: 100,
         status: "active",
@@ -1584,12 +1623,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } else {
           persistProducts(previousProducts);
           persistStockMovements(previousStockMovements);
-          throw new Error(
-            "Unable to save stock movement. Please check your connection and try again.",
-          );
+          const message = extractApiErrorMessage(response);
+          const apiError = new Error(
+            message ||
+              "Unable to save stock movement. Please check your connection and try again.",
+          ) as Error & { status?: number; code?: string; details?: unknown };
+          apiError.status = response.status;
+          if (response.data && typeof response.data === "object") {
+            const responseData = response.data as Record<string, unknown>;
+            apiError.code =
+              typeof responseData.code === "string"
+                ? responseData.code
+                : undefined;
+            apiError.details = responseData.details;
+          }
+          throw apiError;
         }
       } catch (error) {
-        console.error("[DATACONTEXT] Error adding stock movement:", error);
+        console.error("[DATACONTEXT] Error adding stock movement:", {
+          error,
+          endpoint: "/stock/movements/add",
+          movementType: movement.type,
+          productId: movement.productId,
+        });
+        throw error;
       }
     },
     [
