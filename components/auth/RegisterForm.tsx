@@ -155,119 +155,181 @@ export function RegisterForm() {
   };
 
   return (
-    <AuthLayout logoColor="blue">
-      <AuthCard title="Create Account" subtitle="Set up your admin account">
+    <AuthLayout
+      logoColor="blue"
+      leftPanel={
+        <div className="flex h-full flex-col justify-between gap-8">
+          <div className="space-y-7">
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-[0.32em] text-white/70">
+                Launch faster
+              </p>
+              <h1 className="max-w-md text-3xl font-semibold leading-tight text-white">
+                Set up your business and start managing operations with confidence.
+              </h1>
+            </div>
+
+            <p className="max-w-md text-sm leading-6 text-slate-100/80">
+              Create your admin workspace and bring together stock management,
+              sales visibility, and daily operations in minutes.
+            </p>
+          </div>
+
+          <div className="space-y-3 text-sm text-white/90">
+            {[
+              "Inventory and supplier visibility",
+              "Branch-ready team access",
+              "Secure onboarding for your admin team",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+                  ✓
+                </span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl border border-white/15 bg-slate-950/15 p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-white/75">
+              <span className="text-xs uppercase tracking-[0.24em]">
+                onboarding
+              </span>
+              <span className="rounded-full bg-sky-400/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-100">
+                ready
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 text-white">
+              <div>
+                <p className="text-2xl font-semibold">3 min</p>
+                <p className="text-xs text-slate-200/80">setup</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">1</p>
+                <p className="text-xs text-slate-200/80">admin account</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AuthCard
+        title="Create account"
+        subtitle="Set up your admin account and start managing your business"
+      >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* General Error */}
           {errors.root && (
-            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+              <AlertCircle className="h-5 w-5 shrink-0" />
               <span>{errors.root.message}</span>
             </div>
           )}
 
           {/* Success Message */}
           {success && (
-            <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-300 text-sm">
-              <CheckCircle className="w-5 h-5 shrink-0" />
+            <div className="flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
+              <CheckCircle className="h-5 w-5 shrink-0" />
               <span>{success}</span>
             </div>
           )}
 
-          <AuthInput
-            label="Username"
-            type="text"
-            {...register("username")}
-            placeholder="Enter username"
-            error={errors.username?.message}
-            disabled={isLoading}
-            focusColor="blue"
-          />
+          <div className="space-y-5">
+            <AuthInput
+              label="Username"
+              type="text"
+              {...register("username")}
+              placeholder="Enter username"
+              error={errors.username?.message}
+              disabled={isLoading}
+              focusColor="blue"
+            />
 
-          <AuthInput
-            label="Email"
-            type="email"
-            {...register("email")}
-            placeholder="Enter email address"
-            error={errors.email?.message}
-            disabled={isLoading}
-            focusColor="blue"
-          />
+            <AuthInput
+              label="Email"
+              type="email"
+              {...register("email")}
+              placeholder="Enter email address"
+              error={errors.email?.message}
+              disabled={isLoading}
+              focusColor="blue"
+            />
 
-          <AuthInput
-            label="Password"
-            type={showPassword ? "text" : "password"}
-            {...register("password")}
-            placeholder="Enter password (min 8 characters)"
-            error={errors.password?.message}
-            disabled={isLoading}
-            focusColor="blue"
-            trailingIcon={
-              showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )
-            }
-            onIconClick={() => setShowPassword((prev) => !prev)}
-          />
+            <AuthInput
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              placeholder="Enter password (min 8 characters)"
+              error={errors.password?.message}
+              disabled={isLoading}
+              focusColor="blue"
+              trailingIcon={
+                showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )
+              }
+              onIconClick={() => setShowPassword((prev) => !prev)}
+            />
 
-          <AuthInput
-            label="Confirm Password"
-            type={showConfirmPassword ? "text" : "password"}
-            {...register("confirmPassword")}
-            placeholder="Confirm password"
-            error={errors.confirmPassword?.message}
-            disabled={isLoading}
-            focusColor="blue"
-            trailingIcon={
-              showConfirmPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )
-            }
-            onIconClick={() => setShowConfirmPassword((prev) => !prev)}
-          />
+            <AuthInput
+              label="Confirm Password"
+              type={showConfirmPassword ? "text" : "password"}
+              {...register("confirmPassword")}
+              placeholder="Confirm password"
+              error={errors.confirmPassword?.message}
+              disabled={isLoading}
+              focusColor="blue"
+              trailingIcon={
+                showConfirmPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )
+              }
+              onIconClick={() => setShowConfirmPassword((prev) => !prev)}
+            />
+          </div>
 
           {/* Legal Error */}
           {errors.acceptLegal && (
-            <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <span>{errors.acceptLegal.message}</span>
             </div>
           )}
 
           {/* Legal Agreement Checkbox */}
-          <div className="flex items-start gap-3 p-4 border-2 border-slate-200 dark:border-slate-600 rounded-xl hover:border-blue-300 dark:hover:border-blue-500 transition bg-slate-50 dark:bg-slate-700">
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 transition hover:border-blue-300 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-blue-500">
             <input
               type="checkbox"
               id="acceptLegal"
               {...register("acceptLegal")}
               disabled={isLoading}
-              className="w-4 h-4 mt-1 accent-blue-600 dark:accent-blue-500 cursor-pointer"
+              className="mt-1 h-4 w-4 cursor-pointer accent-blue-600 dark:accent-blue-500"
             />
             <label
               htmlFor="acceptLegal"
-              className="flex-1 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="flex-1 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
             >
               I accept the{" "}
               <button
                 type="button"
                 onClick={() => setViewingLegal("privacy")}
-                className="text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
+                className="inline-flex items-center gap-1 font-medium text-blue-600 hover:text-blue-800 hover:underline"
               >
                 Privacy Policy
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="h-3 w-3" />
               </button>{" "}
               and{" "}
               <button
                 type="button"
                 onClick={() => setViewingLegal("terms")}
-                className="text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
+                className="inline-flex items-center gap-1 font-medium text-blue-600 hover:text-blue-800 hover:underline"
               >
                 Terms & Conditions
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="h-3 w-3" />
               </button>
             </label>
           </div>
@@ -281,12 +343,12 @@ export function RegisterForm() {
           </AuthButton>
         </form>
 
-        <div className="text-center">
+        <div className="mt-6 text-center">
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Already have an account?{" "}
             <a
               href="/auth/login"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold hover:underline transition-colors duration-200"
+              className="font-semibold text-blue-600 transition-colors duration-200 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
             >
               Login here
             </a>
@@ -295,9 +357,9 @@ export function RegisterForm() {
 
         <div
           onClick={restartRegistration}
-          className="text-center cursor-pointer"
+          className="mt-4 cursor-pointer text-center"
         >
-          <span className="text-blue-600 dark:text-blue-400 text-sm hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors duration-200">
+          <span className="text-sm text-blue-600 underline transition-colors duration-200 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
             Click here to restart the registration process if issues persist
           </span>
         </div>
@@ -305,10 +367,10 @@ export function RegisterForm() {
 
       {/* Legal Document Modal */}
       {viewingLegal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-4xl h-screen mt-5 mb-5 overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="mt-5 mb-5 flex h-screen w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-slate-900">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-700">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                 {viewingLegal === "privacy"
                   ? "Privacy Policy"
@@ -316,9 +378,9 @@ export function RegisterForm() {
               </h2>
               <button
                 onClick={() => setViewingLegal(null)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors duration-200"
+                className="rounded-xl p-2 transition-colors duration-200 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
-                <X className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+                <X className="h-6 w-6 text-slate-600 dark:text-slate-400" />
               </button>
             </div>
 
@@ -329,7 +391,7 @@ export function RegisterForm() {
                   ? "/legal/privacy-policy"
                   : "/legal/terms-conditions"
               }
-              className="flex-1 w-full"
+              className="w-full flex-1"
               title={
                 viewingLegal === "privacy"
                   ? "Privacy Policy"
@@ -338,18 +400,18 @@ export function RegisterForm() {
             />
 
             {/* Modal Footer */}
-            <div className="border-t border-slate-200 dark:border-slate-700 p-6 bg-slate-50 dark:bg-slate-800 flex gap-3 justify-end">
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setViewingLegal(null)}
-                className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl"
+                className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 Back to Registration
               </Button>
               <Button
                 type="button"
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="rounded-xl bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl"
                 onClick={() => setViewingLegal(null)}
               >
                 Close

@@ -84,33 +84,107 @@ export function LoginForm() {
   };
 
   return (
-    <AuthLayout logoColor="green">
-      <AuthCard title="Welcome Back" subtitle="Sign in to your account">
+    <AuthLayout
+      logoColor="green"
+      leftPanel={
+        <div className="flex h-full flex-col justify-between gap-8">
+          <div className="space-y-7">
+            
+
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-[0.32em] text-white/70">
+                Business Suite
+              </p>
+              <h1 className="max-w-md text-3xl font-semibold leading-tight text-white">
+                Run your stock, sales, and operations from one secure workspace.
+              </h1>
+            </div>
+
+            <p className="max-w-md text-sm leading-6 text-slate-100/80">
+              Manage inventory, suppliers, and reporting with a clear view of
+              your entire operation from one place.
+            </p>
+          </div>
+
+          <div className="space-y-3 text-sm text-white/90">
+            {[
+              "Real-time stock visibility",
+              "Branch-ready operations",
+              "Secure admin access",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+                  ✓
+                </span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl border border-white/15 bg-slate-950/15 p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-white/75">
+              <span className="text-xs uppercase tracking-[0.24em]">
+                System status
+              </span>
+              <span className="rounded-full bg-emerald-400/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                online
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 text-white">
+              <div>
+                <p className="text-2xl font-semibold">99.9%</p>
+                <p className="text-xs text-slate-200/80">uptime</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">24/7</p>
+                <p className="text-xs text-slate-200/80">visibility</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AuthCard title="Welcome back" subtitle="Sign in to continue to your workspace">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {error && (
-            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+              <AlertCircle className="h-5 w-5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <AuthInput
-            label="Username or Email"
-            type="text"
-            {...register("identifier")}
-            placeholder="Enter your username or email"
-            error={errors.identifier?.message}
-            focusColor="green"
-          />
+          <div className="space-y-5">
+            <AuthInput
+              label="Username or Email"
+              type="text"
+              {...register("identifier")}
+              placeholder="Enter your username or email"
+              error={errors.identifier?.message}
+              focusColor="green"
+            />
 
-          <AuthInput
-            label="Password"
-            type="password"
-            {...register("password")}
-            placeholder="Enter your password"
-            error={errors.password?.message}
-            focusColor="green"
-          />
+            <AuthInput
+              label="Password"
+              type="password"
+              {...register("password")}
+              placeholder="Enter your password"
+              error={errors.password?.message}
+              focusColor="green"
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+              />
+              <span>Remember me</span>
+            </label>
+            <a href="#" className="font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300">
+              Forgot password?
+            </a>
+          </div>
 
           <AuthButton
             isLoading={isLoading}
@@ -121,19 +195,19 @@ export function LoginForm() {
           </AuthButton>
         </form>
 
-        <div className="text-center">
+        <div className="mt-6 text-center">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <a
               href="/auth/register"
-              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-semibold hover:underline transition-colors duration-200"
+              className="font-semibold text-green-600 transition-colors duration-200 hover:text-green-800 hover:underline dark:text-green-400 dark:hover:text-green-300"
             >
               Create one
             </a>
           </p>
         </div>
 
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-700 dark:text-blue-300">
+        <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-6 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
           <strong className="font-semibold">💡 Tip:</strong> Use your registered
           username and password to log in.
         </div>
