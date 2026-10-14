@@ -7,9 +7,11 @@ interface ProductKeyPageProps {
   searchParams?:
     | Promise<{
         prefill?: string | string[];
+        mode?: string | string[];
       }>
     | {
         prefill?: string | string[];
+        mode?: string | string[];
       };
 }
 
@@ -20,15 +22,18 @@ export default async function ProductKeyPage({
   const prefillKey = Array.isArray(resolvedSearchParams?.prefill)
     ? resolvedSearchParams.prefill[0]
     : resolvedSearchParams?.prefill;
+  const mode = Array.isArray(resolvedSearchParams?.mode)
+    ? resolvedSearchParams.mode[0]
+    : resolvedSearchParams?.mode;
 
   console.log("[ProductKeyPage] Prefill key:", prefillKey);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+          <div className="mx-auto w-20 h-20 bg-linear-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
             <svg
               className="w-10 h-10 text-white"
               fill="currentColor"
@@ -69,7 +74,10 @@ export default async function ProductKeyPage({
           </div>
         </div>
 
-        <ProductKeyForm defaultProductKey={prefillKey} />
+        <ProductKeyForm
+          defaultProductKey={prefillKey}
+          activationOnly={mode === "activation"}
+        />
       </div>
     </div>
   );

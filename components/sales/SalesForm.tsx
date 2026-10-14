@@ -1085,7 +1085,10 @@ export const RecieptPreview = ({
         : `${serverBase}/api/pdf/generate`;
       const res = await fetch(pdfEndpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(user?.token && { Authorization: `Bearer ${user.token}` }),
+        },
         body: JSON.stringify({ receipt: receiptPayload, filename }),
         credentials: "include",
       });

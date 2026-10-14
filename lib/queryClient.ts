@@ -279,11 +279,13 @@ export const getQueryFn: <T>(options: {
         return null;
       }
 
-      throw new Error(
+      const requestError = new Error(
         typeof axiosError.response?.data === "string"
           ? axiosError.response.data
           : axiosError.message || "An error occurred",
-      );
+      ) as Error & { status?: number };
+      requestError.status = axiosError.response?.status;
+      throw requestError;
     } finally {
       clearTimeout(timer);
     }
@@ -294,10 +296,14 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: 5000,
       refetchOnWindowFocus: false,
+      refetchIntervalInBackground: false,
       staleTime: 30000, // 30 seconds - reduces lag while preventing excessive polling
-      retry: 2,
+      retry: (failureCount, error) => {
+        const status = (error as Error & { status?: number }).status;
+        if (status === 401 || status === 403 || status === 429) return false;
+        return failureCount < 1;
+      },
     },
     mutations: {
       retry: 1,

@@ -17,6 +17,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { set } from "date-fns";
+import { usePathname } from "next/navigation";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -40,7 +42,8 @@ const NotificationContext = createContext<NotificationContextType | undefined>(
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const { user } = useAuth();
+  const { user, business } = useAuth();
+  const pathname = usePathname();
   const { data: notificationData, refetch } = useQuery<Notification[]>({
     queryKey: ["notifications", "all", user?._id || user?.id],
     queryFn: async () => {
@@ -58,7 +61,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
       return res.json();
     },
-    enabled: !!user?.token && !!user?.id, // Only fetch if user is authenticated
+    enabled:
+      !!user?.token &&
+      !!user?.id &&
+      pathname.startsWith("/dashboard") &&
+      getAuthLandingPath(user, business) === "/dashboard",
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 

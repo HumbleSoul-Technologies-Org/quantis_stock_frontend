@@ -3,41 +3,14 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 
 export default function Home() {
   const { user, business, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (user) {
-        // Check redirect logic based on user role, business status, and active trial
-        if (user.role === "admin") {
-          const hasCompletedOnboarding =
-            !!business?.businessName &&
-            !!business?.setupCompletedAt &&
-            !!business?.businessEmail?.email &&
-            !!business?.businessPhone?.contact &&
-            !!business?.settings?.currency?.code;
-
-          const trialActive = user.entitlement?.trialActive === true;
-
-          if (!business) {
-            router.push("/onboarding");
-          } else if (business.activated || trialActive) {
-            router.push("/dashboard");
-          } else if (hasCompletedOnboarding) {
-            router.push("/product-key");
-          } else {
-            router.push("/onboarding");
-          }
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
-        router.push("/auth/login");
-      }
-    }
+    if (!isLoading) router.replace(getAuthLandingPath(user, business));
   }, [user, business, isLoading, router]);
 
   return (

@@ -26,6 +26,7 @@ import {
 
 import { useQuery } from "@tanstack/react-query";
 import { set } from "date-fns";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 
 interface SettingsContextType {
   settings: BusinessSettings | null;
@@ -178,7 +179,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
 
       // Skip refreshing settings from backend while on onboarding to prevent auto-redirect
-      if (pathname === "/onboarding") {
+      if (
+        !pathname.startsWith("/dashboard") ||
+        getAuthLandingPath(user, business) !== "/dashboard"
+      ) {
         setIsLoading(false);
         return;
       }

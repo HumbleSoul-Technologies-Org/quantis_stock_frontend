@@ -6,6 +6,7 @@ import { Breadcrumb } from "@/components/shared/Breadcrumb";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 
 export default function DashboardLayout({
   children,
@@ -14,38 +15,45 @@ export default function DashboardLayout({
 }) {
   const { user, business, isLoading } = useAuth();
   const router = useRouter();
+  const landingPath = getAuthLandingPath(user, business);
+  const trialExpiry =
+    business?.trial_expires ||
+    user?.trial_expires ||
+    user?.entitlement?.trial.expiresAt;
 
   useEffect(() => {
     if (isLoading) return;
+    if (landingPath !== "/dashboard") router.replace(landingPath);
+  }, [isLoading, landingPath, router]);
 
-    if (!user) {
-      router.push("/auth/login");
+  useEffect(() => {
+    if (
+      !trialExpiry ||
+      business?.activated ||
+      user?.entitlement?.subscriptionActive
+    ) {
       return;
     }
 
-    if (user.role === "admin" && business && !business.activated) {
-      const hasAccess = user.entitlement?.accessAllowed === true;
-      if (!hasAccess) {
-        router.push("/product-key");
+    let timeoutId: number;
+    const redirectWhenExpired = () => {
+      const remainingMs = new Date(trialExpiry).getTime() - Date.now();
+      if (remainingMs <= 0) {
+        router.replace("/subscriptions");
         return;
       }
-    }
 
-    if (user.role === "admin" && !business) {
-      router.push("/onboarding");
-      return;
-    }
+      timeoutId = window.setTimeout(
+        redirectWhenExpired,
+        Math.min(remainingMs, 2_147_000_000),
+      );
+    };
 
-    // Only redirect to dashboard if not already there to avoid redirect loops
-    if (
-      typeof window !== "undefined" &&
-      !window.location.pathname.startsWith("/dashboard")
-    ) {
-      router.push("/dashboard");
-    }
-  }, [user, business, isLoading, router]);
+    redirectWhenExpired();
+    return () => window.clearTimeout(timeoutId);
+  }, [business?.activated, router, trialExpiry, user?.entitlement?.subscriptionActive]);
 
-  if (isLoading || !user) {
+  if (isLoading || landingPath !== "/dashboard") {
     return (
       <div className="flex items-center justify-center h-screen bg-white dark:bg-slate-900">
         <div className="text-center">

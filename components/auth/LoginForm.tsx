@@ -9,6 +9,7 @@ import { AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { normalizeAuthUser } from "@/lib/authUser";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 import { AuthLayout, AuthCard, AuthButton, AuthInput } from "./AuthComponents";
 import { loginSchema, type LoginFormData } from "@/lib/validations/authSchemas";
 
@@ -67,15 +68,7 @@ export function LoginForm() {
         description: `Welcome back, ${userData.username}!`,
       });
 
-      // Determine redirect based on whether user has business set up
-      // If user has businessId or business data, they're ready for dashboard
-      // If not, they need to complete onboarding
-      if (userData.businessId || responseData.user.business) {
-        router.push("/dashboard");
-      } else {
-        // User needs to complete business setup
-        router.push("/onboarding");
-      }
+      router.replace(getAuthLandingPath(userData));
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "An unexpected error occurred";

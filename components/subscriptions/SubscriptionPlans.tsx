@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   BarChart3,
@@ -10,6 +9,7 @@ import {
   Clock,
   Factory,
   Headphones,
+  KeyRound,
   Package,
   ShieldCheck,
   Sparkles,
@@ -19,12 +19,12 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { BusinessEntitlement } from "@/lib/types";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 
 interface PaystackInitResponse {
   data?: {
@@ -217,6 +217,8 @@ export function SubscriptionPlans() {
   const isProcessing = Boolean(processingPlan);
   const currentPlan = business?.currentPlan as string | undefined;
   const currentPlanRank = currentPlan ? getPlanRank(currentPlan) : 0;
+  const canReturnToDashboard =
+    getAuthLandingPath(user, business) === "/dashboard";
 
   const handleSelectPlan = async (planId: string) => {
     setPaymentError(null);
@@ -312,9 +314,7 @@ export function SubscriptionPlans() {
         };
 
         loginWithApiData(updatedUser);
-        router.push(
-          `/product-key?prefill=${encodeURIComponent(activationKey)}`,
-        );
+        router.replace(getAuthLandingPath(updatedUser));
       };
 
       const popup = new window.PaystackPop();
@@ -366,14 +366,16 @@ export function SubscriptionPlans() {
             Flexible subscription plans for every business model
           </div>
 
-          <Link
-            className="absolute cursor-pointer top-10 left-10"
-            href="/dashboard"
-          >
-            <Button variant="outline" size="sm">
-              <ArrowLeft /> Back to Dashboard
+          {canReturnToDashboard && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute top-10 left-10"
+              onClick={() => router.push("/dashboard")}
+            >
+              Back to Dashboard
             </Button>
-          </Link>
+          )}
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
             Choose the right plan for your growth stage
           </h1>
@@ -381,6 +383,19 @@ export function SubscriptionPlans() {
             Start with the essentials or unlock advanced workflows for branches,
             credit, and production operations.
           </p>
+          {user && !canReturnToDashboard && (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-5"
+              onClick={() =>
+                router.push("/product-key?mode=activation")
+              }
+            >
+              <KeyRound className="mr-2 h-4 w-4" />
+              Enter a product key
+            </Button>
+          )}
         </header>
 
         {paymentError ? (

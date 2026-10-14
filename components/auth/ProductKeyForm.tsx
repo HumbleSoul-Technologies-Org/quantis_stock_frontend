@@ -10,6 +10,7 @@ import { AlertCircle, CheckCircle, Key, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { apiRequest, extractApiErrorMessage } from "@/lib/queryClient";
 import { normalizeAuthUser } from "@/lib/authUser";
+import { canStartTrial, getAuthLandingPath } from "@/lib/accessRouting";
 import { AuthCard, AuthInput, AuthButton } from "./AuthComponents";
 import {
   productKeySchema,
@@ -18,16 +19,26 @@ import {
 
 interface ProductKeyFormProps {
   defaultProductKey?: string;
+  activationOnly?: boolean;
 }
 
-export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
+export function ProductKeyForm({
+  defaultProductKey,
+  activationOnly = false,
+}: ProductKeyFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [restartLoading, setRestartLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
-  const { loginWithApiData, user, business } = useAuth();
+  const {
+    loginWithApiData,
+    user,
+    business,
+    isLoading: authLoading,
+  } = useAuth();
   const trialDays = user?.trial_days ?? 30;
-  const trialActive = user?.entitlement?.trialActive === true;
+  const trialAvailable = !activationOnly && canStartTrial(user, business);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -37,6 +48,7 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
     watch,
     formState: { errors },
     setError,
+    clearErrors,
     setValue,
   } = useForm<ProductKeyFormData>({
     resolver: zodResolver(productKeySchema),
@@ -114,7 +126,7 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
       // Update auth context with the validated data
       loginWithApiData(newUser);
       if (user || (business && business.activated)) {
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }
     } catch (error) {
       const errorMessage =
@@ -140,6 +152,14 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
   }, [defaultProductKey, setValue]);
 
   useEffect(() => {
+    if (authLoading) return;
+    const landingPath = getAuthLandingPath(user, business);
+    if (activationOnly && landingPath === "/subscriptions") return;
+    if (landingPath !== "/product-key") router.replace(landingPath);
+  }, [authLoading, business, router, user]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
     const key = productKeyValue?.trim();
     if (!key || key === autoSubmittedKey) {
       return;
@@ -156,7 +176,59 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [autoSubmittedKey, handleSubmit, onSubmit, productKeyValue]);
+  }, [authLoading, autoSubmittedKey, handleSubmit, onSubmit, productKeyValue, user]);
+
+  const startTrial = async () => {
+    if (!user?.id || !user.token) {
+      router.replace("/auth/login");
+      return;
+    }
+
+    if (!canStartTrial(user, business)) {
+      router.replace(getAuthLandingPath(user, business));
+      return;
+    }
+
+    setIsStartingTrial(true);
+    clearErrors("root");
+    try {
+      const response = await apiRequest(
+        "POST",
+        `/users/${user.id}/start-trial`,
+        {},
+        user.token,
+      );
+
+      if (!response.ok || !response.data?.user) {
+        throw new Error(
+          response.ok
+            ? "The server did not return updated account access."
+            : extractApiErrorMessage(response),
+        );
+      }
+
+      const updatedUser = normalizeAuthUser(
+        response.data.user,
+        user.token,
+        user,
+      );
+      loginWithApiData(updatedUser);
+      router.replace(getAuthLandingPath(updatedUser));
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to start your trial. Please try again.";
+      setError("root", { message });
+      toast({
+        variant: "destructive",
+        title: "Trial could not be started",
+        description: message,
+      });
+    } finally {
+      setIsStartingTrial(false);
+    }
+  };
 
   const restartRegistration = async () => {
     setRestartLoading(true);
@@ -229,29 +301,31 @@ export function ProductKeyForm({ defaultProductKey }: ProductKeyFormProps) {
             type="submit"
             isLoading={isLoading}
             loadingText="Validating..."
-            disabled={isLoading}
+            disabled={isLoading || authLoading || !user}
           >
             <Key className="w-5 h-5 mr-2" />
             Validate Product Key
           </AuthButton>
 
-          <div className="space-y-3">
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-              No product key right now? Continue with your {trialDays}-day trial
-              and access the dashboard immediately. Your trial will still expire
-              after the configured period.
-            </p>
-            <AuthButton
-              type="button"
-              variant="blue"
-              onClick={() =>
-                router.push(trialActive ? "/dashboard" : "/product-key")
-              }
-              disabled={isLoading}
-            >
-              Continue with {trialDays}-day trial
-            </AuthButton>
-          </div>
+          {trialAvailable && (
+            <div className="space-y-3">
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                No product key right now? Continue with your {trialDays}-day
+                trial and access the dashboard immediately. Your trial will
+                still expire after the configured period.
+              </p>
+              <AuthButton
+                type="button"
+                variant="blue"
+                onClick={startTrial}
+                isLoading={isStartingTrial}
+                loadingText="Starting trial..."
+                disabled={isLoading || isStartingTrial}
+              >
+                Continue with {trialDays}-day trial
+              </AuthButton>
+            </div>
+          )}
 
           <p className="text-sm text-gray-500 dark:text-slate-500 text-center">
             Ran into a problem? OR don't have a product key?{" "}

@@ -11,12 +11,21 @@ export type FeatureId =
   | "credit_trace"
   | "multi_branch";
 
+export type BusinessAccessState =
+  | "onboarding_required"
+  | "trial_available"
+  | "trial_active"
+  | "trial_expired"
+  | "subscription_active";
+
 export interface BusinessEntitlement {
   businessId?: string | null;
   plan?: SubscriptionPlan | null;
   trialActive: boolean;
   subscriptionActive: boolean;
   accessAllowed: boolean;
+  trialAvailable?: boolean;
+  accessState?: BusinessAccessState;
   trial: {
     startsAt?: string | null;
     expiresAt?: string | null;
@@ -148,6 +157,7 @@ export interface Business {
   entitlement?: BusinessEntitlement;
   trial_start?: string;
   trial_expires?: string;
+  trialClaimedAt?: string;
   activated?: boolean; // New: whether the business is activated via product key
   activationKey?: string; // New: the product key used for activation
   isDemoActivation?: boolean; // New: demo activation flag

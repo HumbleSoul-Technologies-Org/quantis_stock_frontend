@@ -107,7 +107,10 @@ export function SalesTable({
 
       const response = await fetch(pdfEndpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(user?.token && { Authorization: `Bearer ${user.token}` }),
+        },
         body: JSON.stringify({
           receipts: receiptPayloads,
           filename: "sales-receipts.pdf",

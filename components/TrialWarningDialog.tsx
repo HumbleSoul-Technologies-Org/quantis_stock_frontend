@@ -13,6 +13,7 @@ import { useState } from "react";
 import { AlertCircle, Loader } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { normalizeAuthUser } from "@/lib/authUser";
 
 interface TrialWarningDialogProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ export function TrialWarningDialog({
   daysLeft,
   userId,
 }: TrialWarningDialogProps) {
-  const { user, updateTrialStatus } = useAuth();
+  const { user, loginWithApiData } = useAuth();
   const [productKey, setProductKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,8 +55,12 @@ export function TrialWarningDialog({
       );
 
       if (response.ok && response.data?.user) {
-        const { trial_expires, product_key_verified } = response.data.user;
-        updateTrialStatus(trial_expires, product_key_verified);
+        const updatedUser = normalizeAuthUser(
+          response.data.user,
+          user?.token,
+          user,
+        );
+        loginWithApiData(updatedUser);
         setSuccess(true);
         setProductKey("");
         setTimeout(() => {

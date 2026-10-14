@@ -35,6 +35,8 @@ import {
 } from "@/lib/queryClient";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/hooks/useToast";
+import { usePathname } from "next/navigation";
+import { getAuthLandingPath } from "@/lib/accessRouting";
 
 const normalizeCollectionPayload = (payload: unknown, fallbackKey?: string) => {
   if (Array.isArray(payload)) {
@@ -322,7 +324,11 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, business } = useAuth();
+  const pathname = usePathname();
+  const isAuthorizedDashboard =
+    pathname.startsWith("/dashboard") &&
+    getAuthLandingPath(user, business) === "/dashboard";
   const { error: toastError } = useToast();
   const activeBusinessId =
     user?.businessId ||
@@ -626,7 +632,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { data: suppliersData, refetch: refetchSuppliers } = useQuery({
     queryKey: ["suppliers", activeBusinessId],
     queryFn: () => apiSuppliers(user?.token, activeBusinessId),
-    enabled: !!user?.token && !!activeBusinessId && isInitialized,
+    enabled:
+      !!user?.token &&
+      !!activeBusinessId &&
+      isInitialized &&
+      isAuthorizedDashboard,
+    refetchInterval: 30000,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
@@ -634,7 +645,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { data: productsData, refetch: refetchProducts } = useQuery({
     queryKey: ["products", activeBusinessId],
     queryFn: () => apiProducts(user?.token, activeBusinessId),
-    enabled: !!user?.token && !!activeBusinessId && isInitialized,
+    enabled:
+      !!user?.token &&
+      !!activeBusinessId &&
+      isInitialized &&
+      isAuthorizedDashboard,
+    refetchInterval: 30000,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
@@ -642,7 +658,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { data: stockData, refetch: refetchStock } = useQuery({
     queryKey: ["stock", "movements", activeBusinessId, defaultBranchId],
     queryFn: () => apiStock(user?.token, activeBusinessId, defaultBranchId),
-    enabled: !!user?.token && !!activeBusinessId && isInitialized,
+    enabled:
+      !!user?.token &&
+      !!activeBusinessId &&
+      isInitialized &&
+      isAuthorizedDashboard,
+    refetchInterval: 20000,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
@@ -650,7 +671,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { data: salesData, refetch: refetchSales } = useQuery({
     queryKey: ["sales", activeBusinessId, defaultBranchId],
     queryFn: () => apiSales(user?.token, activeBusinessId, defaultBranchId),
-    enabled: !!user?.token && !!activeBusinessId && isInitialized,
+    enabled:
+      !!user?.token &&
+      !!activeBusinessId &&
+      isInitialized &&
+      isAuthorizedDashboard,
+    refetchInterval: 15000,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
@@ -659,7 +685,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryKey: ["sales", "returns", activeBusinessId, defaultBranchId],
     queryFn: () =>
       apiSaleReturns(user?.token, activeBusinessId, defaultBranchId),
-    enabled: !!user?.token && !!activeBusinessId && isInitialized,
+    enabled:
+      !!user?.token &&
+      !!activeBusinessId &&
+      isInitialized &&
+      isAuthorizedDashboard,
+    refetchInterval: 30000,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
@@ -667,7 +698,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { data: activitiesData, refetch: refetchActivities } = useQuery({
     queryKey: ["activities", activeBusinessId],
     queryFn: () => apiActivities(user?.token, activeBusinessId),
-    enabled: !!user?.token && !!activeBusinessId && isInitialized,
+    enabled:
+      !!user?.token &&
+      !!activeBusinessId &&
+      isInitialized &&
+      isAuthorizedDashboard,
+    refetchInterval: 30000,
     staleTime: 3000, // 3 seconds - prevent cache thrashing
   });
 
@@ -676,7 +712,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     {
       queryKey: ["security-audits", user?.id],
       queryFn: () => apiSecurityAudits(user?.token, user?.id),
-      enabled: !!user?.token && !!user?.id && isInitialized,
+      enabled:
+        !!user?.token &&
+        !!user?.id &&
+        isInitialized &&
+        isAuthorizedDashboard,
+      refetchInterval: 60000,
       staleTime: 60000, // 60 seconds - lower priority than activities
     },
   );
