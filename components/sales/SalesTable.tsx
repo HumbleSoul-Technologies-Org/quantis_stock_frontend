@@ -17,6 +17,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ReceiptPreviewDialog } from "./ReceiptPreviewDialog";
+import { API_BASE_URL } from "@/lib/config";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -79,6 +80,8 @@ export function SalesTable({
           : (sale.createdBy as any)?.username || "---",
       customerName: sale.customerName || "Walk-in",
       paymentMethod: sale.paymentType || "cash",
+      subtotal: items.reduce((sum, item) => sum + Number(item.total || 0), 0),
+      grandTotal: sale.totalAmount,
       txnId: sale.txnId,
       notes: sale.notes,
       items,
@@ -94,11 +97,7 @@ export function SalesTable({
       setIsDownloading(true);
 
       const receiptPayloads = sorted.map(buildBatchReceiptPayload);
-      const envBase =
-        typeof process !== "undefined"
-          ? process.env.NEXT_PUBLIC_API_BASE_URL
-          : undefined;
-      const serverBase = (envBase || "").replace(/\/$/, "");
+      const serverBase = API_BASE_URL.replace(/\/+$/, "");
       const pdfEndpoint = serverBase
         ? serverBase.endsWith("/api")
           ? `${serverBase}/pdf/generate`
@@ -115,7 +114,6 @@ export function SalesTable({
           receipts: receiptPayloads,
           filename: "sales-receipts.pdf",
         }),
-        credentials: "include",
       });
 
       if (!response.ok) {
@@ -133,7 +131,7 @@ export function SalesTable({
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       toast({
         title: "Download Ready",
@@ -177,7 +175,7 @@ export function SalesTable({
     setIsReceiptDialogOpen(true);
   };
 
-  const sorted = sales.sort(
+  const sorted = [...sales].sort(
     (a, b) =>
       new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
   );

@@ -29,6 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { format } from "date-fns";
+import { getSaleCreatorId } from "@/lib/salesUtils";
 
 function SalesPageContent() {
   const {
@@ -171,6 +172,7 @@ function SalesPageContent() {
       // Set error state in form instead of closing it
       setSaleFormError(errorMsg);
       console.error("Error saving sale:", error);
+      throw error;
     }
   };
 
@@ -278,7 +280,11 @@ function SalesPageContent() {
 
   const userSales =
     user?.role === "sales"
-      ? safeSales.filter((s: Sale) => s?.createdBy === (user?.id || user?._id))
+      ? safeSales.filter((sale: Sale) => {
+          return (
+            getSaleCreatorId(sale?.createdBy) === (user?.id || user?._id)
+          );
+        })
       : safeSales;
 
   // Calculate today's sales

@@ -16,9 +16,11 @@ export function ReceiptTemplate({ payLoad, receiptRef }: ReceiptTemplateProps) {
 
   const items = payLoad?.items || [];
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const taxRate = 0.1;
-  const tax = subtotal * taxRate;
-  const grandTotal = subtotal + tax;
+  const grandTotal =
+    payLoad?.totalAmount !== undefined &&
+    Number.isFinite(payLoad.totalAmount)
+      ? payLoad.totalAmount
+      : subtotal;
 
   const cashierName =
     typeof payLoad?.createdBy === "string"

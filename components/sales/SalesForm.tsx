@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from "uuid";
 import Select from "react-select";
 import { useToast } from "@/components/ui/use-toast";
 import { ReceiptTemplate } from "./ReceiptTemplate";
-import { downloadReceiptPdf } from "@/lib/pdfUtils";
+import { API_BASE_URL } from "@/lib/config";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import {
   getCurrentCreditSaleTxnId,
@@ -1067,19 +1067,17 @@ export const RecieptPreview = ({
         cashier: payLoad?.createdBy || "---",
         customerName: payLoad?.customerName || "Walk-in",
         paymentMethod: payLoad?.paymentType || "cash",
+        subtotal: receiptItems.reduce(
+          (sum, item) => sum + Number(item.total || 0),
+          0,
+        ),
+        grandTotal: payLoad?.totalAmount,
         txnId: payLoad?.txnId,
         notes: payLoad?.notes,
         items: receiptItems,
       };
 
-      const envBase =
-        typeof process !== "undefined"
-          ? process.env.NEXT_PUBLIC_API_BASE_URL
-          : undefined;
-      const serverBase = (envBase || "http://localhost:5000").replace(
-        /\/$/,
-        "",
-      );
+      const serverBase = API_BASE_URL.replace(/\/+$/, "");
       const pdfEndpoint = serverBase.endsWith("/api")
         ? `${serverBase}/pdf/generate`
         : `${serverBase}/api/pdf/generate`;
@@ -1090,7 +1088,6 @@ export const RecieptPreview = ({
           ...(user?.token && { Authorization: `Bearer ${user.token}` }),
         },
         body: JSON.stringify({ receipt: receiptPayload, filename }),
-        credentials: "include",
       });
 
       if (!res.ok) {
@@ -1106,7 +1103,7 @@ export const RecieptPreview = ({
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       toast({
         title: "Download Ready",

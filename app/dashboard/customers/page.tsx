@@ -52,6 +52,8 @@ import {
   Users,
 } from "lucide-react";
 import { exportCustomerPaymentHistoryToCSV } from "@/lib/exportUtils";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import Link from "next/link";
 
 interface CustomerFormData {
   name: string;
@@ -81,6 +83,8 @@ const defaultCustomerForm: CustomerFormData = {
 
 export default function CustomersPage() {
   const { user, business } = useAuth();
+  const { canAccess } = useFeatureAccess();
+  const canManageCustomers = canAccess("customer_management");
   const { getCurrencySymbol } = useSettings();
   const currencySymbol = getCurrencySymbol();
   const {
@@ -108,11 +112,11 @@ export default function CustomersPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (business && !fetchAttempted) {
+    if (business && canManageCustomers && !fetchAttempted) {
       setFetchAttempted(true);
       void fetchCustomers();
     }
-  }, [business, fetchCustomers, fetchAttempted]);
+  }, [business, canManageCustomers, fetchCustomers, fetchAttempted]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -260,6 +264,25 @@ export default function CustomersPage() {
   };
 
   if (!user) return null;
+
+  if (!canManageCustomers) {
+    return (
+      <Card className="mx-auto max-w-xl">
+        <CardHeader>
+          <CardTitle>Customer management is not available</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Customer management is available during your free trial and on
+            eligible subscription plans.
+          </p>
+          <Button asChild>
+            <Link href="/subscriptions">View subscription plans</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
