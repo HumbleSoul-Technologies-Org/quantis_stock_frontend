@@ -35,6 +35,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <meta
+        name="google-site-verification"
+        content="4MBLvB5UjUiKQhNpG9WrVKsRA5f42_oTu-MaG3_PaDs"
+      />
       <body className="font-sans antialiased">
         <Script
           src="https://js.paystack.co/v2/inline.js"
