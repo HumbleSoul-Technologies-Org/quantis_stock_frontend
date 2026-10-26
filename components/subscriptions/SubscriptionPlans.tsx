@@ -90,7 +90,7 @@ const plans = [
   {
     id: "wholesale",
     name: "Wholesale",
-    price: "KES 39,800",
+    price: "KES 35,000",
     period: "(One time payment)",
     tagline: "Built for growing distributors and multi-branch operations",
     description:
