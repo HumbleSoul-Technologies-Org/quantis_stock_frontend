@@ -90,7 +90,7 @@ const plans = [
   {
     id: "wholesale",
     name: "Wholesale",
-    price: "KES 35,000",
+    price: "KES 39,800",
     period: "(One time payment)",
     tagline: "Built for growing distributors and multi-branch operations",
     description:
@@ -283,8 +283,8 @@ export function SubscriptionPlans() {
           throw new Error(errorMessage);
         }
 
-        const verificationData =
-          verifyResponse.data?.data as PaystackVerificationResponse;
+        const verificationData = verifyResponse.data
+          ?.data as PaystackVerificationResponse;
         const activationKey = verificationData?.activationKey;
 
         if (!activationKey) {
@@ -294,7 +294,9 @@ export function SubscriptionPlans() {
         }
 
         if (!business) {
-          throw new Error("Business data is unavailable after payment verification.");
+          throw new Error(
+            "Business data is unavailable after payment verification.",
+          );
         }
 
         const updatedUser = {
@@ -388,9 +390,7 @@ export function SubscriptionPlans() {
               type="button"
               variant="outline"
               className="mt-5"
-              onClick={() =>
-                router.push("/product-key?mode=activation")
-              }
+              onClick={() => router.push("/product-key?mode=activation")}
             >
               <KeyRound className="mr-2 h-4 w-4" />
               Enter a product key
